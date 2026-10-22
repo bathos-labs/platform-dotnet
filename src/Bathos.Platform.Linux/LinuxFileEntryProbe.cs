@@ -8,6 +8,7 @@ public sealed partial class LinuxFileEntryProbe : IFileEntryProbe
 {
     public void RequireRegularFile(string path)
     {
+        FileEntryErrors.ValidatePath(path, nameof(path));
         // AT_FDCWD, AT_SYMLINK_NOFOLLOW, STATX_TYPE; statx has a fixed architecture-independent layout.
         if (StatX(-100, path, 0x100, 1, out var info) != 0) throw FileEntryErrors.Native();
         if ((info.Mask & 1) == 0) throw new IOException("The filesystem did not identify the file kind.");

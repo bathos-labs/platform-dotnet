@@ -9,6 +9,7 @@ public sealed partial class WindowsFileEntryProbe : IFileEntryProbe
 {
     public void RequireRegularFile(string path)
     {
+        FileEntryErrors.ValidatePath(path, nameof(path));
         if ((File.GetAttributes(path) & (FileAttributes.Directory | FileAttributes.ReparsePoint | FileAttributes.Device)) != 0)
             throw new IOException("An output file is occupied by a nonregular file or link.");
         using var handle = Open(path, 0x80, 7, IntPtr.Zero, 3, 0x00200000, IntPtr.Zero);

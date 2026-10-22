@@ -30,6 +30,30 @@ public sealed class NativeFileContractTests
     }
 
     [Fact]
+    public void EmbeddedNullPathsAreRejectedWithoutInspectingOrRenamingTheirPrefix()
+    {
+        var provider = Current();
+        var probe = provider.FileEntries;
+        Assert.NotNull(probe);
+        var directory = Directory.CreateTempSubdirectory("bathos-native-");
+        try
+        {
+            var source = Path.Combine(directory.FullName, "source.txt");
+            var destination = Path.Combine(directory.FullName, "destination.txt");
+            File.WriteAllText(source, "source");
+            Assert.Throws<ArgumentException>(() => probe.RequireRegularFile(source + "\0suffix"));
+            if (provider.FileRename is { } rename)
+            {
+                Assert.Throws<ArgumentException>(() => rename.Move(source + "\0suffix", destination, out _));
+                Assert.Throws<ArgumentException>(() => rename.Move(source, destination + "\0suffix", out _));
+                Assert.Equal("source", File.ReadAllText(source));
+                Assert.False(File.Exists(destination));
+            }
+        }
+        finally { directory.Delete(true); }
+    }
+
+    [Fact]
     public void ExclusiveRenamePreservesBothFilesUntilReplacementIsExplicit()
     {
         var rename = Current().FileRename;

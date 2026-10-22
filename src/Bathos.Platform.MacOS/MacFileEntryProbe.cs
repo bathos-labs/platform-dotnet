@@ -8,6 +8,7 @@ public sealed partial class MacFileEntryProbe : IFileEntryProbe
 {
     public void RequireRegularFile(string path)
     {
+        FileEntryErrors.ValidatePath(path, nameof(path));
         if (LStat(path, out var info) != 0) throw FileEntryErrors.Native();
         FileEntryErrors.RequireRegular(info.Mode);
     }

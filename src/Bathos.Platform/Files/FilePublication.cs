@@ -4,7 +4,7 @@ namespace Bathos.Platform.Files;
 
 /// <summary>
 /// Owns a private temporary sibling until complete bytes can be published with one native rename. Replacement requires explicit caller authorization.
-/// Disposal cleans up only that temporary file; published files survive cancellation, registration failure, and Undo.
+/// Disposal cleans up only that temporary file; published files survive cancellation and later caller failures.
 /// A publication is single-use and must not be accessed concurrently. Separate publications may race safely.
 /// </summary>
 public sealed class FilePublication : IAsyncDisposable

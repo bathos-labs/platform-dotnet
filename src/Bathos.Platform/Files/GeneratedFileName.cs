@@ -4,7 +4,7 @@ using System.Text;
 namespace Bathos.Platform.Files;
 
 /// <summary>
-/// Portable generated filename components, independent of Project or Asset policy.
+/// Portable generated filename components, independent of application naming policy.
 /// The caller supplies a base name without an extension and an optional origin/kind.
 /// Publication assigns the numeric suffix; it is not an identity or a reserved sequence.
 /// </summary>
