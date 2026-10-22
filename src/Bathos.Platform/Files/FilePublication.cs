@@ -15,6 +15,11 @@ public sealed class FilePublication : IAsyncDisposable
     private bool _completed;
     private bool _ownsTemporary = true;
 
+    /// <summary>Creates and exclusively opens a temporary sibling in an absolute directory, creating the directory if needed.</summary>
+    /// <exception cref="ArgumentException">The directory is empty or is not absolute.</exception>
+    /// <exception cref="ArgumentNullException">The directory or rename provider is null.</exception>
+    /// <exception cref="IOException">The directory or staging file cannot be created.</exception>
+    /// <exception cref="UnauthorizedAccessException">The caller cannot create the directory or staging file.</exception>
     public FilePublication(string directory, INativeFileRename rename)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
@@ -31,6 +36,10 @@ public sealed class FilePublication : IAsyncDisposable
     public FileStream Stream { get; }
 
     /// <summary>Claims the first available candidate at publication, retrying only native destination collisions.</summary>
+    /// <returns>The absolute published path.</returns>
+    /// <exception cref="OperationCanceledException">Cancellation was observed before successful publication.</exception>
+    /// <exception cref="InvalidOperationException">Publication was already attempted or the operation was disposed.</exception>
+    /// <exception cref="IOException">Staging could not be flushed or published.</exception>
     public Task<string> PublishAsync(GeneratedFileName name, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -38,6 +47,11 @@ public sealed class FilePublication : IAsyncDisposable
     }
 
     /// <summary>Publishes an explicitly selected filename verbatim. The caller must authorize replacement; otherwise collisions fail.</summary>
+    /// <returns>The absolute published path.</returns>
+    /// <exception cref="ArgumentException">The name is invalid, contains a directory component, or identifies staging.</exception>
+    /// <exception cref="OperationCanceledException">Cancellation was observed before successful publication.</exception>
+    /// <exception cref="InvalidOperationException">Publication was already attempted or the operation was disposed.</exception>
+    /// <exception cref="IOException">Staging could not be flushed or published, including an unauthorized collision.</exception>
     public Task<string> PublishExactAsync(string fileName, CancellationToken token, bool replaceExisting = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
@@ -76,6 +90,8 @@ public sealed class FilePublication : IAsyncDisposable
         }
     }
 
+    /// <summary>Closes the stream and attempts to remove owned staging once. Never removes a successfully published output.</summary>
+    /// <remarks>Cleanup IO and access failures are suppressed so disposal does not mask publication failure.</remarks>
     public async ValueTask DisposeAsync()
     {
         _completed = true;

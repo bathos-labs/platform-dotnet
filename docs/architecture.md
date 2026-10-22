@@ -19,6 +19,3 @@ AppKit owns native screen selection and callback completion. The supplied dispat
 the native main loop, allowing the callback to unwind before resource cleanup. The host keeps that loop alive.
 Callers that retire while sampling must reject stale results. OS compatibility and capability availability do not
 imply permission or successful operation.
-
-This repository was extracted from Makura Studio's reusable platform boundary. It contains no Studio runtime
-references. The public distribution is MIT licensed; unrelated Bathos/Studio packages have separate licensing.

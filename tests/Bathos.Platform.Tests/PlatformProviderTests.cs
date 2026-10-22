@@ -45,8 +45,10 @@ public sealed class PlatformProviderTests
             foreach (var reference in assembly.GetReferencedAssemblies())
             {
                 var name = reference.Name ?? string.Empty;
-                Assert.False(name.StartsWith("Avalonia", StringComparison.Ordinal) || name.StartsWith("Makura", StringComparison.Ordinal) ||
-                    name.StartsWith("Microsoft.Extensions", StringComparison.Ordinal) || name.StartsWith("Bathos.Platform.", StringComparison.Ordinal), name);
+                var runtime = name == "System" || name.StartsWith("System.", StringComparison.Ordinal) ||
+                    name is "netstandard" or "Microsoft.Win32.Primitives";
+                var sharedCore = assembly != core && name == core.GetName().Name;
+                Assert.True(runtime || sharedCore, $"Unexpected dependency from {assembly.GetName().Name}: {name}");
             }
     }
 }

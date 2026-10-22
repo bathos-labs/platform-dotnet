@@ -10,6 +10,11 @@ namespace Bathos.Platform.Files;
 /// </summary>
 public sealed class GeneratedFileName
 {
+    /// <summary>Normalizes portable name components, bounds their UTF-8 length, and escapes Windows device names.</summary>
+    /// <param name="baseName">Nonblank base name without its extension.</param>
+    /// <param name="extension">A dot followed by 1–16 ASCII letters or digits.</param>
+    /// <param name="kind">Optional secondary component; blank values are omitted.</param>
+    /// <exception cref="ArgumentException">The base name is blank or the extension is invalid.</exception>
     public GeneratedFileName(string baseName, string extension, string? kind = null)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(baseName);
@@ -30,6 +35,8 @@ public sealed class GeneratedFileName
     private string Stem { get; }
     private string Extension { get; }
 
+    /// <summary>Returns the normalized filename, adding a numeric suffix for sequences greater than one.</summary>
+    /// <exception cref="ArgumentOutOfRangeException">The sequence is less than one.</exception>
     public string Candidate(int sequence)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(sequence, 1);
