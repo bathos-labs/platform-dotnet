@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup>
+    <ProjectReference Include="../../src/Bathos.Platform/Bathos.Platform.csproj" />
+    <ProjectReference Include="../../src/Bathos.Platform.MacOS/Bathos.Platform.MacOS.csproj" />
+    <ProjectReference Include="../../src/Bathos.Platform.Windows/Bathos.Platform.Windows.csproj" />
+    <ProjectReference Include="../../src/Bathos.Platform.Linux/Bathos.Platform.Linux.csproj" />
+  </ItemGroup>
+</Project>

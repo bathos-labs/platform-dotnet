@@ -1,0 +1,57 @@
+name: Native validation
+on:
+  push:
+    branches: [master]
+  pull_request:
+  workflow_dispatch:
+  workflow_call:
+permissions:
+  contents: read
+concurrency:
+  group: native-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: ${{ !startsWith(github.ref, 'refs/tags/') }}
+env:
+  DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+  DOTNET_NOLOGO: '1'
+jobs:
+  native:
+    name: Native (${{ matrix.os }})
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-24.04, windows-2025, macos-15]
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - run: dotnet --info
+      - run: git show --format= --check HEAD
+      - run: dotnet restore Bathos.Platform.slnx --locked-mode
+      - run: dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+      - run: dotnet build Bathos.Platform.slnx --configuration Release --no-restore
+      - run: dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --report-xunit-trx --results-directory artifacts/test-results
+      - run: dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
+      - run: dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
+      - name: Retain native test evidence
+        if: ${{ !cancelled() }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: native-results-${{ matrix.os }}
+          path: artifacts/test-results/
+          if-no-files-found: warn
+          retention-days: 14
+      - name: Retain verified release packages
+        if: ${{ matrix.os == 'ubuntu-24.04' }}
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
+        with:
+          name: packages
+          path: artifacts/packages/
+          if-no-files-found: error
+          retention-days: 14

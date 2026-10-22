@@ -1,0 +1,14 @@
+<Solution>
+  <Folder Name="/src/">
+    <Project Path="src/Bathos.Platform/Bathos.Platform.csproj" />
+    <Project Path="src/Bathos.Platform.MacOS/Bathos.Platform.MacOS.csproj" />
+    <Project Path="src/Bathos.Platform.Windows/Bathos.Platform.Windows.csproj" />
+    <Project Path="src/Bathos.Platform.Linux/Bathos.Platform.Linux.csproj" />
+  </Folder>
+  <Folder Name="/tests/">
+    <Project Path="tests/Bathos.Platform.Tests/Bathos.Platform.Tests.csproj" />
+  </Folder>
+  <Folder Name="/eng/">
+    <Project Path="eng/Bathos.Platform.Build/Bathos.Platform.Build.csproj" />
+  </Folder>
+</Solution>

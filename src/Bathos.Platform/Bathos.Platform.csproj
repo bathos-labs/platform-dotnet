@@ -1,0 +1,5 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <Import Project="../../eng/Bathos.Package.props" />
+
+  <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.MacOS" /><InternalsVisibleTo Include="Bathos.Platform.Windows" /><InternalsVisibleTo Include="Bathos.Platform.Linux" /></ItemGroup>
+</Project>

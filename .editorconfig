@@ -1,0 +1,105 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+trim_trailing_whitespace = true
+indent_style = space
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+[*.cs]
+indent_size = 4
+
+# Organize imports deterministically.
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# Prefer the language forms used throughout this repository.
+csharp_style_namespace_declarations = file_scoped:warning
+csharp_style_prefer_primary_constructors = false:silent
+csharp_style_implicit_object_creation_when_type_is_apparent = true:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+csharp_style_prefer_null_check_over_type_check = true:suggestion
+csharp_style_prefer_top_level_statements = false:silent
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+
+# Keep members and expressions explicit at architecture boundaries.
+dotnet_style_qualification_for_field = false:suggestion
+dotnet_style_qualification_for_property = false:suggestion
+dotnet_style_qualification_for_method = false:suggestion
+dotnet_style_qualification_for_event = false:suggestion
+dotnet_style_require_accessibility_modifiers = for_non_interface_members:suggestion
+dotnet_style_readonly_field = true:warning
+dotnet_style_prefer_auto_properties = true:warning
+dotnet_style_prefer_collection_expression = never:silent
+dotnet_style_prefer_simplified_boolean_expressions = true:suggestion
+
+# Formatting gates enforced by dotnet format and the build.
+dotnet_diagnostic.IDE0005.severity = warning
+dotnet_diagnostic.IDE0032.severity = warning
+dotnet_diagnostic.IDE0044.severity = warning
+dotnet_diagnostic.IDE0055.severity = warning
+
+# Rider shares the repository's syntax preferences instead of applying personal defaults.
+resharper_csharp_trailing_comma_in_multiline_lists = true
+resharper_csharp_trailing_comma_in_singleline_lists = false
+csharp_object_creation_when_type_evident = target_typed
+csharp_object_creation_when_type_not_evident = explicitly_typed
+resharper_arrange_redundant_parentheses_highlighting = none
+
+# These transformations are context-dependent design choices rather than quality findings.
+resharper_change_field_type_to_system_threading_lock_highlighting = none
+resharper_convert_if_statement_to_switch_statement_highlighting = none
+resharper_convert_if_statement_to_return_statement_highlighting = none
+resharper_convert_to_auto_property_with_private_setter_highlighting = warning
+resharper_convert_to_using_declaration_highlighting = none
+resharper_foreach_can_be_converted_to_query_using_another_get_enumerator_highlighting = none
+resharper_foreach_can_be_partly_converted_to_query_using_another_get_enumerator_highlighting = none
+resharper_invert_if_highlighting = none
+resharper_invoke_as_extension_member_highlighting = none
+resharper_loop_can_be_converted_to_query_highlighting = none
+resharper_loop_can_be_partly_converted_to_query_highlighting = none
+resharper_move_local_function_after_jump_statement_highlighting = none
+resharper_replace_with_field_keyword_highlighting = none
+
+# This heuristic cannot model our awaited work and owner-scoped callback retirement.
+# Captured resources must outlive callbacks: join work/unregister callbacks before disposal.
+# Keep lifetime regression tests; this does not disable other disposal or compiler diagnostics.
+resharper_access_to_disposed_closure_highlighting = none
+
+# Naming
+dotnet_naming_rule.constants_use_pascal_case.symbols = constants
+dotnet_naming_rule.constants_use_pascal_case.style = pascal_case
+dotnet_naming_rule.constants_use_pascal_case.severity = warning
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+dotnet_naming_rule.static_readonly_fields_use_pascal_case.symbols = static_readonly_fields
+dotnet_naming_rule.static_readonly_fields_use_pascal_case.style = pascal_case
+dotnet_naming_rule.static_readonly_fields_use_pascal_case.severity = warning
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.static_readonly_fields.required_modifiers = static, readonly
+dotnet_naming_rule.private_fields_use_underscore_prefix.symbols = private_fields
+dotnet_naming_rule.private_fields_use_underscore_prefix.style = underscore_prefix
+dotnet_naming_rule.private_fields_use_underscore_prefix.severity = warning
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private
+dotnet_naming_style.pascal_case.capitalization = pascal_case
+dotnet_naming_style.underscore_prefix.required_prefix = _
+dotnet_naming_style.underscore_prefix.capitalization = camel_case
+
+[*.{csproj,props,targets,slnx,axaml}]
+indent_size = 2
+
+[*.{json,yml,yaml}]
+indent_size = 2
+
+[*.{bat,cmd}]
+end_of_line = crlf

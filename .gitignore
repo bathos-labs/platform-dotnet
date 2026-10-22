@@ -1,0 +1,53 @@
+# .NET build and test output
+**/[Bb]in/
+**/[Oo]bj/
+artifacts/
+publish/
+TestResults/
+coverage/
+*.binlog
+*.coverage
+*.coveragexml
+*.trx
+
+# NuGet and local tools
+.task/
+*.nupkg
+*.snupkg
+/packages/
+/.nuget/
+/.dotnet/
+
+# IDE and user state
+.idea/
+.vs/
+.vscode/
+_ReSharper*/
+*.DotSettings.user
+*.suo
+*.user
+*.userosscache
+*.sln.docstates
+
+# Local configuration and secrets
+.env
+.env.*
+!.env.example
+appsettings.*.local.json
+*.pfx
+*.p12
+*.key
+
+# Operating-system metadata
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Diagnostics and crash output
+*.dmp
+*.stackdump
