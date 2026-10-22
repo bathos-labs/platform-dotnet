@@ -6,7 +6,7 @@ Evidence applies to the named host and scenarios. A build or skipped test is not
 | --- | --- |
 | macOS Arm64, macOS 26.6.2 | `task check`: 30 tests passed, formatting/build/package checks passed; README publication example ran twice and preserved both outputs. |
 | macOS harness, same host | `task eng:sampler:smoke` passed: dispatch is deferred, main-thread access is enforced, worker dispatch completes, and the native application exits after owned work. |
-| macOS interactive sampler | User confirmed the macOS sampler test on 2026-10-22. Exact OS/display details were not supplied with that confirmation. The new color preview still needs visual confirmation. |
+| macOS interactive sampler | User confirmed the macOS sampler tests and color preview on 2026-10-22. Exact OS/display details were not supplied with that confirmation. |
 | Windows | Local confirmation pending. Run `task check` and record OS/architecture and results here. The sampler is unavailable on Windows. |
 | Linux | Temporarily experimental pending broader host/filesystem validation. CI exercises file inspection on Linux x64; no Linux desktop evidence has been recorded here. Rename/publication and sampling are unavailable. |
 
