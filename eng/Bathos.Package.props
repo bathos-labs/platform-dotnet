@@ -2,10 +2,10 @@
   <PropertyGroup>
     <IsPackable>true</IsPackable>
     <PackageId>$(MSBuildProjectName)</PackageId>
-    <Description>Toolkit-independent native platform capabilities for .NET, with explicit host composition.</Description>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
-    <PackageTags>native;platform;files;windows;macos;linux</PackageTags>
+    <PackageTags>native;platform;files;desktop;color-picker;windows;macos;linux</PackageTags>
+    <PackageReleaseNotes>Initial public beta for .NET 10. Linux support is experimental; prerelease APIs may change. Release notes: https://github.com/bathos-labs/platform-dotnet/blob/v$(Version)/CHANGELOG.md</PackageReleaseNotes>
     <PublishRepositoryUrl>true</PublishRepositoryUrl>
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>

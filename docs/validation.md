@@ -14,10 +14,10 @@ Evidence applies to the named host and scenarios. A build or skipped test is not
 | Linux desktop | Experimental. No interactive desktop evidence is available. Sampling requires a supporting portal backend and system libdbus. Rename/publication remain unavailable. |
 | Desktop API, Windows x64 build 26200, 2026-10-23 | Release build and tests passed (35 passed, 16 platform-specific skips), including owned executable handoff and isolated App Paths registration lookup. Visible Explorer/editor behavior is pending manual validation. |
 | Desktop API, Ubuntu 22.04 x64 WSL2, 2026-10-23 | Release build, tests (40 passed, 11 unsupported publication skips), packaging, and isolated Linux package consumption passed. Owned GIO desktop-entry activation and all three private file-manager protocol cases passed; no desktop acceptance is implied. |
-| Desktop API, macOS | Compiled on Windows and Linux. Native LaunchServices lookup, Finder reveal, and application-bundle handoff have not been exercised on a macOS host in this change. |
+| Desktop API, macOS CI (`macos-15`) | [Native validation for `09eccf8`](https://github.com/bathos-labs/platform-dotnet/actions/runs/39794923968) passed: 36 tests passed, 15 platform-specific skips; native LaunchServices lookup, owned executable handoff, formatting/build/package checks, and isolated macOS package consumption passed. Interactive Finder reveal and bundle handoff remain unverified. |
 
 Undated automated sampler/file evidence above was collected on 2026-10-22; later desktop API checks and interactive confirmations carry their own dates.
-Remote CI results were not inspected as part of this run.
+The three-OS CI run for `09eccf8` was inspected during beta preparation on 2026-10-23; all jobs passed.
 Permission-denied, cross-volume, special-file, and additional filesystem scenarios still need separate evidence.
 
 ## macOS and Windows screen sampler

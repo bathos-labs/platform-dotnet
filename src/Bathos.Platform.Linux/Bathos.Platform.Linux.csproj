@@ -1,6 +1,9 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../eng/Bathos.Package.props" />
-  <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
+  <PropertyGroup>
+    <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
+    <Description>Experimental Linux native capabilities for .NET 10: statx regular-file inspection, file-manager reveal, explicit executable and desktop-entry handoff, GIO discovery, and optional desktop-portal color selection. Native rename and atomic file publication are unavailable.</Description>
+  </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Bathos.Platform/Bathos.Platform.csproj" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.Tests" /></ItemGroup>
 

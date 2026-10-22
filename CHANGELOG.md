@@ -9,6 +9,11 @@ development, the API may change without compatibility shims; breaking changes ar
 
 ## [Unreleased]
 
+## [0.1.0-beta.1] - 2026-10-23
+
+Initial public beta. Targets .NET 10; all four packages share this version. Linux support is experimental.
+Prerelease APIs may change without compatibility shims.
+
 ### Added
 
 - Native file reveal and explicit application handoff capabilities, with host-supplied executable, macOS bundle,
@@ -23,14 +28,13 @@ development, the API may change without compatibility shims; breaking changes ar
 - Experimental opt-in Linux screen color sampling through the desktop portal and system libdbus, without a host dispatcher.
 - Independently selectable MIT-licensed core, macOS, Windows, and Linux packages targeting .NET 10.
 
-### Changed
+### Limitations
 
-- Breaking: custom `IPlatformProvider` implementations must now expose `FileRevealer` and `FileInvoker` capabilities.
-- Screen colors describe eight-bit RGB for ordinary color selection; calibrated sRGB screen appearance is no longer promised.
+- Linux native rename and atomic file publication are unavailable. Linux desktop integration has headless protocol
+  and native GIO test coverage, but no interactive desktop acceptance record.
+- Screen colors are opaque eight-bit RGB for ordinary selection, without calibrated color or HDR guarantees.
+- Desktop handoff reports native submission, not document readiness or application focus. Interactive Finder,
+  Explorer, and editor validation remains pending; see the native validation record.
 
-### Fixed
-
-- Publication relinquishes its staging path after a successful rename or disposal, preserving files subsequently
-  created at that path. Publishing onto the staging filename is rejected.
-
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/tree/master
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v0.1.0-beta.1...master
+[0.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v0.1.0-beta.1

@@ -8,7 +8,7 @@
       "bathos.platform.linux": {
         "type": "Project",
         "dependencies": {
-          "Bathos.Platform": "[0.1.0-alpha.1, )"
+          "Bathos.Platform": "[0.1.0-beta.1, )"
         }
       }
     }
