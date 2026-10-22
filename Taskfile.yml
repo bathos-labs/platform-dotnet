@@ -1,0 +1,92 @@
+# https://taskfile.dev/docs/reference/schema/
+version: '3'
+
+# Keep restore/build/test operations sequential; Task's deps run concurrently.
+tasks:
+  default:
+    desc: List development and release commands
+    silent: true
+    cmds:
+      - task --list
+
+  restore:
+    desc: Restore locked NuGet dependencies
+    cmds:
+      - dotnet restore Bathos.Platform.slnx --locked-mode
+
+  build:
+    desc: Restore and build Release with analyzers
+    cmds:
+      - task: restore
+      - dotnet build Bathos.Platform.slnx --configuration Release --no-restore
+
+  format:
+    desc: Apply source formatting
+    cmds:
+      - task: restore
+      - dotnet format Bathos.Platform.slnx --no-restore
+
+  format:check:
+    desc: Verify source formatting without edits
+    cmds:
+      - task: restore
+      - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+
+  test:
+    desc: Build and run native tests on this host
+    cmds:
+      - task: build
+      - dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
+
+  pack:
+    desc: Build NuGet packages and symbols locally (does not publish)
+    cmds:
+      - task: build
+      - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
+
+  packages:check:
+    desc: Pack and verify MIT metadata and an isolated single-provider consumer
+    cmds:
+      - task: pack
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
+
+  check:
+    desc: Run the complete local validation sequence, including package consumption
+    cmds:
+      - git diff --check
+      - task: restore
+      - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+      - dotnet build Bathos.Platform.slnx --configuration Release --no-restore
+      - dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
+      - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
+
+  release:check:
+    desc: Validate locally and verify the proposed tag matches the package version (TAG=vX.Y.Z)
+    requires:
+      vars: [TAG]
+    cmds:
+      - task: check
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-tag {{.TAG | shellQuote}}
+
+  release:tag:
+    desc: Validate and create an annotated local release tag; does not push (TAG=vX.Y.Z)
+    requires:
+      vars: [TAG]
+    preconditions:
+      - sh: test -z "$(git status --porcelain)"
+        msg: Commit the version, changelog, lockfiles, and any other changes before tagging.
+      - sh: test "$(git branch --show-current)" = master
+        msg: Create release tags from master.
+    cmds:
+      - task: release:check
+        vars:
+          TAG: '{{.TAG}}'
+      - git tag -a {{.TAG | shellQuote}} -m {{printf "Release %s" .TAG | shellQuote}}
+
+  release:push:
+    desc: Push one existing release tag to origin, triggering public NuGet publication (TAG=vX.Y.Z)
+    requires:
+      vars: [TAG]
+    cmds:
+      - git push origin {{printf "refs/tags/%s:refs/tags/%s" .TAG .TAG | shellQuote}}

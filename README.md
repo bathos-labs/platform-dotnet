@@ -34,6 +34,10 @@ thread and defer posted work until the current callback unwinds. Keep the native
 Samples are opaque sRGB screen appearance, not original image samples. AppKit owns selection and Escape; retiring
 a caller does not dismiss the native chooser. Interactive sampling requires manual verification.
 
-See [architecture](docs/architecture.md), [contribution and validation](CONTRIBUTING.md), and
-[NuGet releases](RELEASING.md). Package availability follows published releases; repository builds alone do not
+See [architecture](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/architecture.md), [contribution and validation](https://github.com/bathos-labs/platform-dotnet/blob/master/CONTRIBUTING.md), and
+[NuGet releases](https://github.com/bathos-labs/platform-dotnet/blob/master/RELEASING.md). Package availability follows published releases; repository builds alone do not
 publish to NuGet.org.
+
+For local development, run `task check` to validate and `task --list` to see focused commands. Task is optional;
+the contribution guide includes direct SDK commands. Consumer-facing release notes live in the
+[changelog](https://github.com/bathos-labs/platform-dotnet/blob/master/CHANGELOG.md).

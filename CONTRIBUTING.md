@@ -4,7 +4,8 @@ Use the SDK pinned by `global.json`. The default branch is `master`. Keep change
 capability absence, native-resource ownership, nullable analysis, and publication guarantees. Update tests and docs
 with contract changes. No compatibility aliases or migrations are needed for unreleased APIs unless explicitly agreed.
 
-Run from the repository root on Windows, macOS, or Linux:
+Run `task check` from the repository root on Windows, macOS, or Linux. `task --list` lists focused build, test,
+formatting, packaging, and release commands. [Task](https://taskfile.dev/) is optional; the equivalent SDK commands are:
 
 ```text
 dotnet restore Bathos.Platform.slnx --locked-mode
@@ -30,3 +31,10 @@ Native CI runs on Linux x64, Windows x64, and macOS Arm64 for PRs and `master`, 
 An OS-specific failure is not excused by passing on another host. AppKit screen selection is manual: invoke the picker
 in a native host, sample inside/outside the application, cancel with Escape, and repeat; verify main-loop cleanup and
 caller retirement. Do not weaken system privacy controls to automate selection.
+
+## Changelog
+
+Record consumer-visible changes under `Unreleased` in [CHANGELOG.md](CHANGELOG.md), grouped as Added, Changed,
+Deprecated, Removed, Fixed, or Security as appropriate. Omit empty categories and internal-only maintenance.
+Describe observable behavior and call out breaking API changes. Do not record an unreleased version as published.
+Follow [RELEASING.md](RELEASING.md) when moving notes into a dated release section.

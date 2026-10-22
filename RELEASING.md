@@ -18,12 +18,31 @@ by committing this workflow. Official setup: https://learn.microsoft.com/en-us/n
 
 ## Publish
 
-Update the shared version and provider project-dependency lockfiles, run validation, and merge into `master`.
-After checking the intended commit and MIT package contents:
+1. Choose the next Semantic Version (including a prerelease suffix where appropriate) and update `Version` in
+   `Directory.Build.props`. Run an unlocked restore to update affected provider dependency lockfiles, and review them.
+2. Move consumer-facing notes from `Unreleased` in [CHANGELOG.md](CHANGELOG.md) into `## [<Version>] - YYYY-MM-DD`.
+   Keep an `Unreleased` section for future changes. Add a release link to its tag and update the `Unreleased` link to
+   compare that tag with `master`. The initial release remains under `Unreleased` until release preparation.
+3. Run `task release:check TAG=v<Version>`, commit the version, changelog, and lockfiles, then merge/push to `master`
+   and wait for green native CI. The local check covers only the current host; CI covers all three platforms.
+4. Create and push the explicit release tag:
 
 ```text
+task release:tag TAG=v0.1.0-alpha.1
+task release:push TAG=v0.1.0-alpha.1
+```
+
+`release:tag` requires a clean `master`, repeats local validation, verifies the tag matches the package version, and
+creates an annotated local tag. `release:push` pushes only that tag, not branch commits or other tags. Push `master`
+first: CI rejects a tagged commit outside remote `master`. Neither task updates versions, commits changes, or edits
+release notes automatically. Review the dated changelog before tagging.
+
+Task is optional. After running the SDK validation sequence in CONTRIBUTING.md, the corresponding commands are:
+
+```text
+dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-tag v0.1.0-alpha.1
 git tag -a v0.1.0-alpha.1 -m "Release 0.1.0-alpha.1"
-git push origin v0.1.0-alpha.1
+git push origin refs/tags/v0.1.0-alpha.1
 ```
 
 Use the actual committed version. Tags authorize public NuGet publication. Do not move published tags or reuse a
