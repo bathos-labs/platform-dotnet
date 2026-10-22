@@ -10,5 +10,6 @@
   </Folder>
   <Folder Name="/eng/">
     <Project Path="eng/Bathos.Platform.Build/Bathos.Platform.Build.csproj" />
+    <Project Path="eng/Bathos.Platform.Sampler/Bathos.Platform.Sampler.csproj" />
   </Folder>
 </Solution>

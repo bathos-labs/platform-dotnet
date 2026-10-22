@@ -11,7 +11,8 @@ never a fallback. Cancellation after successful rename cannot reinterpret public
 staging. File-kind inspection rejects links and special files without opening POSIX special entries; inspection is
 advisory and is not a path reservation.
 
-Linux is its own runtime target, not generic POSIX. Its statx provider currently supplies file-kind inspection only.
+Linux is its own runtime target, not generic POSIX. Its experimental statx provider currently supplies file-kind
+inspection only; broader host validation is pending.
 Do not hide missing capabilities behind a weaker implementation. Add capabilities from demonstrated consumers,
 keeping product entities, document lifecycle, path policy, UI toolkits, and image pipelines in their owning packages.
 

@@ -61,6 +61,18 @@ tasks:
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 
+  sampler:
+    desc: Launch the macOS manual screen sampler sequence
+    cmds:
+      - task: build
+      - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build
+
+  sampler:smoke:
+    desc: Verify the macOS native dispatcher and shutdown without opening the picker
+    cmds:
+      - task: build
+      - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build -- --smoke
+
   release:check:
     desc: Validate locally and verify the proposed tag matches the package version (TAG=vX.Y.Z)
     requires:

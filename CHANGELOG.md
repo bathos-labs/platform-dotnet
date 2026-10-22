@@ -14,7 +14,7 @@ development, the API may change without compatibility shims; breaking changes ar
 - Toolkit-independent native capability interfaces, OS detection, and explicit provider selection for host composition.
 - Atomic staged file publication with exclusive creation and explicit replacement, without cross-volume copy fallbacks.
 - macOS and Windows native rename and regular-file inspection providers.
-- Linux regular-file inspection through statx; native rename and screen sampling are not yet provided on Linux.
+- Experimental Linux regular-file inspection through statx; native rename and screen sampling are not yet provided on Linux.
 - Optional macOS AppKit screen color sampling through a host-supplied native dispatcher.
 - Independently selectable MIT-licensed core, macOS, Windows, and Linux packages targeting .NET 10.
 
