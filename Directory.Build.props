@@ -1,5 +1,7 @@
 <Project>
   <PropertyGroup>
+    <!-- Preserve the caller configuration when these projects are linked from an external solution. -->
+    <ShouldUnsetParentConfigurationAndPlatform>false</ShouldUnsetParentConfigurationAndPlatform>
     <TargetFramework>net10.0</TargetFramework>
     <LangVersion>14.0</LangVersion>
     <Nullable>enable</Nullable>
