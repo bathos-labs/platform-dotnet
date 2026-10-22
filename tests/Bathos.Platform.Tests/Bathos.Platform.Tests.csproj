@@ -4,5 +4,16 @@
     <ProjectReference Include="../../src/Bathos.Platform.MacOS/Bathos.Platform.MacOS.csproj" />
     <ProjectReference Include="../../src/Bathos.Platform.Windows/Bathos.Platform.Windows.csproj" />
     <ProjectReference Include="../../src/Bathos.Platform.Linux/Bathos.Platform.Linux.csproj" />
+    <ProjectReference Include="../../eng/Bathos.Platform.TestApplication/Bathos.Platform.TestApplication.csproj" ReferenceOutputAssembly="false" />
   </ItemGroup>
+  <ItemGroup><None Update="PortalTestService.py" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <ItemGroup><None Update="FileManagerTestService.py" CopyToOutputDirectory="PreserveNewest" /></ItemGroup>
+  <Target Name="CopyTestApplication" AfterTargets="Build">
+    <MSBuild Projects="../../eng/Bathos.Platform.TestApplication/Bathos.Platform.TestApplication.csproj" Targets="GetTargetPath" Properties="Configuration=$(Configuration);TargetFramework=$(TargetFramework)">
+      <Output TaskParameter="TargetOutputs" ItemName="TestApplicationAssembly" />
+    </MSBuild>
+    <PropertyGroup><TestApplicationOutputDirectory>@(TestApplicationAssembly->'%(RootDir)%(Directory)')</TestApplicationOutputDirectory></PropertyGroup>
+    <ItemGroup><TestApplicationFiles Include="$(TestApplicationOutputDirectory)*" /></ItemGroup>
+    <Copy SourceFiles="@(TestApplicationFiles)" DestinationFolder="$(OutDir)TestApplication" />
+  </Target>
 </Project>

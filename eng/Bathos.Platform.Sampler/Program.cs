@@ -1,20 +1,22 @@
 using Bathos.Platform;
 using Bathos.Platform.MacOS;
 using Bathos.Platform.Sampler;
+using Bathos.Platform.Windows;
 
 if (args is not ([] or ["--smoke"]))
 {
     Console.Error.WriteLine("Usage: dotnet run --project eng/Bathos.Platform.Sampler -- [--smoke]");
     return 2;
 }
-if (!OperatingSystem.IsMacOSVersionAtLeast(10, 15))
+if (OperatingSystem.IsLinux()) return await LinuxSamplerHarness.RunAsync(args);
+if (!OperatingSystem.IsMacOSVersionAtLeast(10, 15) && !OperatingSystem.IsWindows())
 {
-    Console.Error.WriteLine("The interactive screen sampler requires macOS 10.15 or later. Use task check for file capabilities on other hosts.");
+    Console.Error.WriteLine("The sampler harness requires Windows, macOS 10.15 or later, or a Linux desktop portal.");
     return 2;
 }
 
-using var host = new NativeHost();
-var sampler = new MacOSPlatformProvider(host).ScreenColorSampler
+using ISamplerHost host = OperatingSystem.IsWindows() ? new WindowsNativeHost() : new NativeHost();
+var sampler = (OperatingSystem.IsWindows() ? new WindowsPlatformProvider(host).ScreenColorSampler : new MacOSPlatformProvider(host).ScreenColorSampler)
     ?? throw new PlatformNotSupportedException("The sampler is unavailable.");
 var result = 0;
 var finished = false;
@@ -84,7 +86,7 @@ async Task SampleAsync(int index)
     });
 }
 
-static string Format(ScreenColor? color) => color is { } value ? $"sRGB #{value.R:X2}{value.G:X2}{value.B:X2}" : "canceled";
+static string Format(ScreenColor? color) => color is { } value ? $"RGB #{value.R:X2}{value.G:X2}{value.B:X2}" : "canceled";
 
 async Task SmokeAsync()
 {

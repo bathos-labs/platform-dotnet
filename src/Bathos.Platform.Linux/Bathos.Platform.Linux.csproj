@@ -2,5 +2,6 @@
   <Import Project="../../eng/Bathos.Package.props" />
   <PropertyGroup><AllowUnsafeBlocks>true</AllowUnsafeBlocks></PropertyGroup>
   <ItemGroup><ProjectReference Include="../Bathos.Platform/Bathos.Platform.csproj" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.Tests" /></ItemGroup>
 
 </Project>

@@ -3,8 +3,20 @@ using System.Runtime.InteropServices;
 
 namespace Bathos.Platform.Sampler;
 
-// Development-only native host. The library itself never owns an application or its event loop.
-internal sealed partial class NativeHost : INativeDispatcher, IDisposable
+// Shared manual tests run inside a host-owned native event loop.
+internal interface ISamplerHost : INativeDispatcher, IDisposable
+{
+    void ConfigureTests(Action<int> sample, Action finish);
+    void SetStatus(string text);
+    void ShowSample(ScreenColor color);
+    void SetBusy(bool busy);
+    Task<T> InvokeAsync<T>(Func<Task<T>> operation);
+    void Run();
+    void Stop();
+}
+
+// Development-only AppKit host. The library itself never owns an application or its event loop.
+internal sealed partial class NativeHost : ISamplerHost
 {
     private const string ObjC = "/usr/lib/libobjc.A.dylib";
     private const string SystemLibrary = "/usr/lib/libSystem.B.dylib";
@@ -88,7 +100,7 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
         if (nativeColor == 0) throw new InvalidOperationException("Could not create the sample preview color.");
         SendObject(_sampleSwatch, Selector("setFillColor:"), nativeColor);
         Activate(_sampleSwatch, Selector("setHidden:"), 0);
-        SendObject(_sampleLabel, Selector("setStringValue:"), NativeString($"Last sample: sRGB\n#{color.R:X2}{color.G:X2}{color.B:X2}"));
+        SendObject(_sampleLabel, Selector("setStringValue:"), NativeString($"Last sample: RGB\n#{color.R:X2}{color.G:X2}{color.B:X2}"));
     }
 
     public void SetBusy(bool busy)

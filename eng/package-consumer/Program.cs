@@ -10,6 +10,7 @@ IPlatformProvider provider = new Bathos.Platform.Linux.LinuxPlatformProvider();
 #error Select a provider.
 #endif
 if (!ReferenceEquals(provider, PlatformProviders.SelectCurrent(provider))) throw new InvalidOperationException("Provider selection failed.");
+if (provider.FileRevealer is null || provider.FileInvoker is null) throw new InvalidOperationException("No desktop handoff capabilities.");
 var folder = Directory.CreateTempSubdirectory("bathos-consumer-");
 try
 {

@@ -62,13 +62,13 @@ tasks:
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 
   eng:sampler:
-    desc: Launch the engineering-only macOS sampler validation harness
+    desc: Launch the engineering-only sampler validation harness (Linux remains experimental)
     cmds:
       - task: build
       - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build
 
   eng:sampler:smoke:
-    desc: Check the engineering sampler dispatcher and shutdown without opening the picker
+    desc: Check the macOS/Windows sampler dispatcher and shutdown without opening the picker
     cmds:
       - task: build
       - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build -- --smoke

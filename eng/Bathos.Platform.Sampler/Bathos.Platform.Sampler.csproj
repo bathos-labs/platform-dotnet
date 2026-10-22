@@ -3,5 +3,9 @@
     <OutputType>Exe</OutputType>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
   </PropertyGroup>
-  <ItemGroup><ProjectReference Include="../../src/Bathos.Platform.MacOS/Bathos.Platform.MacOS.csproj" /></ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="../../src/Bathos.Platform.MacOS/Bathos.Platform.MacOS.csproj" />
+    <ProjectReference Include="../../src/Bathos.Platform.Windows/Bathos.Platform.Windows.csproj" />
+    <ProjectReference Include="../../src/Bathos.Platform.Linux/Bathos.Platform.Linux.csproj" />
+  </ItemGroup>
 </Project>

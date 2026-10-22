@@ -5,7 +5,19 @@
       "bathos.platform": {
         "type": "Project"
       },
+      "bathos.platform.linux": {
+        "type": "Project",
+        "dependencies": {
+          "Bathos.Platform": "[0.1.0-alpha.1, )"
+        }
+      },
       "bathos.platform.macos": {
+        "type": "Project",
+        "dependencies": {
+          "Bathos.Platform": "[0.1.0-alpha.1, )"
+        }
+      },
+      "bathos.platform.windows": {
         "type": "Project",
         "dependencies": {
           "Bathos.Platform": "[0.1.0-alpha.1, )"

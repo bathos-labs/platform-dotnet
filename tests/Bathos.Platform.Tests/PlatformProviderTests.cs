@@ -23,6 +23,25 @@ public sealed class PlatformProviderTests
     }
 
     [Fact]
+    public void SamplersAreOptInAndDoNotProbeNativeServicesDuringConstruction()
+    {
+        var dispatcher = new RejectingDispatcher();
+        var windows = new WindowsPlatformProvider(dispatcher).ScreenColorSampler;
+        var linux = new LinuxPlatformProvider(enableScreenColorSampler: true).ScreenColorSampler;
+        Assert.Equal(OperatingSystem.IsWindows(), windows is not null);
+        Assert.Equal(OperatingSystem.IsLinux(), linux is not null);
+        if (windows is not null) Assert.Throws<InvalidOperationException>(() => { _ = windows.SampleAsync(); });
+        Assert.Throws<ArgumentException>(() => new LinuxPlatformProvider(true, "invalid"));
+        Assert.Throws<ArgumentException>(() => new LinuxPlatformProvider(true, "x11:abc\0suffix"));
+    }
+
+    private sealed class RejectingDispatcher : INativeDispatcher
+    {
+        public void VerifyAccess() => throw new InvalidOperationException("No native UI access.");
+        public void Post(Action action) => throw new InvalidOperationException("No native UI access.");
+    }
+
+    [Fact]
     public void CapabilityAbsenceIsExplicitAndConstructionDoesNotRequireNativeLibraries()
     {
         IPlatformProvider[] providers = [new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider()];
@@ -30,6 +49,8 @@ public sealed class PlatformProviderTests
         {
             Assert.NotNull(provider.FileEntries);
             Assert.Null(provider.ScreenColorSampler);
+            Assert.NotNull(provider.FileRevealer);
+            Assert.NotNull(provider.FileInvoker);
         }
         Assert.NotNull(providers[0].FileRename);
         Assert.NotNull(providers[1].FileRename);
@@ -46,7 +67,7 @@ public sealed class PlatformProviderTests
             {
                 var name = reference.Name ?? string.Empty;
                 var runtime = name == "System" || name.StartsWith("System.", StringComparison.Ordinal) ||
-                    name is "netstandard" or "Microsoft.Win32.Primitives";
+                    name is "netstandard" or "Microsoft.Win32.Primitives" or "Microsoft.Win32.Registry";
                 var sharedCore = assembly != core && name == core.GetName().Name;
                 Assert.True(runtime || sharedCore, $"Unexpected dependency from {assembly.GetName().Name}: {name}");
             }

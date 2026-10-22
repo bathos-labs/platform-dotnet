@@ -1,3 +1,4 @@
+using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
 
 namespace Bathos.Platform;
@@ -23,6 +24,8 @@ public interface IPlatformProvider
     INativeFileRename? FileRename { get; }
     IFileEntryProbe? FileEntries { get; }
     IScreenColorSampler? ScreenColorSampler { get; }
+    IFileRevealer? FileRevealer { get; }
+    IFileInvoker? FileInvoker { get; }
 }
 
 /// <summary>Selects only explicitly supplied providers; the core never references or dynamically scans implementation assemblies.</summary>

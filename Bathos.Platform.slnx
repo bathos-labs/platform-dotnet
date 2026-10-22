@@ -9,6 +9,8 @@
     <Project Path="tests/Bathos.Platform.Tests/Bathos.Platform.Tests.csproj" />
   </Folder>
   <Folder Name="/eng/">
+    <Project Path="eng/Bathos.Platform.TestApplication/Bathos.Platform.TestApplication.csproj" />
+    <Project Path="eng/Bathos.Platform.Desktop/Bathos.Platform.Desktop.csproj" />
     <Project Path="eng/Bathos.Platform.Build/Bathos.Platform.Build.csproj" />
     <Project Path="eng/Bathos.Platform.Sampler/Bathos.Platform.Sampler.csproj" />
   </Folder>

@@ -1,3 +1,4 @@
+using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
 
 namespace Bathos.Platform.MacOS;
@@ -14,4 +15,6 @@ public sealed class MacOSPlatformProvider : IPlatformProvider
     public INativeFileRename FileRename { get; } = new MacFileRename();
     public IFileEntryProbe FileEntries { get; } = new MacFileEntryProbe();
     public IScreenColorSampler? ScreenColorSampler { get; }
+    public IFileRevealer FileRevealer { get; } = new MacOSFileRevealer();
+    public IFileInvoker FileInvoker { get; } = new MacOSFileInvoker();
 }
