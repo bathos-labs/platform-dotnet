@@ -16,6 +16,8 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
     private readonly nint _application;
     private readonly nint _actionTarget;
     private readonly nint _status;
+    private readonly nint _sampleSwatch;
+    private readonly nint _sampleLabel;
     private readonly List<nint> _buttons = [];
     private static readonly Dictionary<nint, Action> Actions = [];
 
@@ -46,7 +48,15 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
         SendObject(Send(_window, Selector("contentView")), Selector("addSubview:"), swatch);
         SendVoid(swatch, Selector("release"));
         AddLabel("Red target: #FF0000", new Rect { X = 480, Y = 275, Width = 210, Height = 30 });
-        _status = AddLabel("No tests run yet.", new Rect { X = 24, Y = 65, Width = 672, Height = 195 });
+        _status = AddLabel("No tests run yet.", new Rect { X = 24, Y = 65, Width = 430, Height = 195 });
+        _sampleSwatch = SendObjectResult(Send(GetClass("NSBox"), Selector("alloc")), Selector("initWithFrame:"),
+            new Rect { X = 480, Y = 130, Width = 210, Height = 110 });
+        SetInteger(_sampleSwatch, Selector("setBoxType:"), 4);
+        SetInteger(_sampleSwatch, Selector("setBorderType:"), 0);
+        Activate(_sampleSwatch, Selector("setHidden:"), 1);
+        SendObject(Send(_window, Selector("contentView")), Selector("addSubview:"), _sampleSwatch);
+        SendVoid(_sampleSwatch, Selector("release"));
+        _sampleLabel = AddLabel("Last sample: none", new Rect { X = 480, Y = 80, Width = 210, Height = 45 });
         SendObject(_window, Selector("makeKeyAndOrderFront:"), 0);
         Activate(_application, Selector("activateIgnoringOtherApps:"), 1);
     }
@@ -68,6 +78,17 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
     {
         VerifyAccess();
         SendObject(_status, Selector("setStringValue:"), NativeString(text));
+    }
+
+    public void ShowSample(ScreenColor color)
+    {
+        VerifyAccess();
+        var nativeColor = SRGBColor(GetClass("NSColor"), Selector("colorWithSRGBRed:green:blue:alpha:"),
+            color.R / 255.0, color.G / 255.0, color.B / 255.0, 1);
+        if (nativeColor == 0) throw new InvalidOperationException("Could not create the sample preview color.");
+        SendObject(_sampleSwatch, Selector("setFillColor:"), nativeColor);
+        Activate(_sampleSwatch, Selector("setHidden:"), 0);
+        SendObject(_sampleLabel, Selector("setStringValue:"), NativeString($"Last sample: sRGB\n#{color.R:X2}{color.G:X2}{color.B:X2}"));
     }
 
     public void SetBusy(bool busy)
@@ -202,6 +223,8 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
     private static partial void RegisterClass(nint type);
     [LibraryImport(ObjC, EntryPoint = "class_addMethod", StringMarshalling = StringMarshalling.Utf8)]
     private static unsafe partial byte AddMethod(nint type, nint selector, delegate* unmanaged[Cdecl]<nint, nint, nint, void> method, string encoding);
+    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
+    private static partial nint SRGBColor(nint receiver, nint selector, double red, double green, double blue, double alpha);
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
     private static partial void SetFrame(nint receiver, nint selector, Rect frame);
     [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]

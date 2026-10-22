@@ -52,10 +52,12 @@ async Task SampleAsync(int index)
         "Press Escape to cancel the picker.", "Caller retired. Select or cancel; the result will be ignored."];
     ShowResults(instructions[index]);
     string outcome;
+    ScreenColor? preview = null;
     try
     {
         // Every invocation starts on the main thread in response to a distinct button click.
         var color = await sampler.SampleAsync().ConfigureAwait(false);
+        if (index != 3) preview = color; // Retired callers must not update the preview.
         outcome = index switch
         {
             0 when color is { R: >= 250, G: <= 5, B: <= 5 } => $"1. PASS: red target {Format(color)}",
@@ -73,6 +75,7 @@ async Task SampleAsync(int index)
     }
     host.Post(() =>
     {
+        if (preview is { } color) host.ShowSample(color);
         outcomes[index] = outcome;
         busy = false;
         host.SetBusy(false);
@@ -98,7 +101,8 @@ async Task SmokeAsync()
         {
             host.VerifyAccess();
             host.SetBusy(true);
-            host.SetStatus("Dispatcher smoke check passed.");
+            host.ShowSample(new ScreenColor(64, 128, 192));
+            host.SetStatus("Dispatcher and sample preview smoke check passed.");
             host.SetBusy(false);
             return Task.FromResult(true);
         }).ConfigureAwait(false);

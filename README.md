@@ -66,10 +66,10 @@ For macOS screen sampling, supply `INativeDispatcher` to `MacOSPlatformProvider`
 thread and defer posted work until the current callback unwinds. Keep the native event loop alive through completion.
 Samples are opaque sRGB screen appearance, not original image samples. AppKit owns selection and Escape; retiring
 a caller does not dismiss the native chooser. Run `task eng:sampler` on macOS for the engineering-only manual validation harness. Move the window,
-then use its buttons to start individual tests; instructions and results stay in the window. Each test can be repeated.
+then use its buttons to start individual tests; instructions, results, and a sample color preview with its hex value
+stay in the window. Each test can be repeated.
 The interactive picker requires human input; computer-use automation is currently unreliable for this path.
-`task eng:sampler:smoke` checks native dispatch and shutdown without opening the picker. Interactive verification is
-still pending; see the [validation record](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md)
+`task eng:sampler:smoke` checks native dispatch and shutdown without opening the picker. The macOS sampler test has been manually confirmed; see the [validation record](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md)
 for the procedure and host-specific evidence.
 
 See [architecture](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/architecture.md), [contribution and validation](https://github.com/bathos-labs/platform-dotnet/blob/master/CONTRIBUTING.md), and

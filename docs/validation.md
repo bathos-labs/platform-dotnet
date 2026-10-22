@@ -6,7 +6,7 @@ Evidence applies to the named host and scenarios. A build or skipped test is not
 | --- | --- |
 | macOS Arm64, macOS 26.6.2 | `task check`: 30 tests passed, formatting/build/package checks passed; README publication example ran twice and preserved both outputs. |
 | macOS harness, same host | `task eng:sampler:smoke` passed: dispatch is deferred, main-thread access is enforced, worker dispatch completes, and the native application exits after owned work. |
-| macOS interactive sampler | Pending the manual sequence below. The smoke check does not invoke the picker or establish color/cancellation behavior. |
+| macOS interactive sampler | User confirmed the macOS sampler test on 2026-10-22. Exact OS/display details were not supplied with that confirmation. The new color preview still needs visual confirmation. |
 | Windows | Local confirmation pending. Run `task check` and record OS/architecture and results here. The sampler is unavailable on Windows. |
 | Linux | Temporarily experimental pending broader host/filesystem validation. CI exercises file inspection on Linux x64; no Linux desktop evidence has been recorded here. Rename/publication and sampling are unavailable. |
 
@@ -27,17 +27,20 @@ Without Task:
 dotnet run --project eng/Bathos.Platform.Sampler --configuration Release
 ```
 
-The harness opens an AppKit window with instructions, four test buttons, a red target, and persistent results.
+The harness opens an AppKit window with instructions, four test buttons, a red target, a last-sample color preview, and persistent results.
 It does not start sampling automatically. Move the window somewhere convenient before choosing a test.
 
 1. **Sample the red target:** click the center of the red swatch. The harness checks for approximately `#FF0000`
    (each channel within 5 of the expected value); otherwise it shows the observed color and asks you to check/retry.
-2. **Sample outside this window:** select another location or display. Compare the displayed sRGB value with what
+2. **Sample outside this window:** select another location or display. Compare the preview swatch and displayed sRGB value with what
    you selected; the harness cannot validate the unknown external color automatically.
 3. **Test Escape cancellation:** press Escape after starting the picker. The harness reports a pass for cancellation
    or asks you to retry if a color was selected instead.
 4. **Test caller retirement:** the caller retires when the picker opens. Select or cancel; the harness ignores the
    late result and reports native completion.
+
+The preview shows the last successfully selected color alongside its hex value, using opaque sRGB. Cancellation,
+errors, and retired-caller results leave that preview unchanged; the per-test result records what happened.
 
 Tests are independent: select the second test directly or run them in any order, and repeat any test after completion.
 Buttons, including **Finish**, are disabled while a picker owns an outstanding operation. After completion or an
@@ -52,8 +55,7 @@ stopping the process forcibly does not establish clean shutdown.
 
 Interactive checks must be performed by a person. Computer-use automation does not currently interact reliably
 with the system picker; automated pointer/key attempts are not evidence of picker correctness or defects. Do not
-use that path unless explicitly investigating automation compatibility. The button-driven interactive flow remains
-pending human confirmation.
+use that path unless explicitly investigating automation compatibility.
 
 `task eng:sampler:smoke` briefly opens the host window but does not invoke the picker. It checks dispatch and shutdown
 without human input. It is intentionally separate from `task check`, which also runs in noninteractive environments.
