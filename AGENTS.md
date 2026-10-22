@@ -10,6 +10,10 @@
 - The API is prerelease. Replace obsolete representations directly; do not add compatibility shims without agreement.
 - Follow CONTRIBUTING.md validation before a cohesive commit. Native evidence is specific to the executing host.
   Wait for owned work; do not synchronize tests with sleeps, polling, or dispatcher loops.
+- Screen sampler interaction requires human validation. Do not launch or drive the interactive picker with computer-use
+  automation; that path is currently unreliable. Use `task sampler:smoke` for noninteractive checks and hand off
+  `task sampler` to the user. Revisit automation only when explicitly investigating its compatibility; never infer
+  sampler success or failure from automated pointer/key behavior.
 - Use American English. Keep documentation proportional and current. GitHub Issues owns work tracking.
 - Default branch: master. License: MIT. Never commit local paths, credentials, build output, IDE state, or unrelated code.
 - Commit when requested. Tagging a release publishes packages; follow RELEASING.md and require an explicit release request.

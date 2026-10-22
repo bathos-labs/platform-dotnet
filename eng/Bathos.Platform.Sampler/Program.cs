@@ -1,3 +1,4 @@
+using Bathos.Platform;
 using Bathos.Platform.MacOS;
 using Bathos.Platform.Sampler;
 
@@ -13,20 +14,76 @@ if (!OperatingSystem.IsMacOSVersionAtLeast(10, 15))
 }
 
 using var host = new NativeHost();
-var result = 1;
+var sampler = new MacOSPlatformProvider(host).ScreenColorSampler
+    ?? throw new PlatformNotSupportedException("The sampler is unavailable.");
+var result = 0;
 var finished = false;
-var started = false;
-host.Post(() =>
+var busy = false;
+string[] outcomes = ["1. Red target: not run", "2. Outside window: not run", "3. Escape: not run", "4. Retirement: not run"];
+host.ConfigureTests(index => { _ = SampleAsync(index); }, Finish);
+ShowResults("Ready. Move the window, then choose a test.");
+if (args is ["--smoke"])
 {
-    started = true;
-    _ = RunAsync();
-});
-if (started) throw new InvalidOperationException("Dispatch ran inline.");
+    var started = false;
+    host.Post(() => { started = true; _ = SmokeAsync(); });
+    if (started) throw new InvalidOperationException("Dispatch ran inline.");
+}
 host.Run();
 if (!finished) throw new InvalidOperationException("The native loop exited before owned work finished.");
 return result;
 
-async Task RunAsync()
+void ShowResults(string message) => host.SetStatus(message + "\n\n" + string.Join("\n", outcomes));
+
+void Finish()
+{
+    host.VerifyAccess();
+    if (busy) return;
+    finished = true;
+    host.Stop();
+}
+
+async Task SampleAsync(int index)
+{
+    host.VerifyAccess();
+    if (busy) return;
+    busy = true;
+    host.SetBusy(true);
+    string[] instructions = ["Click the center of the red target.", "Click a color outside this window.",
+        "Press Escape to cancel the picker.", "Caller retired. Select or cancel; the result will be ignored."];
+    ShowResults(instructions[index]);
+    string outcome;
+    try
+    {
+        // Every invocation starts on the main thread in response to a distinct button click.
+        var color = await sampler.SampleAsync().ConfigureAwait(false);
+        outcome = index switch
+        {
+            0 when color is { R: >= 250, G: <= 5, B: <= 5 } => $"1. PASS: red target {Format(color)}",
+            0 => $"1. CHECK: expected #FF0000; got {Format(color)}. Retry the red target.",
+            1 => $"2. {Format(color)} — visually confirm against the selected location.",
+            2 when color is null => "3. PASS: Escape canceled the picker.",
+            2 => $"3. RETRY: expected cancellation; got {Format(color)}.",
+            _ => "4. PASS: retired caller ignored the result; native completion observed."
+        };
+    }
+    catch (Exception error)
+    {
+        outcome = $"{index + 1}. ERROR: {error.Message}";
+        Console.Error.WriteLine(error);
+    }
+    host.Post(() =>
+    {
+        outcomes[index] = outcome;
+        busy = false;
+        host.SetBusy(false);
+        ShowResults("Ready. Choose another test, repeat a test, or Finish.");
+        Console.WriteLine(outcome);
+    });
+}
+
+static string Format(ScreenColor? color) => color is { } value ? $"sRGB #{value.R:X2}{value.G:X2}{value.B:X2}" : "canceled";
+
+async Task SmokeAsync()
 {
     try
     {
@@ -37,47 +94,16 @@ async Task RunAsync()
             catch (InvalidOperationException) { return; }
             throw new InvalidOperationException("The dispatcher accepted a worker thread.");
         }).ConfigureAwait(false);
-        if (args is ["--smoke"])
+        await host.InvokeAsync(() =>
         {
-            await host.InvokeAsync(() =>
-            {
-                host.VerifyAccess();
-                return Task.FromResult(true);
-            }).ConfigureAwait(false);
-            Console.WriteLine("PASS: deferred main-thread dispatch, worker rejection, and owned completion. Picker not exercised.");
-        }
-        else
-        {
-            var sampler = new MacOSPlatformProvider(host).ScreenColorSampler
-                ?? throw new PlatformNotSupportedException("The sampler is unavailable.");
-            string[] steps = ["Select the red harness window (expect approximately #FF0000).",
-                "Select a color outside the harness window (try another display if available).",
-                "Press Escape (expect cancellation).", "Select or cancel after caller retirement (result will be ignored)."];
-            for (var index = 0; index < steps.Length; index++)
-            {
-                Console.WriteLine($"Step {index + 1}/4: {steps[index]}");
-                var retire = index == 3;
-                var color = await host.InvokeAsync(() =>
-                {
-                    var pending = sampler.SampleAsync();
-                    if (retire) Console.WriteLine("Caller retired; keeping the event loop alive until native completion.");
-                    return pending;
-                }).ConfigureAwait(false);
-                Console.WriteLine(retire ? "Retired caller ignored the late result; native completion observed."
-                    : color is { } value ? $"Selected sRGB #{value.R:X2}{value.G:X2}{value.B:X2}." : "Canceled by user.");
-                if (index == 2 && color is not null) throw new InvalidOperationException("Escape step returned a color; repeat the manual check.");
-            }
-            Console.WriteLine("Sequence completed. Confirm the visual results and record host/OS observations in docs/validation.md.");
-        }
-        result = 0;
+            host.VerifyAccess();
+            host.SetBusy(true);
+            host.SetStatus("Dispatcher smoke check passed.");
+            host.SetBusy(false);
+            return Task.FromResult(true);
+        }).ConfigureAwait(false);
+        Console.WriteLine("PASS: deferred main-thread dispatch, worker rejection, and owned completion. Picker not exercised.");
     }
-    catch (Exception error) { Console.Error.WriteLine(error); }
-    finally
-    {
-        host.Post(() =>
-        {
-            finished = true;
-            host.Stop();
-        });
-    }
+    catch (Exception error) { result = 1; Console.Error.WriteLine(error); }
+    finally { host.Post(Finish); }
 }

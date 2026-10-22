@@ -14,6 +14,10 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
     private readonly nint _pool;
     private readonly nint _window;
     private readonly nint _application;
+    private readonly nint _actionTarget;
+    private readonly nint _status;
+    private readonly List<nint> _buttons = [];
+    private static readonly Dictionary<nint, Action> Actions = [];
 
     public NativeHost()
     {
@@ -26,12 +30,100 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
         _application = Send(GetClass("NSApplication"), Selector("sharedApplication"));
         SetPolicy(_application, Selector("setActivationPolicy:"), 0);
         _window = InitWindow(Send(GetClass("NSWindow"), Selector("alloc")), Selector("initWithContentRect:styleMask:backing:defer:"),
-            new Rect { X = 100, Y = 100, Width = 480, Height = 240 }, 1, 2, 0);
+            new Rect { X = 100, Y = 100, Width = 720, Height = 600 }, 1, 2, 0);
         if (_window == 0) throw new InvalidOperationException("Could not create the manual validation window.");
-        SendObject(_window, Selector("setBackgroundColor:"), Send(GetClass("NSColor"), Selector("redColor")));
-        SendObject(_window, Selector("setTitle:"), String(GetClass("NSString"), Selector("stringWithUTF8String:"), "Bathos sampler — select this red window"));
+        SendObject(_window, Selector("setTitle:"), String(GetClass("NSString"), Selector("stringWithUTF8String:"), "Bathos screen sampler validation"));
+        _actionTarget = CreateActionTarget();
+        AddLabel("Move this window before sampling. Choose any test below; nothing starts automatically.\n" +
+            "Select a color with a click, or cancel with Escape. Results stay here for review.\n" +
+            "Repeat any test after completion. Finish closes the harness when no picker is active.",
+            new Rect { X = 24, Y = 490, Width = 672, Height = 90 });
+        var swatch = SendObjectResult(Send(GetClass("NSBox"), Selector("alloc")), Selector("initWithFrame:"),
+            new Rect { X = 480, Y = 310, Width = 210, Height = 140 });
+        SetInteger(swatch, Selector("setBoxType:"), 4); // NSBoxCustom
+        SetInteger(swatch, Selector("setBorderType:"), 0);
+        SendObject(swatch, Selector("setFillColor:"), Send(GetClass("NSColor"), Selector("redColor")));
+        SendObject(Send(_window, Selector("contentView")), Selector("addSubview:"), swatch);
+        SendVoid(swatch, Selector("release"));
+        AddLabel("Red target: #FF0000", new Rect { X = 480, Y = 275, Width = 210, Height = 30 });
+        _status = AddLabel("No tests run yet.", new Rect { X = 24, Y = 65, Width = 672, Height = 195 });
         SendObject(_window, Selector("makeKeyAndOrderFront:"), 0);
         Activate(_application, Selector("activateIgnoringOtherApps:"), 1);
+    }
+
+    public void ConfigureTests(Action<int> sample, Action finish)
+    {
+        VerifyAccess();
+        string[] titles = ["1. Sample the red target", "2. Sample outside this window",
+            "3. Test Escape cancellation", "4. Test caller retirement"];
+        for (var index = 0; index < titles.Length; index++)
+        {
+            var test = index;
+            AddButton(titles[index], new Rect { X = 24, Y = 410 - index * 45, Width = 430, Height = 36 }, () => sample(test));
+        }
+        AddButton("Finish", new Rect { X = 560, Y = 16, Width = 130, Height = 32 }, finish);
+    }
+
+    public void SetStatus(string text)
+    {
+        VerifyAccess();
+        SendObject(_status, Selector("setStringValue:"), NativeString(text));
+    }
+
+    public void SetBusy(bool busy)
+    {
+        VerifyAccess();
+        foreach (var button in _buttons) Activate(button, Selector("setEnabled:"), busy ? (byte)0 : (byte)1);
+    }
+
+    private nint AddLabel(string text, Rect frame)
+    {
+        var label = Send(Send(GetClass("NSTextField"), Selector("alloc")), Selector("init"));
+        SetFrame(label, Selector("setFrame:"), frame);
+        Activate(label, Selector("setEditable:"), 0);
+        Activate(label, Selector("setSelectable:"), 1);
+        Activate(label, Selector("setBordered:"), 0);
+        Activate(label, Selector("setDrawsBackground:"), 0);
+        SendObject(label, Selector("setStringValue:"), NativeString(text));
+        SendObject(Send(_window, Selector("contentView")), Selector("addSubview:"), label);
+        SendVoid(label, Selector("release")); // The content view retains the control.
+        return label;
+    }
+
+    private void AddButton(string title, Rect frame, Action action)
+    {
+        var button = SendObjectResult(Send(GetClass("NSButton"), Selector("alloc")), Selector("initWithFrame:"), frame);
+        SendObject(button, Selector("setTitle:"), NativeString(title));
+        SetInteger(button, Selector("setBezelStyle:"), 1);
+        SendObject(button, Selector("setTarget:"), _actionTarget);
+        SendObject(button, Selector("setAction:"), Selector("perform:"));
+        Actions.Add(button, action);
+        _buttons.Add(button);
+        SendObject(Send(_window, Selector("contentView")), Selector("addSubview:"), button);
+        SendVoid(button, Selector("release"));
+    }
+
+    private static nint NativeString(string text) => String(GetClass("NSString"), Selector("stringWithUTF8String:"), text);
+
+    private static unsafe nint CreateActionTarget()
+    {
+        const string name = "BathosSamplerActions";
+        var type = GetClass(name);
+        if (type == 0)
+        {
+            type = AllocateClass(GetClass("NSObject"), name, 0);
+            if (type == 0 || AddMethod(type, Selector("perform:"), &ButtonClicked, "v@:@") == 0)
+                throw new InvalidOperationException("Could not register sampler controls.");
+            RegisterClass(type);
+        }
+        return Send(Send(type, Selector("alloc")), Selector("init"));
+    }
+
+    [UnmanagedCallersOnly(CallConvs = [typeof(CallConvCdecl)])]
+    private static void ButtonClicked(nint receiver, nint selector, nint sender)
+    {
+        try { if (Actions.TryGetValue(sender, out var action)) action(); }
+        catch (Exception error) { Environment.FailFast("Sampler control callback failed.", error); }
     }
 
     public void VerifyAccess()
@@ -88,7 +180,9 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
     {
         VerifyAccess();
         SendObject(_window, Selector("orderOut:"), 0);
+        foreach (var button in _buttons) Actions.Remove(button);
         SendVoid(_window, Selector("release"));
+        SendVoid(_actionTarget, Selector("release"));
         SendVoid(_pool, Selector("drain"));
         NativeLibrary.Free(_system);
         NativeLibrary.Free(_appKit);
@@ -102,6 +196,18 @@ internal sealed partial class NativeHost : INativeDispatcher, IDisposable
     private static partial int IsMainThread();
     [LibraryImport(SystemLibrary, EntryPoint = "dispatch_async_f")]
     private static unsafe partial void Dispatch(nint queue, nint context, delegate* unmanaged[Cdecl]<nint, void> callback);
+    [LibraryImport(ObjC, EntryPoint = "objc_allocateClassPair", StringMarshalling = StringMarshalling.Utf8)]
+    private static partial nint AllocateClass(nint superclass, string name, nuint bytes);
+    [LibraryImport(ObjC, EntryPoint = "objc_registerClassPair")]
+    private static partial void RegisterClass(nint type);
+    [LibraryImport(ObjC, EntryPoint = "class_addMethod", StringMarshalling = StringMarshalling.Utf8)]
+    private static unsafe partial byte AddMethod(nint type, nint selector, delegate* unmanaged[Cdecl]<nint, nint, nint, void> method, string encoding);
+    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
+    private static partial void SetFrame(nint receiver, nint selector, Rect frame);
+    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
+    private static partial nint SendObjectResult(nint receiver, nint selector, Rect frame);
+    [LibraryImport(ObjC, EntryPoint = "objc_msgSend")]
+    private static partial void SetInteger(nint receiver, nint selector, nint value);
     [LibraryImport(ObjC, EntryPoint = "objc_getClass", StringMarshalling = StringMarshalling.Utf8)]
     private static partial nint GetClass(string name);
     [LibraryImport(ObjC, EntryPoint = "sel_registerName", StringMarshalling = StringMarshalling.Utf8)]

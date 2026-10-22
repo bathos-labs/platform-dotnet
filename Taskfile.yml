@@ -62,7 +62,7 @@ tasks:
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 
   sampler:
-    desc: Launch the macOS manual screen sampler sequence
+    desc: Launch the macOS manual screen sampler controls
     cmds:
       - task: build
       - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build

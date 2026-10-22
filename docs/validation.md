@@ -27,18 +27,33 @@ Without Task:
 dotnet run --project eng/Bathos.Platform.Sampler --configuration Release
 ```
 
-The harness opens a red AppKit window and prints each step in the terminal. It advances after native completion:
+The harness opens an AppKit window with instructions, four test buttons, a red target, and persistent results.
+It does not start sampling automatically. Move the window somewhere convenient before choosing a test.
 
-1. Select the red window. Confirm the returned opaque sRGB value is approximately `#FF0000`.
-2. Select outside the harness window; try another display if available. Confirm a plausible color and normal picker cleanup.
-3. Press Escape. Confirm `Canceled by user.` and that a new picker opens for the next step.
-4. The caller retires immediately after opening the picker. Select or cancel. Confirm the late result is ignored,
-   completion is observed, and the window/process exit without hanging or crashing.
+1. **Sample the red target:** click the center of the red swatch. The harness checks for approximately `#FF0000`
+   (each channel within 5 of the expected value); otherwise it shows the observed color and asks you to check/retry.
+2. **Sample outside this window:** select another location or display. Compare the displayed sRGB value with what
+   you selected; the harness cannot validate the unknown external color automatically.
+3. **Test Escape cancellation:** press Escape after starting the picker. The harness reports a pass for cancellation
+   or asks you to retry if a color was selected instead.
+4. **Test caller retirement:** the caller retires when the picker opens. Select or cancel; the harness ignores the
+   late result and reports native completion.
 
-Repeat the command to check reuse. Record OS version, architecture, displays, observed values, cancellation,
-retirement, and any privacy prompts or failures in this file. Color values describe rendered screen appearance,
-not source image values. Do not bypass system privacy controls. If a step fails, record the failure rather than
-marking the sequence passed. Escape cancels a step; stopping the process forcibly does not establish clean shutdown.
+Tests are independent: select the second test directly or run them in any order, and repeat any test after completion.
+Buttons, including **Finish**, are disabled while a picker owns an outstanding operation. After completion or an
+operation exception, controls are enabled again and results remain visible. Choose **Finish** to close the harness.
+Check that a new sample works after both selection and cancellation; a stuck operation is a failure to record,
+not a reason to force an overlapping sample.
+
+Record OS version, architecture, displays, observed values, cancellation, retirement, and any privacy prompts or
+failures in this file. Color values describe rendered screen appearance, not source image values. Do not bypass
+system privacy controls. If a step fails, record the failure rather than marking it passed. Escape cancels a sample;
+stopping the process forcibly does not establish clean shutdown.
+
+Interactive checks must be performed by a person. Computer-use automation does not currently interact reliably
+with the system picker; automated pointer/key attempts are not evidence of picker correctness or defects. Do not
+use that path unless explicitly investigating automation compatibility. The button-driven interactive flow remains
+pending human confirmation.
 
 `task sampler:smoke` briefly opens the host window but does not invoke the picker. It checks dispatch and shutdown
 without human input. It is intentionally separate from `task check`, which also runs in noninteractive environments.
