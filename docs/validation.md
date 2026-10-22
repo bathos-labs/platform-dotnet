@@ -5,7 +5,7 @@ Evidence applies to the named host and scenarios. A build or skipped test is not
 | Area | Evidence / status |
 | --- | --- |
 | macOS Arm64, macOS 26.6.2 | `task check`: 30 tests passed, formatting/build/package checks passed; README publication example ran twice and preserved both outputs. |
-| macOS harness, same host | `task sampler:smoke` passed: dispatch is deferred, main-thread access is enforced, worker dispatch completes, and the native application exits after owned work. |
+| macOS harness, same host | `task eng:sampler:smoke` passed: dispatch is deferred, main-thread access is enforced, worker dispatch completes, and the native application exits after owned work. |
 | macOS interactive sampler | Pending the manual sequence below. The smoke check does not invoke the picker or establish color/cancellation behavior. |
 | Windows | Local confirmation pending. Run `task check` and record OS/architecture and results here. The sampler is unavailable on Windows. |
 | Linux | Temporarily experimental pending broader host/filesystem validation. CI exercises file inspection on Linux x64; no Linux desktop evidence has been recorded here. Rename/publication and sampling are unavailable. |
@@ -18,7 +18,7 @@ Permission-denied, cross-volume, special-file, and additional filesystem scenari
 From a logged-in graphical macOS session, run:
 
 ```text
-task sampler
+task eng:sampler
 ```
 
 Without Task:
@@ -55,7 +55,7 @@ with the system picker; automated pointer/key attempts are not evidence of picke
 use that path unless explicitly investigating automation compatibility. The button-driven interactive flow remains
 pending human confirmation.
 
-`task sampler:smoke` briefly opens the host window but does not invoke the picker. It checks dispatch and shutdown
+`task eng:sampler:smoke` briefly opens the host window but does not invoke the picker. It checks dispatch and shutdown
 without human input. It is intentionally separate from `task check`, which also runs in noninteractive environments.
 A mocked picker cannot validate AppKit selection, display access, or the Objective-C completion-block lifetime.
 

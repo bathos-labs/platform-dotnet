@@ -61,14 +61,14 @@ tasks:
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 
-  sampler:
-    desc: Launch the macOS manual screen sampler controls
+  eng:sampler:
+    desc: Launch the engineering-only macOS sampler validation harness
     cmds:
       - task: build
       - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build
 
-  sampler:smoke:
-    desc: Verify the macOS native dispatcher and shutdown without opening the picker
+  eng:sampler:smoke:
+    desc: Check the engineering sampler dispatcher and shutdown without opening the picker
     cmds:
       - task: build
       - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build -- --smoke

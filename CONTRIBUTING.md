@@ -30,7 +30,7 @@ product content belongs in commits.
 Native CI runs on Linux x64, Windows x64, and macOS Arm64 for PRs and `master`, and before tagged publication.
 An OS-specific failure is not excused by passing on another host. AppKit screen selection is manual: invoke the picker
 in a native host, sample inside/outside the application, cancel with Escape, and repeat; verify main-loop cleanup and
-caller retirement. `task sampler` supplies a small native launch harness; `task sampler:smoke` checks its dispatch
+caller retirement. `task eng:sampler` supplies a small native launch harness; `task eng:sampler:smoke` checks its dispatch
 and shutdown without opening the picker. See [native validation](docs/validation.md) for the procedure and evidence.
 Do not weaken system privacy controls to automate selection. Windows confirmation is pending; Linux support remains
 experimental pending broader host validation.
