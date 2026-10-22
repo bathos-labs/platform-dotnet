@@ -13,6 +13,7 @@ public sealed class FilePublication : IAsyncDisposable
     private readonly string _directory;
     private readonly string _temporary;
     private bool _completed;
+    private bool _ownsTemporary = true;
 
     public FilePublication(string directory, INativeFileRename rename)
     {
@@ -43,6 +44,10 @@ public sealed class FilePublication : IAsyncDisposable
         if (fileName is "." or ".." || fileName.IndexOfAny(['/', '\\', '\0']) >= 0 ||
             fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || Path.GetFileName(fileName) != fileName)
             throw new ArgumentException("A single filename is required.", nameof(fileName));
+        // Reject case aliases too, including on case-insensitive macOS volumes.
+        var comparableName = OperatingSystem.IsWindows() ? fileName.TrimEnd(' ', '.') : fileName;
+        if (string.Equals(comparableName, Path.GetFileName(_temporary), StringComparison.OrdinalIgnoreCase))
+            throw new ArgumentException("The staging filename cannot be used as the publication filename.", nameof(fileName));
         return PublishAsync(_ => fileName, retryCollisions: false, replaceExisting, token);
     }
 
@@ -59,7 +64,11 @@ public sealed class FilePublication : IAsyncDisposable
             token.ThrowIfCancellationRequested();
             var destination = Path.Combine(_directory, candidate(sequence));
             var status = _rename.Move(_temporary, destination, out var errorCode, replaceExisting);
-            if (status == FileRenameStatus.Success) return destination;
+            if (status == FileRenameStatus.Success)
+            {
+                _ownsTemporary = false;
+                return destination;
+            }
             if (status == FileRenameStatus.DestinationExists && retryCollisions && sequence < int.MaxValue) continue;
             throw new IOException(status == FileRenameStatus.DestinationExists
                 ? "The publication filename is already occupied."
@@ -73,7 +82,14 @@ public sealed class FilePublication : IAsyncDisposable
         try { await Stream.DisposeAsync().ConfigureAwait(false); }
         finally
         {
-            try { File.Delete(_temporary); }
+            try
+            {
+                if (_ownsTemporary)
+                {
+                    _ownsTemporary = false;
+                    File.Delete(_temporary);
+                }
+            }
             catch (Exception error) when (error is IOException or UnauthorizedAccessException) { /* Never remove a published source or mask the operation's failure. */ }
         }
     }

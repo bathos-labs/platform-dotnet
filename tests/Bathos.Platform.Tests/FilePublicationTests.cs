@@ -242,6 +242,60 @@ public sealed class FilePublicationTests
         }
         finally { folder.Delete(true); }
     }
+    [Fact]
+    public async Task SuccessfulPublicationRelinquishesTheStagingPath()
+    {
+        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Native rename is supported on macOS and Windows.");
+        var folder = Directory.CreateTempSubdirectory("bathos-ownership-");
+        try
+        {
+            await using var publication = new FilePublication(folder.FullName, NativeRename);
+            var staging = publication.Stream.Name;
+            await publication.Stream.WriteAsync("published"u8.ToArray(), TestContext.Current.CancellationToken);
+            var output = await publication.PublishExactAsync("output.txt", TestContext.Current.CancellationToken);
+            File.WriteAllText(staging, "another owner");
+            await publication.DisposeAsync();
+            Assert.Equal("another owner", File.ReadAllText(staging));
+            Assert.Equal("published", File.ReadAllText(output));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task StagingNameCannotBePublishedEvenWithReplacement(bool upperCase)
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-ownership-");
+        try
+        {
+            await using var publication = new FilePublication(folder.FullName, new UnexpectedRename());
+            var name = Path.GetFileName(publication.Stream.Name);
+            if (upperCase) name = name.ToUpperInvariant();
+            await Assert.ThrowsAsync<ArgumentException>(() => publication.PublishExactAsync(name,
+                TestContext.Current.CancellationToken, replaceExisting: true));
+            Assert.True(publication.Stream.CanWrite);
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
+    public async Task RepeatedDisposalDoesNotReclaimAnAbandonedStagingPath()
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-ownership-");
+        try
+        {
+            await using var publication = new FilePublication(folder.FullName, new UnexpectedRename());
+            var staging = publication.Stream.Name;
+            await publication.DisposeAsync();
+            Assert.False(File.Exists(staging));
+            File.WriteAllText(staging, "another owner");
+            await publication.DisposeAsync();
+            Assert.Equal("another owner", File.ReadAllText(staging));
+        }
+        finally { folder.Delete(true); }
+    }
+
     private sealed class UnexpectedRename : INativeFileRename
     {
         public FileRenameStatus Move(string source, string destination, out int errorCode, bool replaceExisting = false) =>

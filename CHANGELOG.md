@@ -18,4 +18,9 @@ development, the API may change without compatibility shims; breaking changes ar
 - Optional macOS AppKit screen color sampling through a host-supplied native dispatcher.
 - Independently selectable MIT-licensed core, macOS, Windows, and Linux packages targeting .NET 10.
 
+### Fixed
+
+- Publication relinquishes its staging path after a successful rename or disposal, preserving files subsequently
+  created at that path. Publishing onto the staging filename is rejected.
+
 [Unreleased]: https://github.com/bathos-labs/platform-dotnet/tree/master
