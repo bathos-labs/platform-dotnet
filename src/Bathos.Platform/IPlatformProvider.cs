@@ -29,20 +29,26 @@ public static class PlatformHost
 /// A composed native capability set. Null means unsupported or not configured, not user cancellation or operation failure.
 /// Hosts may register individual capabilities in DI or retain this facade in their own application wrapper.
 /// </summary>
+/// <remarks>
+/// Custom providers must supply their OS identity; every capability defaults to null. Implement only the capabilities
+/// the provider supplies, and check availability before invoking them. Access default members through IPlatformProvider;
+/// implementing classes do not inherit those members. Application components should depend on focused capability
+/// interfaces, keeping this facade at the composition boundary. New capabilities can add optional default-null properties.
+/// </remarks>
 public interface IPlatformProvider
 {
     /// <summary>Gets the OS represented by this provider, independently of the executing host.</summary>
     PlatformOperatingSystem OperatingSystem { get; }
     /// <summary>Gets native rename support, or null when unavailable. Native failures are rename outcomes; argument validation and native loading can throw.</summary>
-    INativeFileRename? FileRename { get; }
+    INativeFileRename? FileRename => null;
     /// <summary>Gets regular-file inspection, or null when unavailable. Inspection is advisory, not a path reservation.</summary>
-    IFileEntryProbe? FileEntries { get; }
+    IFileEntryProbe? FileEntries => null;
     /// <summary>Gets interactive color selection, or null when unsupported or not configured. A null sample instead means user cancellation.</summary>
-    IScreenColorSampler? ScreenColorSampler { get; }
+    IScreenColorSampler? ScreenColorSampler => null;
     /// <summary>Gets native file-manager selection, or null when unsupported. Availability does not establish that a file manager is running.</summary>
-    IFileRevealer? FileRevealer { get; }
+    IFileRevealer? FileRevealer => null;
     /// <summary>Gets explicit application handoff, or null when unsupported. Success means submission, not document readiness.</summary>
-    IFileInvoker? FileInvoker { get; }
+    IFileInvoker? FileInvoker => null;
 }
 
 /// <summary>Selects only explicitly supplied providers; the core never references or dynamically scans implementation assemblies.</summary>

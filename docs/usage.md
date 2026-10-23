@@ -35,6 +35,38 @@ interfaces in your own composition system. No specific DI container is required 
 | Exception or failed rename outcome | The operation failed | Report the failure and preserve caller-owned files |
 | Empty discovery list | No usable native registration found | Ask for another target or an explicit executable |
 
+### Custom providers
+
+Implement `IPlatformProvider` with an OS identity and only the capabilities you supply. All optional getters have
+default implementations returning null. For example, this provider exposes file reveal and leaves other capabilities absent:
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Desktop;
+
+public sealed class RevealOnlyProvider : IPlatformProvider
+{
+    public RevealOnlyProvider(PlatformOperatingSystem operatingSystem, IFileRevealer revealer)
+    {
+        ArgumentNullException.ThrowIfNull(revealer);
+        OperatingSystem = operatingSystem;
+        FileRevealer = revealer;
+    }
+
+    public PlatformOperatingSystem OperatingSystem { get; }
+    public IFileRevealer FileRevealer { get; }
+}
+```
+
+Inspect the full capability set through an `IPlatformProvider` reference; C# does not add default interface members
+to the implementing class's own surface. Selection returns that interface, so callers can check every optional property.
+Guard missing capabilities when composing the host or presenting optional actions. Pass the resulting focused interfaces
+to application components so they depend only on the operations they use.
+
+New capabilities follow the same pattern: a focused interface and a default-null facade property. Providers opt in by
+supplying an implementation. Existing capabilities must fulfill their operation contracts; a successful no-op or a throwing
+placeholder does not represent a supported operation. The focused interfaces and dispatcher also support custom implementations.
+
 ## Operation behavior
 
 Use capability availability to decide which actions to offer, and handle cancellation separately from failure.

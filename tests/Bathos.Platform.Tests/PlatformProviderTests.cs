@@ -1,3 +1,4 @@
+using Bathos.Platform.Desktop;
 using Bathos.Platform.Linux;
 using Bathos.Platform.MacOS;
 using Bathos.Platform.Windows;
@@ -7,6 +8,42 @@ namespace Bathos.Platform.Tests;
 
 public sealed class PlatformProviderTests
 {
+    [Fact]
+    public void ProviderWithOnlyOsIdentitySelectsWithAllCapabilitiesAbsent()
+    {
+        var supplied = new MinimalProvider();
+        var selected = PlatformProviders.Select(PlatformOperatingSystem.Windows, supplied);
+        Assert.Same(supplied, selected);
+        Assert.Null(selected.FileRename);
+        Assert.Null(selected.FileEntries);
+        Assert.Null(selected.ScreenColorSampler);
+        Assert.Null(selected.FileRevealer);
+        Assert.Null(selected.FileInvoker);
+    }
+
+    [Fact]
+    public void ProviderCanSupplyOneCapabilityWhileInheritingDefaultsForTheOthers()
+    {
+        var revealer = new WindowsFileRevealer();
+        var selected = PlatformProviders.Select(PlatformOperatingSystem.Windows, new RevealOnlyProvider(revealer));
+        Assert.Same(revealer, selected.FileRevealer);
+        Assert.Null(selected.FileRename);
+        Assert.Null(selected.FileEntries);
+        Assert.Null(selected.ScreenColorSampler);
+        Assert.Null(selected.FileInvoker);
+    }
+
+    private sealed class MinimalProvider : IPlatformProvider
+    {
+        public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.Windows;
+    }
+
+    private sealed class RevealOnlyProvider(IFileRevealer revealer) : IPlatformProvider
+    {
+        public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.Windows;
+        public IFileRevealer FileRevealer => revealer;
+    }
+
     [Fact]
     public void SelectionUsesOnlySuppliedProvidersAndRejectsAmbiguity()
     {

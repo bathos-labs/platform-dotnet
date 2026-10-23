@@ -15,6 +15,11 @@ development, the API may change without compatibility shims; breaking changes ar
   integration guidance with validated examples for composition, publication, desktop handoff, discovery, and sampling.
 - A WPF dispatcher adapter and window example showing native screen sampling and shutdown coordination.
 
+### Changed
+
+- `IPlatformProvider` requires only its OS identity. Optional capability properties default to null, allowing custom
+  providers to implement a subset of capabilities and omit newly introduced optional capabilities.
+
 ## [0.1.0-beta.1] - 2026-10-23
 
 Initial public beta. Targets .NET 10; all four packages share this version. Linux support is experimental.
