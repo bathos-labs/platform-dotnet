@@ -37,6 +37,8 @@ public sealed class GeneratedFileName
 
     /// <summary>Returns the normalized filename, adding a numeric suffix for sequences greater than one.</summary>
     /// <exception cref="ArgumentOutOfRangeException">The sequence is less than one.</exception>
+    /// <param name="sequence">Positive sequence number; one has no numeric suffix.</param>
+    /// <returns>A single portable filename including the extension; no path is reserved.</returns>
     public string Candidate(int sequence)
     {
         ArgumentOutOfRangeException.ThrowIfLessThan(sequence, 1);

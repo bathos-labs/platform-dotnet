@@ -6,6 +6,7 @@ namespace Bathos.Platform.Linux;
 /// <summary>Linux statx inspection that rejects links and nonregular files without opening them.</summary>
 public sealed partial class LinuxFileEntryProbe : IFileEntryProbe
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/RequireRegularFile/*" />
     public void RequireRegularFile(string path)
     {
         FileEntryErrors.ValidatePath(path, nameof(path));

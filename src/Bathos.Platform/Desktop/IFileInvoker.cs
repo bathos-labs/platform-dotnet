@@ -8,5 +8,6 @@ namespace Bathos.Platform.Desktop;
 /// </remarks>
 public interface IFileInvoker
 {
+    /// <include file="../Documentation/Contracts.xml" path="contracts/OpenAsync/*" />
     Task OpenAsync(string path, ApplicationTarget application, CancellationToken cancellationToken = default);
 }

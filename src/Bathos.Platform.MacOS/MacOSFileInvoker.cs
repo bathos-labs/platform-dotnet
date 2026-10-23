@@ -6,6 +6,7 @@ namespace Bathos.Platform.MacOS;
 /// <summary>Uses LaunchServices through the system open utility, or starts an explicitly selected executable.</summary>
 public sealed class MacOSFileInvoker : IFileInvoker
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/OpenAsync/*" />
     public Task OpenAsync(string path, ApplicationTarget application, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(application);

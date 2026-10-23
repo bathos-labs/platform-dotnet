@@ -1,4 +1,4 @@
-# Working in Bathos Platform for .NET
+# Working on Bathos native platform abstractions for .NET
 
 - Inspect Git status first; preserve unrelated changes. Work serially unless delegation is explicitly requested.
 - Read README.md, docs/architecture.md, and CONTRIBUTING.md before structural changes. Explain architectural tradeoffs

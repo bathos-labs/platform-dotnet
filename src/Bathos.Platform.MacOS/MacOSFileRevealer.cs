@@ -5,6 +5,7 @@ namespace Bathos.Platform.MacOS;
 /// <summary>Requests Finder selection through the system open utility.</summary>
 public sealed class MacOSFileRevealer : IFileRevealer
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/RevealAsync/*" />
     public Task RevealAsync(string path, CancellationToken cancellationToken = default)
     {
         DesktopPaths.RequireEntry(path);

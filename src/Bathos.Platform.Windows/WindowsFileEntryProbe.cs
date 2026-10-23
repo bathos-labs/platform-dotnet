@@ -7,6 +7,7 @@ namespace Bathos.Platform.Windows;
 /// <summary>Rejects directories/reparse points and requires an ordinary disk-file handle.</summary>
 public sealed partial class WindowsFileEntryProbe : IFileEntryProbe
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/RequireRegularFile/*" />
     public void RequireRegularFile(string path)
     {
         FileEntryErrors.ValidatePath(path, nameof(path));

@@ -1,13 +1,20 @@
-# Bathos Platform for .NET
+# Native platform abstractions for .NET
 
-Native desktop capabilities for .NET applications: publish files atomically, inspect file entries, reveal files in
-Finder or Explorer, open documents in a selected application, and pick a screen color.
+[![NuGet](https://img.shields.io/nuget/vpre/Bathos.Platform?label=NuGet)](https://www.nuget.org/packages/Bathos.Platform)
+[![Native validation](https://github.com/bathos-labs/platform-dotnet/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/bathos-labs/platform-dotnet/actions/workflows/validate.yml)
 
-Bathos Platform keeps these operations independent of your UI toolkit and application model. The host chooses its
-providers, application targets, and native dispatcher. Use it with your own composition or DI setup; the packages
-have no UI-toolkit, DI-container, or image-processing dependencies.
+Bathos-written libraries that give .NET applications common interfaces for native OS operations: publish files
+atomically, inspect file entries, reveal files in Finder or Explorer, open documents in a selected application,
+and pick a screen color.
 
-**First beta: `0.1.0-beta.1` · .NET 10 · MIT license.** Prerelease APIs may change. Linux support is experimental.
+The `Bathos.Platform` packages keep platform-specific interop behind focused capability interfaces, so application
+code can use native behavior without implementing each OS integration itself. Choose the Windows, macOS, or
+experimental Linux providers your application needs, with explicit support differences.
+
+Your application supplies its UI toolkit, composition or DI setup, application targets, and native dispatcher.
+The libraries have no UI-toolkit, DI-container, or image-processing dependencies.
+
+**.NET 10 · MIT license.** APIs are prerelease and may change. Linux support is experimental.
 
 ## Packages
 
@@ -16,10 +23,10 @@ only the core and .NET runtime; sibling providers are optional.
 
 | NuGet package | What it provides |
 | --- | --- |
-| [Bathos.Platform](https://www.nuget.org/packages/Bathos.Platform/0.1.0-beta.1) | Capability interfaces, explicit OS/provider selection, application targets, and staged file publication with collision-safe naming. Requires a native rename provider for publication. |
-| [Bathos.Platform.Windows](https://www.nuget.org/packages/Bathos.Platform.Windows/0.1.0-beta.1) | Native file rename/replacement and inspection, Explorer reveal, executable handoff, App Paths lookup, and an optional GDI screen sampler. |
-| [Bathos.Platform.MacOS](https://www.nuget.org/packages/Bathos.Platform.MacOS/0.1.0-beta.1) | Native file rename/replacement and inspection, Finder reveal, executable/bundle handoff, LaunchServices lookup, and an optional AppKit screen sampler. |
-| [Bathos.Platform.Linux](https://www.nuget.org/packages/Bathos.Platform.Linux/0.1.0-beta.1) | Experimental statx inspection, file-manager reveal, executable/desktop-entry handoff, GIO lookup, and an optional portal screen sampler. Native rename and file publication are unavailable. |
+| [Bathos.Platform](https://www.nuget.org/packages/Bathos.Platform) | Capability interfaces, explicit OS/provider selection, application targets, and staged file publication with collision-safe naming. Requires a native rename provider for publication. |
+| [Bathos.Platform.Windows](https://www.nuget.org/packages/Bathos.Platform.Windows) | Native file rename/replacement and inspection, Explorer reveal, executable handoff, App Paths lookup, and an optional GDI screen sampler. |
+| [Bathos.Platform.MacOS](https://www.nuget.org/packages/Bathos.Platform.MacOS) | Native file rename/replacement and inspection, Finder reveal, executable/bundle handoff, LaunchServices lookup, and an optional AppKit screen sampler. |
+| [Bathos.Platform.Linux](https://www.nuget.org/packages/Bathos.Platform.Linux) | Experimental statx inspection, file-manager reveal, executable/desktop-entry handoff, GIO lookup, and an optional portal screen sampler. Native rename and file publication are unavailable. |
 
 Each package contains a `net10.0` library, XML API documentation, this README, and MIT license text. Portable PDB
 symbols are published separately as `.snupkg` files. The engineering harnesses and test applications are not shipped.
@@ -27,12 +34,14 @@ Native OS frameworks and Linux system libraries are used from the host rather th
 
 ## Get started
 
-For an application targeting Windows and macOS:
+For an application targeting Windows and macOS, install the latest available packages, including prereleases:
 
 ```text
-dotnet add package Bathos.Platform.Windows --version 0.1.0-beta.1
-dotnet add package Bathos.Platform.MacOS --version 0.1.0-beta.1
+dotnet add package Bathos.Platform.Windows --prerelease
+dotnet add package Bathos.Platform.MacOS --prerelease
 ```
+
+Omit `--prerelease` to select stable releases only.
 
 This console example writes a complete file to private staging, then publishes it under the first available name:
 
@@ -45,7 +54,7 @@ using Bathos.Platform.Windows;
 var platform = PlatformProviders.SelectCurrent(new WindowsPlatformProvider(), new MacOSPlatformProvider());
 var rename = platform.FileRename ?? throw new PlatformNotSupportedException("Native publication is unavailable.");
 await using var publication = new FilePublication(Path.GetFullPath("published-files"), rename);
-await publication.Stream.WriteAsync("Hello from Bathos Platform!\n"u8.ToArray());
+await publication.Stream.WriteAsync("Hello from .NET!\n"u8.ToArray());
 var path = await publication.PublishAsync(new GeneratedFileName("Greeting", ".txt"), CancellationToken.None);
 Console.WriteLine(path); // Greeting.txt, Greeting (2).txt, ...; existing files are preserved.
 ```
@@ -73,16 +82,19 @@ A null capability means unsupported or unconfigured; a null screen sample means 
 failures remain distinct and are reported to the caller. OS detection alone does not establish native-service or
 permission availability.
 
+Use the provider facade when composing your application, then pass focused capability interfaces to the components
+that use them. Those interfaces support substitution and test doubles.
+
 ## Support and documentation
 
-Windows and macOS have native automated test coverage and manually confirmed sampler harness tests. Linux has
-native headless test coverage, including portal/file-manager protocol tests and GIO activation, but no interactive
-desktop acceptance record. Finder/Explorer reveal and real-editor handoff still need manual acceptance.
-See the [validation record](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md) for the
-specific hosts, scenarios, and remaining gaps.
+Repository documentation describes current development. For the version you installed, use the XML API documentation
+shipped with the assemblies and the corresponding source tag listed in [releases](https://github.com/bathos-labs/platform-dotnet/releases).
+
+Linux support is experimental. See the [manual test guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md)
+for native desktop checks.
 
 - [Integration guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md): publication, application targets, sampler dispatch, and native prerequisites.
-- [Changelog](https://github.com/bathos-labs/platform-dotnet/blob/master/CHANGELOG.md) and [releases](https://github.com/bathos-labs/platform-dotnet/releases): beta notes and published artifacts.
+- [Changelog](https://github.com/bathos-labs/platform-dotnet/blob/master/CHANGELOG.md) and [releases](https://github.com/bathos-labs/platform-dotnet/releases): release notes and published artifacts.
 - [Architecture](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/architecture.md): capability boundaries and resource ownership.
 - [Contributing](https://github.com/bathos-labs/platform-dotnet/blob/master/CONTRIBUTING.md) and [publishing](https://github.com/bathos-labs/platform-dotnet/blob/master/RELEASING.md): source builds, validation, and NuGet releases.
 - [GitHub Issues](https://github.com/bathos-labs/platform-dotnet/issues): bugs and capability requests.

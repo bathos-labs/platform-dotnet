@@ -8,6 +8,11 @@ namespace Bathos.Platform.Linux;
 public static partial class LinuxApplicationDiscovery
 {
     /// <summary>Returns a usable desktop-entry target, or an empty list when no usable registration exists.</summary>
+    /// <param name="desktopId">Desktop-entry ID including .desktop; paths and directory separators are rejected.</param>
+    /// <returns>A single usable registration, or an empty list when GIO cannot resolve a usable entry.</returns>
+    /// <remarks>Run only on Linux. The host chooses among candidates; lookup does not prove that a target accepts a particular document format. Native loading and lookup failures propagate.</remarks>
+    /// <exception cref="ArgumentNullException">The lookup key is null.</exception>
+    /// <exception cref="ArgumentException">The key is blank, contains a null character, or has invalid syntax.</exception>
     [SupportedOSPlatform("linux")]
     public static IReadOnlyList<ApplicationTarget> FindByDesktopId(string desktopId)
     {
