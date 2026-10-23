@@ -33,7 +33,7 @@ public interface IPlatformProvider
 {
     /// <summary>Gets the OS represented by this provider, independently of the executing host.</summary>
     PlatformOperatingSystem OperatingSystem { get; }
-    /// <summary>Gets native rename support, or null when unavailable. Operation failures are explicit rename outcomes.</summary>
+    /// <summary>Gets native rename support, or null when unavailable. Native failures are rename outcomes; argument validation and native loading can throw.</summary>
     INativeFileRename? FileRename { get; }
     /// <summary>Gets regular-file inspection, or null when unavailable. Inspection is advisory, not a path reservation.</summary>
     IFileEntryProbe? FileEntries { get; }

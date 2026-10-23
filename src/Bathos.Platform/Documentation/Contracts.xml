@@ -6,7 +6,7 @@
     <exception cref="System.UnauthorizedAccessException">Access to the entry is denied by a managed filesystem operation.</exception>
     <exception cref="System.ArgumentException">The path is empty or contains a null character.</exception>
     <exception cref="System.ArgumentNullException">The path is null.</exception>
-    <remarks>Use this capability only on its provider OS. Native library or entry-point loading failures propagate. Path inspection and rename do not reserve ancestor directories against concurrent changes.</remarks>
+    <remarks>Use this capability only on its provider OS. Native library or entry-point loading failures propagate. Path inspection and rename do not reserve ancestor directories against concurrent changes. Native error details vary by OS; do not parse exception messages as outcomes.</remarks>
   </RequireRegularFile>
   <Move>
     <summary>Returns the native outcome and error code. Success is the publication boundary and cannot be undone by cancellation.</summary>
@@ -17,14 +17,14 @@
     <returns>The native result. Unavailable represents an operation failure, not an absent capability.</returns>
     <exception cref="System.ArgumentException">A path is empty or contains a null character.</exception>
     <exception cref="System.ArgumentNullException">A path is null.</exception>
-    <remarks>Use this capability only on its provider OS. Native library or entry-point loading failures propagate. Path inspection and rename do not reserve ancestor directories against concurrent changes.</remarks>
+    <remarks>Use this capability only on its provider OS. Native library or entry-point loading failures propagate. Path inspection and rename do not reserve ancestor directories against concurrent changes. Native error details vary by OS; do not parse exception messages as outcomes.</remarks>
   </Move>
   <RevealAsync>
     <summary>Requests selection of an existing file or directory in its containing folder.</summary>
     <param name="path">Absolute path of the entry to select; ownership remains with the caller.</param>
     <param name="cancellationToken">Cancellation observed before native submission, not after successful handoff.</param>
     <returns>A task that completes after submission and owned helper cleanup, without guaranteeing visible selection or foreground focus.</returns>
-    <remarks>No host UI dispatcher is required. Native helpers are awaited; the file manager's lifetime is not. A failed selection request does not fall back to opening only the folder.</remarks>
+    <remarks>No host UI dispatcher is required. Native helpers are awaited; the file manager's lifetime is not. A failed selection request does not fall back to opening only the folder. Native exception types and details can vary by OS; preserve them for diagnostics rather than parsing messages.</remarks>
     <exception cref="System.ArgumentNullException">The path is null.</exception>
     <exception cref="System.ArgumentException">The path is blank, contains a null character, or is not absolute.</exception>
     <exception cref="System.IO.IOException">The entry is missing, inaccessible to a native service, or native submission fails.</exception>
@@ -39,7 +39,7 @@
     <param name="application">Explicit executable, bundle, or desktop-entry target supported by the provider.</param>
     <param name="cancellationToken">Cancellation observed before native submission. Later cancellation does not terminate the application.</param>
     <returns>A task that completes after native submission and owned helper cleanup, not after the document loads or the application exits.</returns>
-    <remarks>No host UI dispatcher is required. Executables receive the file path as one argument without shell parsing. Unsupported or failed explicit targets never fall back to the default application. Native launch failures may surface as OS-specific exceptions.</remarks>
+    <remarks>No host UI dispatcher is required. Executables receive the file path as one argument without shell parsing. Unsupported or failed explicit targets never fall back to the default application. Native launch failures may surface as OS-specific exceptions. Preserve error details for diagnostics rather than parsing exception messages.</remarks>
     <exception cref="System.ArgumentNullException">The path or application is null.</exception>
     <exception cref="System.ArgumentException">The path is blank, contains a null character, or is not absolute.</exception>
     <exception cref="System.IO.IOException">An entry is missing, is of the wrong kind, or native handoff fails.</exception>

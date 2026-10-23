@@ -13,6 +13,7 @@ development, the API may change without compatibility shims; breaking changes ar
 
 - Complete public API XML documentation in all four packages, including native operation contracts, and expanded
   integration guidance with validated examples for composition, publication, desktop handoff, discovery, and sampling.
+- A WPF dispatcher adapter and window example showing native screen sampling and shutdown coordination.
 
 ## [0.1.0-beta.1] - 2026-10-23
 

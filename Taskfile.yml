@@ -45,7 +45,7 @@ tasks:
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
 
   packages:check:
-    desc: Pack and verify MIT metadata and an isolated single-provider consumer
+    desc: Pack and verify metadata, API documentation, examples, and an isolated consumer
     cmds:
       - task: pack
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages

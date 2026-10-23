@@ -91,8 +91,31 @@ try
         var directory = Path.Combine(scratch.FullName, "published-files");
         var first = File.ReadAllBytes(Path.Combine(directory, "Greeting.txt"));
         var second = File.ReadAllBytes(Path.Combine(directory, "Greeting (2).txt"));
-        if (!first.SequenceEqual(second) || Directory.GetFiles(directory).Length != 2)
+        if (!first.AsSpan().SequenceEqual("Hello from .NET!\n"u8) || !first.SequenceEqual(second) ||
+            Directory.GetFiles(directory).Length != 2)
             throw new InvalidOperationException("README publication example did not preserve both complete outputs.");
+    }
+
+    if (provider == "Windows")
+    {
+        // WPF is a host example, so compile it separately from the portable integration guide.
+        foreach (var file in Directory.GetFiles(scratch.FullName, "*.cs")) File.Delete(file);
+        var properties = consumerProject.Root?.Element("PropertyGroup")
+            ?? throw new InvalidOperationException("Consumer project has no properties.");
+        properties.SetElementValue("TargetFramework", "net10.0-windows");
+        properties.SetElementValue("OutputType", "Library");
+        properties.SetElementValue("UseWPF", "true");
+        consumerProject.Root?.Elements("ItemGroup").Remove();
+        consumerProject.Root?.Add(new XElement("ItemGroup", names.Where(name => name is "Bathos.Platform" or "Bathos.Platform.Windows").Select(name =>
+            new XElement("PackageReference", new XAttribute("Include", name), new XAttribute("Version", version)))));
+        consumerProject.Save(Path.Combine(scratch.FullName, "Consumer.csproj"));
+        var wpfExamples = CSharpExamples(File.ReadAllText(Path.Combine(root, "docs", "examples", "wpf-dispatcher.md"))).ToArray();
+        if (wpfExamples.Length == 0) throw new InvalidOperationException("Expected WPF dispatcher examples.");
+        for (var index = 0; index < wpfExamples.Length; index++)
+            File.WriteAllText(Path.Combine(scratch.FullName, $"WpfExample{index}.cs"), wpfExamples[index]);
+        await Run("restore", "--configfile", "NuGet.Config", "--packages", Path.Combine(scratch.FullName, "cache"));
+        await Run("build", "--configuration", "Release", "--no-restore");
+        Console.WriteLine("WPF dispatcher and window examples compiled against the Windows packages.");
     }
 
     async Task Run(params string[] arguments)

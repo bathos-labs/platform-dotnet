@@ -22,7 +22,7 @@ public interface IScreenColorSampler
     /// Built-in providers allow one active sampler operation per platform implementation; await completion before another call.
     /// There is no cancellation-token overload: retiring a caller must ignore the result and still await native completion.
     /// Windows samples a frozen GDI snapshot; macOS converts AppKit output to sRGB; Linux uses portal RGB values.
-    /// No display-profile matching, original-image fidelity, or HDR accuracy is guaranteed. Native failures propagate as exceptions.
+    /// No display-profile matching, original-image fidelity, or HDR accuracy is guaranteed. Native failures propagate as exceptions; their details vary by OS and are intended for diagnostics.
     /// </remarks>
     /// <exception cref="InvalidOperationException">Another picker is active, UI-thread access is invalid, or native setup/color conversion fails.</exception>
     Task<ScreenColor?> SampleAsync();

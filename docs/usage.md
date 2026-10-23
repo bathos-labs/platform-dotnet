@@ -35,6 +35,20 @@ interfaces in your own composition system. No specific DI container is required 
 | Exception or failed rename outcome | The operation failed | Report the failure and preserve caller-owned files |
 | Empty discovery list | No usable native registration found | Ask for another target or an explicit executable |
 
+## Operation behavior
+
+Use capability availability to decide which actions to offer, and handle cancellation separately from failure.
+Await each operation even when its caller retires; discard a stale result while allowing owned cleanup to finish.
+File publication owns staging until success; reveal and application handoff leave the caller's file ownership unchanged.
+
+Cancellation tokens can prevent publication or handoff before its native boundary. After success, the result remains
+successful even if the token is later canceled. For sampling, caller retirement only suppresses application of the result;
+it does not cancel the native picker. Keep its dispatcher alive until completion.
+
+Use documented outcomes and exception categories in application logic. Native failure details and concrete exception
+types can differ by OS, API, or filesystem. Preserve those details for diagnostics, and avoid parsing exception messages
+or assuming that the same failure has the same numeric error code on every platform.
+
 ## File publication and inspection
 
 `FilePublication` owns a private temporary sibling of the destination file. Write to its borrowed `Stream`, then
@@ -212,8 +226,9 @@ public static class SamplingExample
 
 The dispatcher must enqueue asynchronously, never run inline, and must not drop cleanup work during shutdown.
 Its `VerifyAccess` implementation must check the actual native UI thread, including the macOS main-thread constraint.
-There is deliberately no generic implementation in the core: adapt your existing host dispatcher. The engineering
-sampler hosts demonstrate AppKit and Win32 event loops for manual validation, not production UI infrastructure.
+Adapt your existing host dispatcher; see the [WPF dispatcher example](examples/wpf-dispatcher.md) for a concrete adapter
+and UI event-handler integration. The engineering sampler hosts demonstrate AppKit and Win32 event loops for manual
+validation.
 Only one built-in sampling operation per platform implementation may be active at a time.
 
 ## Prerequisites and troubleshooting
@@ -240,5 +255,5 @@ The engineering-only desktop host supports `reveal`, `open`, and native lookup. 
 manual interaction and a separate noninteractive dispatcher smoke check on Windows/macOS. Neither harness is
 included in the NuGet packages.
 
-See [native validation](validation.md) for commands, human acceptance procedures, and host-specific evidence.
+See [native validation](validation.md) for commands, human acceptance procedures, and manual checks.
 Headless Linux tests establish protocol and transport behavior, not graphical desktop support.

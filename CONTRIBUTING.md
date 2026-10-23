@@ -38,13 +38,11 @@ Native CI runs on Linux x64, Windows x64, and macOS Arm64 for PRs and `master`, 
 An OS-specific failure is not excused by passing on another host. Screen selection is manual: invoke the picker
 in a native host, sample inside/outside the application, cancel with Escape, and repeat; verify main-loop cleanup and
 caller retirement. `task eng:sampler` supplies a small native launch harness; `task eng:sampler:smoke` checks its dispatch
-and shutdown without opening the picker. See [native validation](docs/validation.md) for the procedure and evidence.
-Do not weaken system privacy controls to automate selection. The macOS and Windows samplers have user-confirmed
-interactive validation; Linux support remains experimental pending desktop and broader host validation.
-The Linux harness is console-driven;
-its portal owns the native UI loop and has no dispatcher smoke mode.
+and shutdown without opening the picker. See the [manual test guide](docs/validation.md) for the procedure.
+Respect system privacy controls. Linux support is experimental. Its harness is console-driven;
+the portal owns the native UI loop and has no dispatcher smoke mode.
 Desktop reveal and editor handoff require separate manual validation through `eng/Bathos.Platform.Desktop`;
-headless fixtures and argument probes do not establish visible selection or Photoshop/Clip Studio compatibility.
+headless fixtures and argument probes do not establish visible selection or editor compatibility.
 
 ## Changelog
 
@@ -60,8 +58,9 @@ Engineering executables and tests are explicitly exempt in their own directory b
 remains enabled there because the unused-import analyzer requires it. Do not add a suppression to shipping projects.
 
 Document caller-visible contracts: ownership, null results, native-thread requirements, concurrency, cancellation
-boundaries, exceptions, and the limits of successful completion. Prefer meaningful summaries and parameter descriptions
-to paraphrasing signatures. Shared interface/implementation contracts live in
+boundaries, exceptions, and the limits of successful completion. Treat native error messages as diagnostic details;
+document actionable outcomes without promising identical native failures across operating systems. Prefer meaningful
+summaries and parameter descriptions to paraphrasing signatures. Shared interface/implementation contracts live in
 `src/Bathos.Platform/Documentation/Contracts.xml` and use compiler-expanded `include` comments. Keep selectors and
 parameter names synchronized with their declarations. The shipped XML must contain real text; do not rely on
 implicit IDE inheritance or unresolved `inheritdoc` tags. No documentation generator is required.
@@ -69,9 +68,10 @@ implicit IDE inheritance or unresolved `inheritdoc` tags. No documentation gener
 Keep the README quick start runnable and integration examples in `docs/usage.md` self-contained. The package verifier
 compiles every `csharp` fenced block in those files against the freshly packed libraries in an isolated consumer.
 The README contains one executable quick start; guide snippets declare public example classes so they compile together.
-On Windows/macOS, validation runs the README twice and verifies collision-safe publication. Interactive snippets are
-compiled only; their acceptance remains manual. Retain the separate single-provider consumer check before examples
-bring in all providers. Keep Markdown fences conventional so extraction remains deterministic.
+On Windows/macOS, validation runs the README twice and verifies the expected bytes and collision-safe publication.
+The WPF example in `docs/examples/wpf-dispatcher.md` is compiled separately on Windows with the WPF framework
+reference. Interactive snippets are compiled only; their acceptance remains manual. Retain the separate single-provider
+consumer check before examples bring in all providers. Keep Markdown fences conventional so extraction remains deterministic.
 
 When changing a public contract, update its XML comments, integration recipe, example, and consumer-facing changelog
 entry together. Link published documentation to its tag; distinguish development guidance from the installed package's
