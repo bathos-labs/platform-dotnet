@@ -5,10 +5,15 @@ and runtime; the core never references providers. Provider constructors avoid na
 providers to selection and supply a native dispatcher when enabling interactive capabilities. Independent capability
 interfaces support injection without requiring the facade. The facade supports application-level composition without DI.
 
-Custom implementations of the capability interfaces, native dispatcher, and provider facade are supported extension
-points. Only the facade's OS identity is required; capability getters default to null. A provider exposes the capabilities
-it supplies, and consumers check for absence at composition before passing focused interfaces to application components.
-New capabilities use focused interfaces and optional default-null facade properties. Existing providers can omit them.
+The built-in Windows, macOS, and Linux providers are the normal integration path. Focused capability interfaces and
+the native dispatcher are the supported boundaries for host integration, substitution, and testing. The provider facade
+groups capabilities for application composition, with selection using repository-defined OS identities and explicitly
+supplied instances. Partial providers are an optional composition technique: only OS identity is required, and capability
+getters default to null. Consumers check availability before passing focused interfaces to application components.
+
+New capabilities use focused interfaces and optional default-null facade properties. Existing providers can omit them;
+public facade implementations remain part of compatibility review. Broader provider infrastructure needs a demonstrated
+consumer requirement. The current model allows capability growth without requiring a third-party provider ecosystem.
 Default operation implementations must fulfill the operation's contract; silent no-ops and throwing placeholders do not
 establish capability support. Changes to existing required operations or their guarantees need explicit compatibility review.
 
@@ -45,7 +50,7 @@ Desktop handoff has two focused capabilities: reveal an existing entry in its co
 file in a host-selected application. Both require absolute paths and keep file ownership with the caller. An immutable
 ApplicationTarget distinguishes executable paths, macOS application bundles, and Linux desktop-entry IDs. Targets
 are syntax-checked values, not promises of installation or file-format support. Providers reject unsupported target
-kinds instead of changing intent or falling back to a default handler. Custom providers can expose FileRevealer and
+kinds instead of changing intent or falling back to a default handler. Providers can expose FileRevealer and
 FileInvoker independently; omitted capabilities use the facade's null defaults.
 
 Windows reveal uses SHParseDisplayName and SHOpenFolderAndSelectItems on an owned STA worker with balanced COM

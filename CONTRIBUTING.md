@@ -53,11 +53,15 @@ Follow [RELEASING.md](RELEASING.md) when moving notes into a dated release secti
 
 ## API and developer documentation
 
-Keep application dependencies focused on the capability interfaces they use. Custom capability, dispatcher, and provider
-implementations are supported. Add new capabilities as focused interfaces with optional default-null properties on
-`IPlatformProvider`; its OS identity is the only required member. Do not add required operations to existing interfaces
-or weaken their guarantees as an additive change. For stable releases, compatibility review covers both callers and
-implementers. Default operation bodies must provide meaningful behavior that satisfies the contract.
+Present built-in OS providers as the normal integration path. Keep application dependencies focused on the capability
+interfaces they use; these and the native dispatcher support host integration, substitution, and testing. The provider
+facade is a composition convenience, and partial providers are an optional technique. Expand provider infrastructure
+only for demonstrated consumer requirements.
+
+Add new capabilities as focused interfaces with optional default-null properties on `IPlatformProvider`; its OS identity
+is the only required member. Do not add required operations to existing interfaces or weaken their guarantees as an
+additive change. For stable releases, compatibility review covers both callers and implementers, including public facade
+implementations. Default operation bodies must provide meaningful behavior that satisfies the contract.
 
 Shipping libraries generate XML documentation and fail the build for missing public documentation (CS1591).
 Engineering executables and tests are explicitly exempt in their own directory build properties; XML generation

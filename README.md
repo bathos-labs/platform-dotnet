@@ -82,8 +82,8 @@ A null capability means unsupported or unconfigured; a null screen sample means 
 failures remain distinct and are reported to the caller. OS detection alone does not establish native-service or
 permission availability.
 
-Custom providers can supply a subset of capabilities; optional properties default to null. Check availability when
-composing your application, then pass focused capability interfaces to the components that use them.
+Use the provider facade when composing your application, then pass focused capability interfaces to the components
+that use them. Those interfaces support substitution and test doubles.
 
 ## Support and documentation
 

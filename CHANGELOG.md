@@ -17,8 +17,8 @@ development, the API may change without compatibility shims; breaking changes ar
 
 ### Changed
 
-- `IPlatformProvider` requires only its OS identity. Optional capability properties default to null, allowing custom
-  providers to implement a subset of capabilities and omit newly introduced optional capabilities.
+- `IPlatformProvider` requires only its OS identity. Optional capability properties default to null, allowing partial
+  capability sets and omission of newly introduced optional capabilities.
 
 ## [0.1.0-beta.1] - 2026-10-23
 

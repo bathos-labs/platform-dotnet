@@ -30,10 +30,11 @@ public static class PlatformHost
 /// Hosts may register individual capabilities in DI or retain this facade in their own application wrapper.
 /// </summary>
 /// <remarks>
-/// Custom providers must supply their OS identity; every capability defaults to null. Implement only the capabilities
-/// the provider supplies, and check availability before invoking them. Access default members through IPlatformProvider;
-/// implementing classes do not inherit those members. Application components should depend on focused capability
-/// interfaces, keeping this facade at the composition boundary. New capabilities can add optional default-null properties.
+/// Use the built-in OS providers for standard integration. This facade groups capabilities at the composition boundary;
+/// application components should depend on focused capability interfaces, which support substitution and testing.
+/// Every capability defaults to null and must be checked before invocation. Partial providers can supply an OS identity
+/// and a subset of capabilities. Access default members through IPlatformProvider; implementing classes do not inherit
+/// those members. New capabilities can add optional default-null properties.
 /// </remarks>
 public interface IPlatformProvider
 {
