@@ -6,6 +6,7 @@ namespace Bathos.Platform.Windows;
 /// <summary>Windows exclusive rename, or explicitly authorized replacement, without COPY_ALLOWED.</summary>
 public sealed partial class WindowsFileRename : INativeFileRename
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/Move/*" />
     public FileRenameStatus Move(string source, string destination, out int errorCode, bool replaceExisting = false)
     {
         FileEntryErrors.ValidatePath(source, nameof(source));

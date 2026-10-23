@@ -5,6 +5,7 @@ namespace Bathos.Platform.Linux;
 /// <summary>Uses GIO desktop-entry activation or a host-selected executable. Linux desktop support is experimental.</summary>
 public sealed class LinuxFileInvoker : IFileInvoker
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/OpenAsync/*" />
     public Task OpenAsync(string path, ApplicationTarget application, CancellationToken cancellationToken = default)
     {
         ArgumentNullException.ThrowIfNull(application);

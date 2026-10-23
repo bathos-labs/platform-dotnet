@@ -20,6 +20,14 @@ Undated automated sampler/file evidence above was collected on 2026-10-22; later
 The three-OS CI run for `09eccf8` was inspected during beta preparation on 2026-10-23; all jobs passed.
 Permission-denied, cross-volume, special-file, and additional filesystem scenarios still need separate evidence.
 
+## Documentation validation, 2026-10-23
+
+On macOS Arm64, `task check` passed with 36 tests passed and 15 Linux-specific tests skipped. All four packages
+contained matching, expanded XML API documentation. The isolated macOS package consumer passed; the README
+quick start and all integration-guide C# examples compiled against the packed libraries. Running the quick start
+twice preserved both complete outputs under distinct names. Windows and Linux execution of these updated checks
+remains pending. Restored-package IDE tooltip rendering still needs a consumer check.
+
 ## macOS and Windows screen sampler
 
 From a logged-in graphical macOS or Windows session, run:

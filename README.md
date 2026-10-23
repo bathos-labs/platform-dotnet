@@ -1,11 +1,15 @@
-# Bathos Platform for .NET
+# Native platform abstractions for .NET
 
-Native desktop capabilities for .NET applications: publish files atomically, inspect file entries, reveal files in
-Finder or Explorer, open documents in a selected application, and pick a screen color.
+Bathos-written libraries that give .NET applications common interfaces for native OS operations: publish files
+atomically, inspect file entries, reveal files in Finder or Explorer, open documents in a selected application,
+and pick a screen color.
 
-Bathos Platform keeps these operations independent of your UI toolkit and application model. The host chooses its
-providers, application targets, and native dispatcher. Use it with your own composition or DI setup; the packages
-have no UI-toolkit, DI-container, or image-processing dependencies.
+The `Bathos.Platform` packages keep platform-specific interop behind focused capability interfaces, so application
+code can use native behavior without implementing each OS integration itself. Choose the Windows, macOS, or
+experimental Linux providers your application needs, with explicit support differences.
+
+Your application supplies its UI toolkit, composition or DI setup, application targets, and native dispatcher.
+The libraries have no UI-toolkit, DI-container, or image-processing dependencies.
 
 **First beta: `0.1.0-beta.1` · .NET 10 · MIT license.** Prerelease APIs may change. Linux support is experimental.
 
@@ -45,7 +49,7 @@ using Bathos.Platform.Windows;
 var platform = PlatformProviders.SelectCurrent(new WindowsPlatformProvider(), new MacOSPlatformProvider());
 var rename = platform.FileRename ?? throw new PlatformNotSupportedException("Native publication is unavailable.");
 await using var publication = new FilePublication(Path.GetFullPath("published-files"), rename);
-await publication.Stream.WriteAsync("Hello from Bathos Platform!\n"u8.ToArray());
+await publication.Stream.WriteAsync("Hello from .NET!\n"u8.ToArray());
 var path = await publication.PublishAsync(new GeneratedFileName("Greeting", ".txt"), CancellationToken.None);
 Console.WriteLine(path); // Greeting.txt, Greeting (2).txt, ...; existing files are preserved.
 ```
@@ -74,6 +78,11 @@ failures remain distinct and are reported to the caller. OS detection alone does
 permission availability.
 
 ## Support and documentation
+
+Repository documentation on `master` describes ongoing development toward 1.0. For the published beta, use the
+[0.1.0-beta.1 integration guide](https://github.com/bathos-labs/platform-dotnet/blob/v0.1.0-beta.1/docs/usage.md)
+and its [source/documentation snapshot](https://github.com/bathos-labs/platform-dotnet/tree/v0.1.0-beta.1).
+XML API documentation is versioned with each NuGet package.
 
 Windows and macOS have native automated test coverage and manually confirmed sampler harness tests. Linux has
 native headless test coverage, including portal/file-manager protocol tests and GIO activation, but no interactive

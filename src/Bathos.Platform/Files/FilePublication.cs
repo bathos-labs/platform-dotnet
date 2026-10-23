@@ -5,6 +5,7 @@ namespace Bathos.Platform.Files;
 /// <summary>
 /// Owns a private temporary sibling until complete bytes can be published with one native rename. Replacement requires explicit caller authorization.
 /// Disposal cleans up only that temporary file; published files survive cancellation and later caller failures.
+/// Staging is flushed before rename, but directory metadata is not synchronized; atomic visibility is not power-loss durability.
 /// A publication is single-use and must not be accessed concurrently. Separate publications may race safely.
 /// </summary>
 public sealed class FilePublication : IAsyncDisposable
@@ -20,6 +21,8 @@ public sealed class FilePublication : IAsyncDisposable
     /// <exception cref="ArgumentNullException">The directory or rename provider is null.</exception>
     /// <exception cref="IOException">The directory or staging file cannot be created.</exception>
     /// <exception cref="UnauthorizedAccessException">The caller cannot create the directory or staging file.</exception>
+    /// <param name="directory">Absolute destination directory in which staging is created.</param>
+    /// <param name="rename">Native rename capability for the destination filesystem.</param>
     public FilePublication(string directory, INativeFileRename rename)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
@@ -40,6 +43,9 @@ public sealed class FilePublication : IAsyncDisposable
     /// <exception cref="OperationCanceledException">Cancellation was observed before successful publication.</exception>
     /// <exception cref="InvalidOperationException">Publication was already attempted or the operation was disposed.</exception>
     /// <exception cref="IOException">Staging could not be flushed or published.</exception>
+    /// <param name="name">Normalized generated filename components. Sequence numbers are claimed only at rename.</param>
+    /// <param name="token">Cancellation checked before flush and rename attempts, never after a successful rename.</param>
+    /// <exception cref="ArgumentNullException">The generated name is null.</exception>
     public Task<string> PublishAsync(GeneratedFileName name, CancellationToken token)
     {
         ArgumentNullException.ThrowIfNull(name);
@@ -52,6 +58,10 @@ public sealed class FilePublication : IAsyncDisposable
     /// <exception cref="OperationCanceledException">Cancellation was observed before successful publication.</exception>
     /// <exception cref="InvalidOperationException">Publication was already attempted or the operation was disposed.</exception>
     /// <exception cref="IOException">Staging could not be flushed or published, including an unauthorized collision.</exception>
+    /// <param name="fileName">A single nonblank filename, excluding the staging name and directory components.</param>
+    /// <param name="token">Cancellation checked before flush and rename, never after successful publication.</param>
+    /// <param name="replaceExisting">Explicit authorization to replace an occupied destination atomically.</param>
+    /// <exception cref="ArgumentNullException">The filename is null.</exception>
     public Task<string> PublishExactAsync(string fileName, CancellationToken token, bool replaceExisting = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);

@@ -6,6 +6,7 @@ namespace Bathos.Platform.Windows;
 /// <summary>Selects an entry in Explorer using the Shell API on an owned STA worker.</summary>
 public sealed partial class WindowsFileRevealer : IFileRevealer
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/RevealAsync/*" />
     public Task RevealAsync(string path, CancellationToken cancellationToken = default)
     {
         DesktopPaths.RequireEntry(path);

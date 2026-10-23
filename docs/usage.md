@@ -4,6 +4,37 @@ The [README](../README.md) covers package selection and a runnable publication e
 .NET 10. Providers can be retained directly, selected with `PlatformProviders.SelectCurrent`, or registered in
 the host's own composition system. The core does not load or scan provider assemblies.
 
+## Compose only the capabilities you need
+
+Pass provider instances explicitly; selection returns the matching instance and does not probe permissions or desktop
+services. Duplicate providers for the same selected OS fail, as does selecting an unknown or omitted OS. Providers
+can be constructed on other hosts, but their native operations must only be invoked on their owning OS.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Linux;
+using Bathos.Platform.MacOS;
+using Bathos.Platform.Windows;
+
+public static class CompositionExample
+{
+    public static IPlatformProvider Create(INativeDispatcher? dispatcher = null) =>
+        PlatformProviders.SelectCurrent(new WindowsPlatformProvider(dispatcher),
+            new MacOSPlatformProvider(dispatcher), new LinuxPlatformProvider());
+}
+```
+
+This opts out of Linux sampling; use the explicit Linux opt-in below when your host supports it. A null dispatcher
+disables Windows/macOS sampling but leaves their file capabilities available. Register either the facade or individual
+interfaces in your own composition system. No specific DI container is required or supplied.
+
+| Signal | Meaning | Caller response |
+| --- | --- | --- |
+| Null capability property | Unsupported or not configured | Disable the corresponding action or configure the capability |
+| Null sample result | The user canceled native selection | Leave the previous application value unchanged |
+| Exception or failed rename outcome | The operation failed | Report the failure and preserve caller-owned files |
+| Empty discovery list | No usable native registration found | Ask for another target or an explicit executable |
+
 ## File publication and inspection
 
 `FilePublication` owns a private temporary sibling of the destination file. Write to its borrowed `Stream`, then
@@ -22,6 +53,34 @@ disposal or later cancellation. Windows and macOS provide native rename capabili
 `platform.FileEntries` offers regular-file inspection. `RequireRegularFile(path)` rejects missing or nonregular
 entries. Like other filesystem checks, it describes the observed entry rather than reserving it against later changes.
 
+Use `await using` even when publication can be canceled or throw. Once a publication attempt begins, create a new
+operation to retry a failure. Validation of an exact filename can fail before an attempt begins. Neither the borrowed
+stream nor a publication instance supports concurrent access; independently owned publications may race for names.
+Do not mutate the staging path through other filesystem APIs. Cleanup owns a pathname, not a defense against hostile
+replacement of directory entries.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Files;
+
+public static class PublicationExample
+{
+    public static async Task<string> PublishReportAsync(IPlatformProvider platform, string directory,
+        ReadOnlyMemory<byte> contents, CancellationToken token)
+    {
+        var rename = platform.FileRename ?? throw new PlatformNotSupportedException("Publication is unavailable.");
+        await using var publication = new FilePublication(Path.GetFullPath(directory), rename);
+        await publication.Stream.WriteAsync(contents, token);
+        return await publication.PublishExactAsync("report.txt", token); // Never replace an existing report implicitly.
+    }
+}
+```
+
+`GeneratedFileName` bounds and normalizes portable filename components; it does not choose an application naming
+policy or reserve sequence numbers. If using `INativeFileRename` directly, inspect both `FileRenameStatus` and the
+OS-specific error code. `Unavailable` covers native failures such as missing sources or denied access; it is not a
+substitute for capability absence. `CrossVolumeUnsupported` does not authorize a copy/delete fallback.
+
 ## Reveal and open in an application
 
 `FileRevealer.RevealAsync(path, token)` asks the native file manager to select an existing file or directory in
@@ -33,11 +92,14 @@ with the caller.
 using Bathos.Platform;
 using Bathos.Platform.Desktop;
 
-static async Task RevealAndOpenAsync(IPlatformProvider platform, string filePath,
-    ApplicationTarget selectedApplication, CancellationToken token)
+public static class DesktopExample
 {
-    await (platform.FileRevealer ?? throw new PlatformNotSupportedException()).RevealAsync(filePath, token);
-    await (platform.FileInvoker ?? throw new PlatformNotSupportedException()).OpenAsync(filePath, selectedApplication, token);
+    public static async Task RevealAndOpenAsync(IPlatformProvider platform, string filePath,
+        ApplicationTarget selectedApplication, CancellationToken token)
+    {
+        await (platform.FileRevealer ?? throw new PlatformNotSupportedException()).RevealAsync(filePath, token);
+        await (platform.FileInvoker ?? throw new PlatformNotSupportedException()).OpenAsync(filePath, selectedApplication, token);
+    }
 }
 ```
 
@@ -57,6 +119,28 @@ Native discovery helpers provide candidates without choosing an application or e
 
 These return empty lists for absent registrations. They are focused lookups rather than a complete application
 inventory. Portable/unregistered executables can be supplied directly. No defaults or file associations are changed.
+
+```csharp
+using Bathos.Platform.Desktop;
+using Bathos.Platform.Linux;
+using Bathos.Platform.MacOS;
+using Bathos.Platform.Windows;
+
+public static class DiscoveryExample
+{
+    public static IReadOnlyList<ApplicationTarget> Find(string nativeKey)
+    {
+        if (OperatingSystem.IsWindows()) return WindowsApplicationDiscovery.FindByExecutableName(nativeKey);
+        if (OperatingSystem.IsMacOS()) return MacOSApplicationDiscovery.FindByBundleIdentifier(nativeKey);
+        if (OperatingSystem.IsLinux()) return LinuxApplicationDiscovery.FindByDesktopId(nativeKey);
+        throw new PlatformNotSupportedException();
+    }
+}
+```
+
+Supply a key in the current platform's native format (an `.exe` filename, a bundle identifier, or a `.desktop` ID).
+An empty result is not an error; lookup exceptions represent a different failure. The returned order is not a ranking.
+Present candidates to the user or apply your own policy rather than silently selecting a fallback.
 
 Handoff success does not establish that the application loaded the document, supports its format, or became the
 foreground application. Executable targets must support a plain file argument. Application-specific automation,
@@ -94,6 +178,61 @@ requests throw when sampling is attempted.
 
 A null screen sample means user cancellation. On every platform, retiring a caller does not dismiss selection;
 ignore its late result and await native completion. Native cleanup belongs to the outstanding operation.
+
+### Applying a result to a live caller
+
+Call the following from the host's native UI thread. The validity predicate and result callback also run on that
+thread. Set the caller's validity state to false when it retires; keep the loop and dispatcher alive until this task
+finishes. This pattern works without assuming that the native UI loop installs a .NET synchronization context.
+
+```csharp
+using Bathos.Platform;
+
+public static class SamplingExample
+{
+    public static async Task SampleForCallerAsync(IScreenColorSampler sampler, INativeDispatcher dispatcher,
+        Func<bool> callerIsCurrent, Action<ScreenColor> applyColor)
+    {
+        dispatcher.VerifyAccess();
+        var color = await sampler.SampleAsync().ConfigureAwait(false);
+        var applied = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
+        dispatcher.Post(() =>
+        {
+            try
+            {
+                if (callerIsCurrent() && color is { } selected) applyColor(selected);
+                applied.SetResult();
+            }
+            catch (Exception error) { applied.SetException(error); }
+        });
+        await applied.Task.ConfigureAwait(false);
+    }
+}
+```
+
+The dispatcher must enqueue asynchronously, never run inline, and must not drop cleanup work during shutdown.
+Its `VerifyAccess` implementation must check the actual native UI thread, including the macOS main-thread constraint.
+There is deliberately no generic implementation in the core: adapt your existing host dispatcher. The engineering
+sampler hosts demonstrate AppKit and Win32 event loops for manual validation, not production UI infrastructure.
+Only one built-in sampling operation per platform implementation may be active at a time.
+
+## Prerequisites and troubleshooting
+
+| Symptom | Check |
+| --- | --- |
+| Capability is null | Provider selection, supplied dispatcher, and explicit Linux sampler opt-in |
+| Invalid path or target | Absolute filesystem paths; one filename for exact publication; native registration ID syntax |
+| File inspection fails | Missing entry, directory, symbolic link/reparse point, special entry, or access restriction |
+| Publication fails | Destination collision, permissions, filename limits, filesystem rename support, or cross-volume paths |
+| Linux native library load fails | System libdbus for reveal/sampling; GIO, GLib, and GObject for desktop-entry lookup/handoff; libc statx for inspection |
+| Linux desktop service rejects a request | Logged-in session bus, FileManager1 service, or portal backend implementing PickColor; headless CI does not establish these |
+| Windows/macOS sampler is busy or rejects thread access | Await the previous operation and invoke on the configured native UI thread |
+| Picker completes but the host hangs during shutdown | Keep its native event loop alive through cleanup and result dispatch; await owned work rather than pumping a nested loop |
+| Application launches but does not open the file | Verify the target accepts a single file argument or the selected native registration supports the format |
+
+Native failure exception types can vary by OS and boundary (filesystem exceptions, Win32/COM errors, or loader
+exceptions). Do not treat every exception as unsupported capability or user cancellation. Preserve the original
+exception details for diagnostics; do not silently retry an explicit handoff through another application.
 
 ## Validation from source
 

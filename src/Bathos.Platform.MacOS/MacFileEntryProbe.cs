@@ -6,6 +6,7 @@ namespace Bathos.Platform.MacOS;
 /// <summary>Uses the Darwin 64-bit inode stat ABI to distinguish regular files from pipes, sockets, and devices.</summary>
 public sealed partial class MacFileEntryProbe : IFileEntryProbe
 {
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/RequireRegularFile/*" />
     public void RequireRegularFile(string path)
     {
         FileEntryErrors.ValidatePath(path, nameof(path));

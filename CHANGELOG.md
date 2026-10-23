@@ -9,6 +9,11 @@ development, the API may change without compatibility shims; breaking changes ar
 
 ## [Unreleased]
 
+### Added
+
+- Complete public API XML documentation in all four packages, including native operation contracts, and expanded
+  integration guidance with validated examples for composition, publication, desktop handoff, discovery, and sampling.
+
 ## [0.1.0-beta.1] - 2026-10-23
 
 Initial public beta. Targets .NET 10; all four packages share this version. Linux support is experimental.

@@ -1,0 +1,5 @@
+<Project>
+  <Import Project="../Directory.Build.props" />
+  <!-- Executables and build tools do not expose a supported library API. -->
+  <PropertyGroup><NoWarn>$(NoWarn);CS1591</NoWarn></PropertyGroup>
+</Project>

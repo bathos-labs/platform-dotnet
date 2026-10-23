@@ -12,6 +12,12 @@ public static partial class MacOSApplicationDiscovery
     private const string LaunchServices = "/System/Library/Frameworks/CoreServices.framework/Frameworks/LaunchServices.framework/LaunchServices";
 
     /// <summary>Returns registered bundles for a host-supplied bundle ID. Missing registrations return an empty list.</summary>
+    /// <param name="bundleIdentifier">Nonblank LaunchServices bundle identifier, such as com.apple.TextEdit.</param>
+    /// <returns>Registered bundle targets, or an empty list when LaunchServices reports no registration. Ordering does not imply preference.</returns>
+    /// <remarks>Run only on MacOS. The host chooses among candidates; lookup does not prove that a target accepts a particular document format. Native loading and lookup failures propagate.</remarks>
+    /// <exception cref="ArgumentNullException">The lookup key is null.</exception>
+    /// <exception cref="ArgumentException">The key is blank, contains a null character, or has invalid syntax.</exception>
+    /// <exception cref="IOException">LaunchServices lookup fails or returns an invalid application URL.</exception>
     public static unsafe IReadOnlyList<ApplicationTarget> FindByBundleIdentifier(string bundleIdentifier)
     {
         DesktopPaths.RequireText(bundleIdentifier, nameof(bundleIdentifier));
