@@ -7,7 +7,9 @@
   the core and runtime. Null capability, user cancellation, and operation failure are distinct contracts.
 - Preserve nullable analysis. Narrow native/serialization/filesystem uncertainty at the boundary. Never silence
   diagnostics or introduce unsafe fallbacks to make a check pass.
-- The API is prerelease. Replace obsolete representations directly; do not add compatibility shims without agreement.
+- The project is released. Backward compatibility is a formal requirement for stable public API contracts, including
+  callers and implementers. Add capabilities through focused interfaces and default-null facade properties. Discuss
+  breaking changes before implementation; do not introduce speculative compatibility machinery.
 - Follow CONTRIBUTING.md validation before a cohesive commit. Native evidence is specific to the executing host.
   Wait for owned work; do not synchronize tests with sleeps, polling, or dispatcher loops.
 - Screen sampler interaction requires human validation. Do not launch or drive the interactive picker with computer-use

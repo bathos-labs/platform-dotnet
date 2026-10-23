@@ -4,10 +4,17 @@ This changelog records changes that affect package consumers: capabilities, API 
 and security. Internal maintenance and development tooling belong in pull requests and contributor documentation.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html). All four packages share one version. During prerelease
-development, the API may change without compatibility shims; breaking changes are called out here.
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). All four packages share one version. Stable releases
+preserve public API contracts for callers and implementers within a major version. Breaking contract changes require
+a new major version and are called out here. Linux native support remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
+
+## [1.0.0] - 2026-10-23
+
+First stable release of the native platform abstractions for .NET 10. Windows and macOS provide file inspection,
+atomic staged publication, desktop reveal, explicit application handoff and lookup, and optional screen color sampling.
+Linux native support remains experimental; native rename and file publication are unavailable.
 
 ### Added
 
@@ -47,5 +54,6 @@ Prerelease APIs may change without compatibility shims.
 - Desktop handoff reports native submission, not document readiness or application focus. Interactive Finder,
   Explorer, and editor validation remains pending; see the native validation record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v0.1.0-beta.1...master
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.0.0...master
+[1.0.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.0.0
 [0.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v0.1.0-beta.1

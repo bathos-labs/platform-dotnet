@@ -2,7 +2,8 @@
 
 Use the SDK pinned by `global.json`. The default branch is `master`. Keep changes focused and preserve explicit
 capability absence, native-resource ownership, nullable analysis, and publication guarantees. Update tests and docs
-with contract changes. No compatibility aliases or migrations are needed for unreleased APIs unless explicitly agreed.
+with contract changes. Preserve stable public API contracts for callers and implementers within a major version;
+breaking contract changes require an explicitly planned major release.
 
 Run `task check` from the repository root on Windows, macOS, or Linux. `task --list` lists focused build, test,
 formatting, packaging, and release commands. [Task](https://taskfile.dev/) is optional; the equivalent SDK commands are:
@@ -85,6 +86,7 @@ consumer check before examples bring in all providers. Keep Markdown fences conv
 
 When changing a public contract, update its XML comments, integration recipe, example, and consumer-facing changelog
 entry together. Link published documentation to its tag; distinguish development guidance from the installed package's
-contract. Before 1.0, explicitly review the supported/experimental capability matrix and the compatibility commitment.
+contract. Keep the support status and compatibility commitment current for each release. Linux native support is
+experimental; the stable public API compatibility commitment still applies.
 A documentation build does not establish native acceptance or authorize a release. A hosted DocFX site remains an
 optional long-term enhancement rather than part of this validation workflow.

@@ -14,7 +14,7 @@ experimental Linux providers your application needs, with explicit support diffe
 Your application supplies its UI toolkit, composition or DI setup, application targets, and native dispatcher.
 The libraries have no UI-toolkit, DI-container, or image-processing dependencies.
 
-**.NET 10 · MIT license.** APIs are prerelease and may change. Linux support is experimental.
+**.NET 10 · MIT license.** Public APIs follow Semantic Versioning. Linux support is experimental.
 
 ## Packages
 
@@ -34,14 +34,14 @@ Native OS frameworks and Linux system libraries are used from the host rather th
 
 ## Get started
 
-For an application targeting Windows and macOS, install the latest available packages, including prereleases:
+For an application targeting Windows and macOS, install the latest stable packages:
 
 ```text
-dotnet add package Bathos.Platform.Windows --prerelease
-dotnet add package Bathos.Platform.MacOS --prerelease
+dotnet add package Bathos.Platform.Windows
+dotnet add package Bathos.Platform.MacOS
 ```
 
-Omit `--prerelease` to select stable releases only.
+Add `--prerelease` to include prerelease builds.
 
 This console example writes a complete file to private staging, then publishes it under the first available name:
 
@@ -90,7 +90,9 @@ that use them. Those interfaces support substitution and test doubles.
 Repository documentation describes current development. For the version you installed, use the XML API documentation
 shipped with the assemblies and the corresponding source tag listed in [releases](https://github.com/bathos-labs/platform-dotnet/releases).
 
-Linux support is experimental. See the [manual test guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md)
+Stable releases preserve public API contracts for callers and implementers within a major version. Minor releases can
+add optional capabilities; breaking contract changes require a new major version. Linux native support remains
+experimental; public API compatibility still applies. See the [manual test guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md)
 for native desktop checks.
 
 - [Integration guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md): publication, application targets, sampler dispatch, and native prerequisites.
