@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using Bathos.Platform.Files;
-using Bathos.Platform.Paths;
 using Microsoft.Win32.SafeHandles;
 
 namespace Bathos.Platform.Linux;
@@ -12,11 +11,11 @@ public sealed partial class LinuxFileLeaseProvider : IFileLeaseProvider
     public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default)
     {
         if (PlatformHost.Current != PlatformOperatingSystem.Linux) throw new PlatformNotSupportedException();
-        path = NativeFilePaths.Posix.NormalizeAbsolute(path);
+        path = FileLeasePath.NormalizeUnix(path);
         cancellationToken.ThrowIfCancellationRequested();
-        // O_RDWR | O_CREAT | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC; mode 0600, subject to umask.
+        // O_RDWR | O_CREAT | O_NONBLOCK | O_NOFOLLOW | O_NOCTTY | O_CLOEXEC; mode 0600, subject to umask.
         // Raw open avoids the runtime's implicit flock and preserves exact contention/error classification.
-        var descriptor = Open(path, 0x2 | 0x40 | 0x800 | 0x20000 | 0x80000, 0x180);
+        var descriptor = Open(path, 0x2 | 0x40 | 0x800 | 0x100 | 0x20000 | 0x80000, 0x180);
         if (descriptor < 0) throw FileEntryErrors.Native();
         var handle = new SafeFileHandle((nint)descriptor, ownsHandle: true);
         var acquired = false;

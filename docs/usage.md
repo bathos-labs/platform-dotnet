@@ -445,6 +445,7 @@ public static class LeaseExample
 
 This coordinates instances of the same application on one device using the same protocol and stable native location.
 Permission errors, missing parents, special files, and unsupported locking throw rather than masquerading as contention.
+Unix lock paths with malformed Unicode are rejected before native lookup, rather than selecting a replacement filename.
 Cancellation can leave an unowned artifact; process exit releases the native handle. There is no wait/retry policy.
 Store optional owner diagnostics separately and treat missing or stale metadata as diagnostic uncertainty.
 

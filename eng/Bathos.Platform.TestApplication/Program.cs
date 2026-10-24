@@ -10,6 +10,13 @@ try
 {
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))
         ?? throw new InvalidDataException("Missing probe configuration.");
+    if (configuration.Mode == "reject-terminal-lease")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        UnixLeaseProbe.RejectTerminal(provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."));
+        Console.WriteLine("rejected-without-terminal");
+        return 0;
+    }
     if (configuration.Mode == "reject-file-lease")
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());

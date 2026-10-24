@@ -75,6 +75,43 @@ public sealed class FileLeaseTests
         finally { folder.Delete(true); }
     }
 
+    [Theory]
+    [InlineData(0xd800)]
+    [InlineData(0xdc00)]
+    public void InvalidUnicodeCannotSelectAReplacementArtifact(int surrogate)
+    {
+        if (OperatingSystem.IsWindows()) Assert.Skip("UTF-8 path marshalling requires macOS or Linux.");
+        var folder = Directory.CreateTempSubdirectory("bathos-leases-");
+        try
+        {
+            var path = Path.Combine(folder.FullName, "writer-" + (char)surrogate + ".lock");
+            var replacement = Path.Combine(folder.FullName, "writer-\ufffd.lock");
+            Assert.Throws<ArgumentException>(() => { using var unexpected = Current().TryAcquire(path, TestContext.Current.CancellationToken); });
+            Assert.Empty(folder.EnumerateFileSystemInfos());
+            File.WriteAllText(replacement, "preserve");
+            Assert.Throws<ArgumentException>(() => { using var unexpected = Current().TryAcquire(path, TestContext.Current.CancellationToken); });
+            Assert.Equal("preserve", File.ReadAllText(replacement));
+            using var valid = Current().TryAcquire(replacement, TestContext.Current.CancellationToken);
+            Assert.NotNull(valid);
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
+    public async Task RejectingATerminalDoesNotAssignAControllingTerminal()
+    {
+        if (OperatingSystem.IsWindows()) Assert.Skip("Owned terminal fixtures require macOS or Linux.");
+        var folder = Directory.CreateTempSubdirectory("bathos-lease-terminal-");
+        try
+        {
+            await using var child = await Child.StartAsync(folder.FullName, "", mode: "reject-terminal-lease");
+            Assert.Equal("rejected-without-terminal", await child.ReadAsync());
+            await child.WaitAsync();
+            Assert.Equal(0, child.Process.ExitCode);
+        }
+        finally { folder.Delete(true); }
+    }
+
     [Fact]
     public void ForeignProvidersRejectInvocationAndPartialProvidersRemainCompatible()
     {
@@ -221,10 +258,10 @@ public sealed class FileLeaseTests
         }
         internal async Task<string?> ReadAsync() => await Process.StandardOutput.ReadLineAsync(_deadline.Token);
         internal async Task WaitAsync() => await Process.WaitForExitAsync(_deadline.Token);
-        internal static async Task<Child> StartAsync(string folder, string path, bool reject = false)
+        internal static async Task<Child> StartAsync(string folder, string path, bool reject = false, string? mode = null)
         {
             var configuration = Path.Combine(folder, "probe.json");
-            await File.WriteAllTextAsync(configuration, JsonSerializer.Serialize(new { Mode = reject ? "reject-file-lease" : "file-lease", PipeName = "", Document = path }), TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(configuration, JsonSerializer.Serialize(new { Mode = mode ?? (reject ? "reject-file-lease" : "file-lease"), PipeName = "", Document = path }), TestContext.Current.CancellationToken);
             var executable = Path.Combine(AppContext.BaseDirectory, "TestApplication", "Bathos.Platform.TestApplication" + (OperatingSystem.IsWindows() ? ".exe" : ""));
             var start = new ProcessStartInfo(executable) { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
             start.ArgumentList.Add(configuration);

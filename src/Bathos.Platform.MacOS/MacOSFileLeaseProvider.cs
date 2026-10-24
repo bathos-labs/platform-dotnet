@@ -1,6 +1,5 @@
 using System.Runtime.InteropServices;
 using Bathos.Platform.Files;
-using Bathos.Platform.Paths;
 using Microsoft.Win32.SafeHandles;
 
 namespace Bathos.Platform.MacOS;
@@ -12,11 +11,11 @@ public sealed partial class MacOSFileLeaseProvider : IFileLeaseProvider
     public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default)
     {
         if (PlatformHost.Current != PlatformOperatingSystem.MacOS) throw new PlatformNotSupportedException();
-        path = NativeFilePaths.Posix.NormalizeAbsolute(path);
+        path = FileLeasePath.NormalizeUnix(path);
         cancellationToken.ThrowIfCancellationRequested();
-        // O_RDWR | O_CREAT | O_NONBLOCK | O_NOFOLLOW | O_CLOEXEC; mode 0600, subject to umask.
+        // O_RDWR | O_CREAT | O_NONBLOCK | O_NOFOLLOW | O_NOCTTY | O_CLOEXEC; mode 0600, subject to umask.
         // Raw open avoids the runtime's implicit flock and preserves exact contention/error classification.
-        const int flags = 0x2 | 0x200 | 0x4 | 0x100 | 0x1000000;
+        const int flags = 0x2 | 0x200 | 0x4 | 0x100 | 0x20000 | 0x1000000;
         // Darwin arm64 puts variadic arguments on the stack, after all eight integer register slots.
         var descriptor = RuntimeInformation.ProcessArchitecture == Architecture.Arm64
             ? OpenArm64(path, flags, 0, 0, 0, 0, 0, 0, 0x180)

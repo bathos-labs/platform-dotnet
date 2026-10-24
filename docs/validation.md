@@ -201,3 +201,5 @@ locking semantics. Windows link tests require developer mode or symlink privileg
 
 The guarantee requires stable artifacts and a common protocol on supported storage. Noncooperating replacement,
 network-client coordination, and filesystem alias discovery are intentionally not guaranteed by these tests.
+Unix tests reject malformed Unicode without creating or retargeting an artifact. An owned session-leader child
+creates a private pseudo-terminal and verifies that rejecting its slave does not assign a controlling terminal.
