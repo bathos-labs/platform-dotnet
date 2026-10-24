@@ -53,8 +53,14 @@ public sealed class ColorProfileTests
         var inventory = await provider.EnumerateAsync(token);
         Assert.True(inventory.IsComplete, inventory.Finding);
         Assert.NotEmpty(inventory.Locations);
-        var entry = inventory.Locations[0];
-        var bytes = await provider.ReadAsync(entry.Key, token);
+        // WCS inventories can also contain component profiles that cannot be opened independently.
+        // Exercise successful readback with an ICC entry, without assuming inventory order implies readability.
+        var entry = inventory.Locations.First(location =>
+            location.Name.EndsWith(".icc", StringComparison.OrdinalIgnoreCase) ||
+            location.Name.EndsWith(".icm", StringComparison.OrdinalIgnoreCase));
+        ReadOnlyMemory<byte> bytes = default;
+        var readFailure = await Record.ExceptionAsync(async () => bytes = await provider.ReadAsync(entry.Key, token));
+        Assert.True(readFailure is null, $"Could not read observed ICC profile '{entry.Name}': {readFailure}");
         Assert.NotEmpty(bytes.ToArray());
         IColorProfileProvider limited = OperatingSystem.IsMacOS()
             ? new MacColorProfileProvider(new(maximumEntries: 1, maximumBytes: 1))
