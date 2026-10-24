@@ -98,7 +98,7 @@ public sealed class NativeFileFailureTests
     public void NativeRenameFailuresPreserveBothOwnersAndAllowANewOperation()
     {
         var rename = Current().FileRename;
-        if (rename is null) Assert.Skip("Linux exposes no native rename capability.");
+        Assert.NotNull(rename);
         var folder = Directory.CreateTempSubdirectory("bathos-rename-failure-");
         try
         {

@@ -95,7 +95,7 @@ try
         File.WriteAllText(Path.Combine(scratch.FullName, $"GuideExample{index}.cs"), usageExamples[index]);
     await Run("restore", "--configfile", "NuGet.Config", "--packages", Path.Combine(scratch.FullName, "cache"));
     await Run("build", "--configuration", "Release", "--no-restore");
-    if (provider is "MacOS" or "Windows")
+    if (provider is "MacOS" or "Windows" or "Linux")
     {
         await Run("run", "--configuration", "Release", "--no-build", "--no-restore");
         await Run("run", "--configuration", "Release", "--no-build", "--no-restore");

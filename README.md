@@ -26,7 +26,7 @@ the core is included as a transitive dependency.
 | [Bathos.Platform](https://www.nuget.org/packages/Bathos.Platform) | Capability interfaces, provider selection, application targets, and atomic file publication with collision-safe naming. Publication requires a native rename provider. |
 | [Bathos.Platform.Windows](https://www.nuget.org/packages/Bathos.Platform.Windows) | Native file rename/replacement and inspection, Explorer reveal, executable handoff, App Paths lookup, installed color profiles, and an optional GDI screen sampler. |
 | [Bathos.Platform.MacOS](https://www.nuget.org/packages/Bathos.Platform.MacOS) | Native file rename/replacement and inspection, Finder reveal, executable/bundle handoff, LaunchServices lookup, installed color profiles, and an optional AppKit screen sampler. |
-| [Bathos.Platform.Linux](https://www.nuget.org/packages/Bathos.Platform.Linux) | Experimental statx inspection, file-manager reveal, executable/desktop-entry handoff, GIO lookup, and an optional portal screen sampler. Native rename and file publication are unavailable. |
+| [Bathos.Platform.Linux](https://www.nuget.org/packages/Bathos.Platform.Linux) | Experimental atomic file rename/replacement, statx inspection, file-manager reveal, executable/desktop-entry handoff, GIO lookup, and an optional portal screen sampler. |
 
 All three providers also support native paths, standard directories, and cooperative file leases.
 
@@ -53,7 +53,7 @@ using Bathos.Platform.Files;
 using Bathos.Platform.MacOS;
 using Bathos.Platform.Windows;
 
-var platform = PlatformProviders.SelectCurrent(new WindowsPlatformProvider(), new MacOSPlatformProvider());
+var platform = PlatformProviders.SelectCurrent(new WindowsPlatformProvider(), new MacOSPlatformProvider(), new Bathos.Platform.Linux.LinuxPlatformProvider());
 var rename = platform.FileRename ?? throw new PlatformNotSupportedException("Native publication is unavailable.");
 await using var publication = new FilePublication(Path.GetFullPath("published-files"), rename);
 await publication.Stream.WriteAsync("Hello from .NET!\n"u8.ToArray());

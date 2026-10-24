@@ -5,7 +5,7 @@ using Bathos.Platform.Paths;
 
 namespace Bathos.Platform.Linux;
 
-/// <summary>Experimental Linux file inspection and optional desktop-portal color sampling. No exclusive rename is supplied.</summary>
+/// <summary>Experimental Linux native file capabilities and optional desktop-portal color sampling.</summary>
 public sealed class LinuxPlatformProvider : IPlatformProvider
 {
     /// <summary>Composes experimental Linux capabilities without probing desktop services or loading native libraries.</summary>
@@ -33,8 +33,8 @@ public sealed class LinuxPlatformProvider : IPlatformProvider
     public INativeFilePaths FilePaths { get; } = NativeFilePaths.Posix;
     /// <summary>Gets the Linux provider identity, independently of the executing host.</summary>
     public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.Linux;
-    /// <summary>Always null: Linux native rename and staged publication are not implemented.</summary>
-    public INativeFileRename? FileRename => null;
+    /// <summary>Gets atomic Linux rename; requires libc renameat2 and filesystem support at invocation.</summary>
+    public INativeFileRename? FileRename { get; } = new LinuxFileRename();
     /// <summary>Gets Linux regular-file inspection; the observation does not reserve the path.</summary>
     public IFileEntryProbe FileEntries { get; } = new LinuxFileEntryProbe();
     /// <summary>Gets the experimental portal sampler when enabled on Linux; otherwise null. No dispatcher is required.</summary>

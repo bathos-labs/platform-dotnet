@@ -62,7 +62,7 @@ one native rename; there is no cross-volume copy/delete fallback. Atomic visibil
 of a power failure because directory metadata is not synchronized.
 
 Disposal removes abandoned staging. Once publication succeeds, the file belongs to the caller and survives
-disposal or later cancellation. Windows and macOS provide native rename capabilities; Linux does not yet.
+disposal or later cancellation. Windows, macOS, and Linux provide native rename capabilities. Linux requires libc renameat2 and filesystem support for RENAME_NOREPLACE; unsupported operations fail without a check-then-move or copy fallback.
 
 `platform.FileEntries` offers regular-file inspection. `RequireRegularFile(path)` rejects missing or nonregular
 entries. Like other filesystem checks, it describes the observed entry rather than reserving it against later changes.

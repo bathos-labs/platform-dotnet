@@ -45,7 +45,6 @@ public sealed class FilePublicationTests
     [Trait("Validation", "Native")]
     public async Task ConcurrentPublishersClaimDistinctNamesAndPreserveEveryPayload()
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
         var token = TestContext.Current.CancellationToken;
         var folder = Directory.CreateTempSubdirectory("bathos-file-publication-");
         try
@@ -83,7 +82,6 @@ public sealed class FilePublicationTests
     [Trait("Validation", "Native")]
     public async Task PublicationSkipsOccupiedCandidatesAndReusesTheFirstGap()
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
         var token = TestContext.Current.CancellationToken;
         var folder = Directory.CreateTempSubdirectory("bathos-file-publication-");
         try
@@ -106,9 +104,9 @@ public sealed class FilePublicationTests
 
     [Fact]
     [Trait("Validation", "Native")]
-    public async Task MacPublicationTreatsDirectoriesAndDanglingLinksAsOccupiedNames()
+    public async Task PosixPublicationTreatsDirectoriesAndDanglingLinksAsOccupiedNames()
     {
-        if (!OperatingSystem.IsMacOS()) Assert.Skip("This symlink scenario requires macOS.");
+        if (OperatingSystem.IsWindows()) Assert.Skip("This symlink scenario requires a POSIX host.");
         var token = TestContext.Current.CancellationToken;
         var folder = Directory.CreateTempSubdirectory("bathos-file-publication-");
         try
@@ -133,7 +131,6 @@ public sealed class FilePublicationTests
     [Trait("Validation", "Native")]
     public async Task CompletedPublicationRetainsItsFileAndCannotPublishAgain()
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
         var token = TestContext.Current.CancellationToken;
         var folder = Directory.CreateTempSubdirectory("bathos-file-publication-");
         try
@@ -155,7 +152,6 @@ public sealed class FilePublicationTests
     [Trait("Validation", "Native")]
     public async Task ExactPublicationRejectsADestinationCreatedWhileEncoding()
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
         var token = TestContext.Current.CancellationToken;
         var folder = Directory.CreateTempSubdirectory("bathos-file-publication-");
         try
@@ -179,7 +175,6 @@ public sealed class FilePublicationTests
     [Trait("Validation", "Native")]
     public async Task AuthorizedReplacementPreservesDestinationUntilPublication(bool cancel)
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Native rename is supported on macOS and Windows.");
         var token = TestContext.Current.CancellationToken;
         var folder = Directory.CreateTempSubdirectory("bathos-replacement-");
         try
@@ -231,7 +226,6 @@ public sealed class FilePublicationTests
     [Trait("Validation", "Native")]
     public async Task NonCollisionFailuresSurfaceAndExactNamesCannotEscapeTheDirectory()
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
         var token = TestContext.Current.CancellationToken;
         var folder = Directory.CreateTempSubdirectory("bathos-file-publication-");
         try
@@ -249,7 +243,6 @@ public sealed class FilePublicationTests
     [Trait("Validation", "Native")]
     public async Task SuccessfulPublicationRelinquishesTheStagingPath()
     {
-        if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Native rename is supported on macOS and Windows.");
         var folder = Directory.CreateTempSubdirectory("bathos-ownership-");
         try
         {

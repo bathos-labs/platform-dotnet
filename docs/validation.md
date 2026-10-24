@@ -21,7 +21,7 @@ procedures, not disabled tests counted as automated evidence.
 | Evidence | Runs where | What it establishes |
 | --- | --- | --- |
 | Portable contracts | Every supported host | Capability selection/absence, input validation, filename rules, and controlled ownership/concurrency outcomes. Test doubles establish orchestration, not native API behavior. |
-| Native filesystem and executable handoff | Executing OS only | Real disposable files, native rename/inspection, registration lookup, and an owned argument/exit probe. Linux has no rename capability. |
+| Native filesystem and executable handoff | Executing OS only | Real disposable files, native rename/inspection, registration lookup, and an owned argument/exit probe. Linux exercises renameat2 on the executing filesystem. |
 | Private D-Bus and GIO integration | Linux only | Real native transport and activation against isolated fixtures, without desktop services. |
 | Foreign-platform scenarios | Explicitly skipped | No evidence for the skipped OS; retain TRX reasons and review all matrix legs. |
 | Desktop and permissions | Manual only | Picker interaction, visible selection, real editor behavior, privacy controls, and multi-display behavior described below. |

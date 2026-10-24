@@ -24,7 +24,7 @@ advisory and is not a path reservation.
 
 Linux is a distinct runtime target with its own native APIs. Its experimental provider supplies statx file-kind
 inspection, desktop reveal and application handoff, native lookup, paths, standard directories, cooperative file leases,
-and opt-in desktop-portal color sampling. Native rename is unavailable, and graphical desktop validation remains pending.
+and opt-in desktop-portal color sampling. Native rename uses libc renameat2 with RENAME_NOREPLACE for exclusive claims; unsupported kernels or filesystems fail without a fallback. Graphical desktop validation remains pending.
 Do not hide missing capabilities behind a weaker implementation. Add capabilities from demonstrated consumers,
 keeping product entities, document lifecycle, product-specific path policy, UI toolkits, and image pipelines in their owning packages.
 

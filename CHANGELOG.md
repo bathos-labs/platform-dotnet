@@ -10,6 +10,10 @@ a new major version and are called out here. Linux native support remains experi
 
 ## [Unreleased]
 
+### Added
+
+- Experimental Linux atomic rename and staged publication through renameat2, including exclusive claims and explicit replacement without cross-volume copy fallback.
+
 ## [1.1.0-beta.1] - 2026-10-25
 
 ### Added
