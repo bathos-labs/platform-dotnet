@@ -14,9 +14,14 @@ internal static partial class WindowsLeaseRelease
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         using var deadline = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
         deadline.CancelAfter(TimeSpan.FromSeconds(20));
-        using var handle = File.OpenHandle(path, FileMode.Open, FileAccess.ReadWrite,
-            FileShare.ReadWrite | FileShare.Delete, FileOptions.Asynchronous);
+        // File.OpenHandle(Asynchronous) binds to the managed completion port, whose callbacks require managed
+        // OVERLAPPED allocations. Own an unbound native handle for this event-based operation instead.
+        var nativePath = path.StartsWith(@"\\", StringComparison.Ordinal) ? @"\\?\UNC\" + path[2..] : @"\\?\" + path;
+        using var handle = Open(nativePath, 0xc0000000, 7, 0, 3, 0x40000000, 0); // OPEN_EXISTING | FILE_FLAG_OVERLAPPED
+        if (handle.IsInvalid) throw NativeError(Marshal.GetLastPInvokeError());
         using var signal = new EventWaitHandle(false, EventResetMode.ManualReset);
+        // The low bit explicitly selects event-only completion, suppressing completion-port packets.
+        var eventHandle = signal.SafeWaitHandle.DangerousGetHandle() | 1;
         var memory = Marshal.AllocHGlobal(Marshal.SizeOf<Overlapped>());
         var pending = false;
         var acquired = false;
@@ -26,7 +31,7 @@ internal static partial class WindowsLeaseRelease
             try
             {
                 // The event and unmanaged OVERLAPPED remain owned until native completion, including cancellation.
-                Marshal.StructureToPtr(new Overlapped { Event = signal.SafeWaitHandle.DangerousGetHandle() }, memory, false);
+                Marshal.StructureToPtr(new Overlapped { Event = eventHandle }, memory, false);
                 acquired = LockFileEx(handle, 2, 0, 1, 0, memory); // EXCLUSIVE_LOCK; an asynchronous native wait.
                 if (!acquired)
                 {
@@ -53,7 +58,7 @@ internal static partial class WindowsLeaseRelease
                 if (acquired)
                 {
                     signal.Reset();
-                    Marshal.StructureToPtr(new Overlapped { Event = signal.SafeWaitHandle.DangerousGetHandle() }, memory, false);
+                    Marshal.StructureToPtr(new Overlapped { Event = eventHandle }, memory, false);
                     if (!UnlockFileEx(handle, 0, 1, 0, memory))
                     {
                         var error = Marshal.GetLastPInvokeError();
@@ -82,6 +87,8 @@ internal static partial class WindowsLeaseRelease
 
     [StructLayout(LayoutKind.Sequential)]
     private struct Overlapped { internal nuint Internal; internal nuint InternalHigh; internal uint Offset; internal uint OffsetHigh; internal nint Event; }
+    [LibraryImport("kernel32.dll", EntryPoint = "CreateFileW", StringMarshalling = StringMarshalling.Utf16, SetLastError = true)]
+    private static partial SafeFileHandle Open(string path, uint access, uint share, nint security, uint disposition, uint flags, nint template);
     [LibraryImport("kernel32.dll", SetLastError = true)]
     [return: MarshalAs(UnmanagedType.Bool)]
     private static partial bool LockFileEx(SafeFileHandle handle, uint flags, uint reserved, uint lengthLow, uint lengthHigh, nint overlapped);
