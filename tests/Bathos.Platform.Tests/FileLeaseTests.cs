@@ -25,18 +25,18 @@ public sealed class FileLeaseTests
         try
         {
             var path = Path.Combine(folder.FullName, "writer.lock");
-            var provider = Assert.IsAssignableFrom<ISharedFileLeaseProvider>(Current());
+            var provider = Current();
             using (var first = provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken))
             {
                 Assert.NotNull(first);
                 using (var second = provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken))
                 {
                     Assert.NotNull(second);
-                    Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                    Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
                 }
-                Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
             }
-            using var exclusive = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var exclusive = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(exclusive);
             Assert.Null(provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken));
             Assert.Throws<ArgumentOutOfRangeException>(() => provider.TryAcquire(path, (FileLeaseMode)100, TestContext.Current.CancellationToken));
@@ -52,12 +52,12 @@ public sealed class FileLeaseTests
         {
             var path = Path.Combine(folder.FullName, "writer.lock");
             await File.WriteAllTextAsync(path, "stale metadata is not ownership", TestContext.Current.CancellationToken);
-            var lease = Assert.IsAssignableFrom<IFileLease>(Current().TryAcquire(path, TestContext.Current.CancellationToken));
-            try { Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken)); }
+            var lease = Assert.IsAssignableFrom<IFileLease>(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
+            try { Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken)); }
             finally { await lease.DisposeAsync(); }
             lease.Dispose();
             Assert.Equal("stale metadata is not ownership", await File.ReadAllTextAsync(path, TestContext.Current.CancellationToken));
-            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
         finally { folder.Delete(true); }
@@ -72,12 +72,12 @@ public sealed class FileLeaseTests
             var path = Path.Combine(folder.FullName, "writer.lock");
             using var canceled = new CancellationTokenSource();
             canceled.Cancel();
-            Assert.Throws<OperationCanceledException>(() => Current().TryAcquire(path, canceled.Token));
+            Assert.Throws<OperationCanceledException>(() => Current().TryAcquire(path, FileLeaseMode.Exclusive, canceled.Token));
             Assert.False(File.Exists(path));
-            Assert.ThrowsAny<IOException>(() => Current().TryAcquire(Path.Combine(folder.FullName, "missing", "writer.lock"), TestContext.Current.CancellationToken));
-            Assert.ThrowsAny<IOException>(() => Current().TryAcquire(folder.FullName, TestContext.Current.CancellationToken));
-            Assert.Throws<ArgumentException>(() => Current().TryAcquire("relative.lock", TestContext.Current.CancellationToken));
-            using var lease = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            Assert.ThrowsAny<IOException>(() => Current().TryAcquire(Path.Combine(folder.FullName, "missing", "writer.lock"), FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
+            Assert.ThrowsAny<IOException>(() => Current().TryAcquire(folder.FullName, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
+            Assert.Throws<ArgumentException>(() => Current().TryAcquire("relative.lock", FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
+            using var lease = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(lease);
             if (!OperatingSystem.IsWindows())
                 Assert.Equal((UnixFileMode)0, File.GetUnixFileMode(path) & ~(UnixFileMode.UserRead | UnixFileMode.UserWrite));
@@ -98,21 +98,21 @@ public sealed class FileLeaseTests
             void BeforeTransfer()
             {
                 reached = true;
-                Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
                 cancellation.Cancel();
             }
             IFileLease? Acquire() => PlatformHost.Current switch
             {
-                PlatformOperatingSystem.Windows => WindowsFileLeaseProvider.TryAcquire(path, BeforeTransfer, cancellation.Token),
-                PlatformOperatingSystem.MacOS => MacOSFileLeaseProvider.TryAcquire(path, BeforeTransfer, cancellation.Token),
-                PlatformOperatingSystem.Linux => LinuxFileLeaseProvider.TryAcquire(path, BeforeTransfer, cancellation.Token),
+                PlatformOperatingSystem.Windows => WindowsFileLeaseProvider.TryAcquire(path, FileLeaseMode.Exclusive, BeforeTransfer, cancellation.Token),
+                PlatformOperatingSystem.MacOS => MacOSFileLeaseProvider.TryAcquire(path, FileLeaseMode.Exclusive, BeforeTransfer, cancellation.Token),
+                PlatformOperatingSystem.Linux => LinuxFileLeaseProvider.TryAcquire(path, FileLeaseMode.Exclusive, BeforeTransfer, cancellation.Token),
                 _ => throw new PlatformNotSupportedException(),
             };
             var error = Assert.Throws<OperationCanceledException>(() => { using var unexpected = Acquire(); });
             Assert.True(reached);
             Assert.Equal(cancellation.Token, error.CancellationToken);
             Assert.Equal("preserve stale diagnostics", File.ReadAllText(path));
-            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
         finally { folder.Delete(true); }
@@ -126,16 +126,16 @@ public sealed class FileLeaseTests
         try
         {
             var path = Path.Combine(folder.FullName, "writer.lock");
-            using var lease = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var lease = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(lease);
             using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
             var pending = WindowsLeaseRelease.WaitAsync(path, cancellation.Token);
             cancellation.Cancel();
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
-            Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+            Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
             lease.Dispose();
             await WindowsLeaseRelease.WaitAsync(path, TestContext.Current.CancellationToken);
-            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
         finally { folder.Delete(true); }
@@ -153,7 +153,7 @@ public sealed class FileLeaseTests
             try { File.CreateSymbolicLink(link, target); }
             catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows())
             { Assert.Skip("Symlink creation requires Windows developer mode or privileges."); }
-            Assert.ThrowsAny<IOException>(() => Current().TryAcquire(link, TestContext.Current.CancellationToken));
+            Assert.ThrowsAny<IOException>(() => Current().TryAcquire(link, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
             Assert.Equal("preserve", File.ReadAllText(target));
         }
         finally { folder.Delete(true); }
@@ -166,19 +166,19 @@ public sealed class FileLeaseTests
         try
         {
             var path = Path.Combine(folder.FullName, "shared.lock");
-            var provider = Assert.IsAssignableFrom<ISharedFileLeaseProvider>(Current());
+            var provider = Current();
             using (var parent = provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken))
             {
                 Assert.NotNull(parent);
                 await using var child = await Child.StartAsync(folder.FullName, path, mode: "shared-file-lease");
                 Assert.Equal("acquired", await child.ReadAsync());
-                Assert.Null(provider.TryAcquire(path, TestContext.Current.CancellationToken));
+                Assert.Null(provider.TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
                 parent.Dispose();
-                Assert.Null(provider.TryAcquire(path, TestContext.Current.CancellationToken));
+                Assert.Null(provider.TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
                 await child.Process.StandardInput.WriteLineAsync("finish");
                 await child.WaitAsync();
             }
-            using var exclusive = provider.TryAcquire(path, TestContext.Current.CancellationToken);
+            using var exclusive = provider.TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(exclusive);
             await using var contender = await Child.StartAsync(folder.FullName, path, mode: "shared-file-lease");
             Assert.Equal("contended", await contender.ReadAsync());
@@ -199,12 +199,12 @@ public sealed class FileLeaseTests
         {
             var path = Path.Combine(folder.FullName, "writer-" + (char)surrogate + ".lock");
             var replacement = Path.Combine(folder.FullName, "writer-\ufffd.lock");
-            Assert.Throws<ArgumentException>(() => { using var unexpected = Current().TryAcquire(path, TestContext.Current.CancellationToken); });
+            Assert.Throws<ArgumentException>(() => { using var unexpected = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken); });
             Assert.Empty(folder.EnumerateFileSystemInfos());
             File.WriteAllText(replacement, "preserve");
-            Assert.Throws<ArgumentException>(() => { using var unexpected = Current().TryAcquire(path, TestContext.Current.CancellationToken); });
+            Assert.Throws<ArgumentException>(() => { using var unexpected = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken); });
             Assert.Equal("preserve", File.ReadAllText(replacement));
-            using var valid = Current().TryAcquire(replacement, TestContext.Current.CancellationToken);
+            using var valid = Current().TryAcquire(replacement, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(valid);
         }
         finally { folder.Delete(true); }
@@ -238,7 +238,7 @@ public sealed class FileLeaseTests
         IPlatformProvider[] providers = [new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider()];
         foreach (var provider in providers)
             if (provider.OperatingSystem != PlatformHost.Current)
-                Assert.Throws<PlatformNotSupportedException>(() => provider.FileLeases?.TryAcquire("unused", TestContext.Current.CancellationToken));
+                Assert.Throws<PlatformNotSupportedException>(() => provider.FileLeases?.TryAcquire("unused", FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
         Assert.Null(((IPlatformProvider)new Partial()).FileLeases);
     }
 
@@ -254,14 +254,14 @@ public sealed class FileLeaseTests
             await using (var child = await Child.StartAsync(folder.FullName, path))
             {
                 Assert.Equal("acquired", await child.ReadAsync());
-                Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
                 if (kill) child.Process.Kill(entireProcessTree: true);
                 else await child.Process.StandardInput.WriteLineAsync("finish");
                 await child.WaitAsync();
             }
             Assert.True(File.Exists(path));
             if (kill && OperatingSystem.IsWindows()) await WindowsLeaseRelease.WaitAsync(path, TestContext.Current.CancellationToken);
-            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
         finally { folder.Delete(true); }
@@ -274,17 +274,17 @@ public sealed class FileLeaseTests
         try
         {
             var path = Path.Combine(folder.FullName, "writer.lock");
-            using var lease = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var lease = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(lease);
             await using var child = await Child.StartAsync(folder.FullName, path);
             Assert.Equal("contended", await child.ReadAsync());
             lease.Dispose();
             // Disposal releases ownership while the contending child remains alive.
-            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
             await child.Process.StandardInput.WriteLineAsync("finish");
             await child.WaitAsync();
-            Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+            Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
         }
         finally { folder.Delete(true); }
     }
@@ -315,13 +315,13 @@ public sealed class FileLeaseTests
                     var message = await reader.ReadLineAsync(deadline.Token) ?? throw new InvalidDataException("Missing descendant readiness.");
                     using var ready = JsonDocument.Parse(message);
                     Assert.Equal(processId, ready.RootElement.GetProperty("ProcessId").GetInt32());
-                    Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                    Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
                     // Abrupt exit avoids explicit unlock, which would also release an inherited Unix description's lock.
                     owner.Process.Kill(entireProcessTree: false);
                     await owner.WaitAsync();
                     Assert.False(descendant.HasExited);
                     if (OperatingSystem.IsWindows()) await WindowsLeaseRelease.WaitAsync(path, deadline.Token);
-                    using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+                    using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
                     Assert.NotNull(next);
                     await writer.WriteLineAsync("finish".AsMemory(), deadline.Token);
                     Assert.Equal("finished", await reader.ReadLineAsync(deadline.Token));
@@ -357,20 +357,20 @@ public sealed class FileLeaseTests
             var destination = Path.Combine(folder.FullName, "destination");
             var path = Path.Combine(folder.FullName, "writer.lock");
             File.WriteAllText(Path.Combine(source, "document.txt"), "complete document");
-            using (var lease = Current().TryAcquire(path, TestContext.Current.CancellationToken))
+            using (var lease = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken))
             {
                 Assert.NotNull(lease);
                 Directory.Move(source, destination);
                 Assert.False(Directory.Exists(source));
                 Assert.Equal("complete document", File.ReadAllText(Path.Combine(destination, "document.txt")));
                 Assert.True(File.Exists(path));
-                Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                Assert.Null(Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
                 await using var child = await Child.StartAsync(folder.FullName, path);
                 Assert.Equal("contended", await child.ReadAsync());
                 await child.Process.StandardInput.WriteLineAsync("finish");
                 await child.WaitAsync();
             }
-            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
         finally { folder.Delete(true); }
@@ -383,11 +383,11 @@ public sealed class FileLeaseTests
         try
         {
             var path = Path.Combine(folder.FullName, "writer-日本 \U0001F3A8.lock");
-            using var first = Current().TryAcquire(path, TestContext.Current.CancellationToken);
-            using var second = Current().TryAcquire(path + " ", TestContext.Current.CancellationToken);
+            using var first = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
+            using var second = Current().TryAcquire(path + " ", FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(first);
             Assert.NotNull(second);
-            Assert.Null(Current().TryAcquire(path + " ", TestContext.Current.CancellationToken));
+            Assert.Null(Current().TryAcquire(path + " ", FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
         }
         finally { folder.Delete(true); }
     }

@@ -33,7 +33,7 @@ try
         try
         {
             using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
-                .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."));
+                .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."), FileLeaseMode.Exclusive);
             throw new InvalidOperationException("A special entry was admitted for leasing.");
         }
         catch (IOException) { Console.WriteLine("rejected"); }
@@ -44,10 +44,9 @@ try
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
         var path = configuration.Document ?? throw new InvalidDataException("Missing lock path.");
-        using var lease = configuration.Mode == "shared-file-lease"
-            ? (provider.SharedFileLeases ?? throw new InvalidOperationException("Missing shared lease capability."))
-                .TryAcquire(path, FileLeaseMode.Shared)
-            : (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability.")).TryAcquire(path);
+        var mode = configuration.Mode == "shared-file-lease" ? FileLeaseMode.Shared : FileLeaseMode.Exclusive;
+        using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
+            .TryAcquire(path, mode);
         Console.WriteLine(lease is null ? "contended" : "acquired");
         if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
         return 0;
@@ -56,7 +55,7 @@ try
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
         using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
-            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."))
+            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."), FileLeaseMode.Exclusive)
             ?? throw new InvalidOperationException("The owned parent did not acquire the lease.");
         var descendantConfiguration = Path.Combine(Path.GetDirectoryName(args.Single()) ?? throw new InvalidDataException("Missing fixture directory."), "descendant.json");
         await File.WriteAllTextAsync(descendantConfiguration, JsonSerializer.Serialize(configuration with { Mode = "lease-descendant" }));

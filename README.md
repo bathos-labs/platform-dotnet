@@ -100,7 +100,8 @@ for limits and partial discovery.
 `platform.Directories` discovers standard user and application roots without creating directories or claiming access.
 Applications choose their storage layout and create the directories they need.
 
-Cooperative file leases require a persistent lock artifact at a stable location on every platform. Keep the artifact
+`platform.FileLeases` supports shared owners that coexist and exclusive owners that exclude every other owner.
+Each acquisition specifies its mode and requires a persistent lock artifact at a stable location. Keep the artifact
 and its containing directory tree intact while leased. If application data may move, place its lock outside that tree.
 Artifact existence and diagnostic metadata do not establish ownership. See the
 [integration guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#cooperative-file-leases)

@@ -34,7 +34,7 @@ internal static partial class UnixLeaseProbe
         if (HasTerminal()) throw new InvalidOperationException("The isolated session already has a terminal.");
         try
         {
-            using var lease = leases.TryAcquire(path);
+            using var lease = leases.TryAcquire(path, FileLeaseMode.Exclusive);
             throw new InvalidOperationException("A terminal was admitted as a lock file.");
         }
         catch (IOException) { }

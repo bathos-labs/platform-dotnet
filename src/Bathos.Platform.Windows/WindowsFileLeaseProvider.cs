@@ -5,22 +5,15 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Bathos.Platform.Windows;
 
-/// <summary>Cooperative Windows leases using an immediate exclusive byte-range lock on an owned disk-file handle.</summary>
-public sealed partial class WindowsFileLeaseProvider : ISharedFileLeaseProvider
+/// <summary>Cooperative Windows shared or exclusive leases using an immediate byte-range lock on an owned disk-file handle.</summary>
+public sealed partial class WindowsFileLeaseProvider : IFileLeaseProvider
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireFileLease/*" />
-    public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default) =>
-        TryAcquire(path, beforeOwnershipTransfer: null, cancellationToken);
-
-    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireSharedFileLease/*" />
     public IFileLease? TryAcquire(string path, FileLeaseMode mode, CancellationToken cancellationToken = default) =>
-        Acquire(path, mode, beforeOwnershipTransfer: null, cancellationToken);
+        TryAcquire(path, mode, beforeOwnershipTransfer: null, cancellationToken);
 
     // Call-scoped seam for retirement after the real native lock, before transferring ownership to the caller.
-    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken) =>
-        Acquire(path, FileLeaseMode.Exclusive, beforeOwnershipTransfer, cancellationToken);
-
-    private static HeldFileLease? Acquire(string path, FileLeaseMode mode, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
+    internal static IFileLease? TryAcquire(string path, FileLeaseMode mode, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
     {
         if (mode is not (FileLeaseMode.Shared or FileLeaseMode.Exclusive)) throw new ArgumentOutOfRangeException(nameof(mode));
         if (PlatformHost.Current != PlatformOperatingSystem.Windows) throw new PlatformNotSupportedException();

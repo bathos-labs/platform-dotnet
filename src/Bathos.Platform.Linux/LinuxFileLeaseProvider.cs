@@ -4,22 +4,15 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Bathos.Platform.Linux;
 
-/// <summary>Cooperative Linux leases using nonblocking exclusive flock on an owned file descriptor.</summary>
-public sealed partial class LinuxFileLeaseProvider : ISharedFileLeaseProvider
+/// <summary>Cooperative Linux shared or exclusive leases using nonblocking flock on an owned file descriptor.</summary>
+public sealed partial class LinuxFileLeaseProvider : IFileLeaseProvider
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireFileLease/*" />
-    public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default) =>
-        TryAcquire(path, beforeOwnershipTransfer: null, cancellationToken);
-
-    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireSharedFileLease/*" />
     public IFileLease? TryAcquire(string path, FileLeaseMode mode, CancellationToken cancellationToken = default) =>
-        Acquire(path, mode, beforeOwnershipTransfer: null, cancellationToken);
+        TryAcquire(path, mode, beforeOwnershipTransfer: null, cancellationToken);
 
     // Call-scoped seam for retirement after the real native lock, before transferring ownership to the caller.
-    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken) =>
-        Acquire(path, FileLeaseMode.Exclusive, beforeOwnershipTransfer, cancellationToken);
-
-    private static HeldFileLease? Acquire(string path, FileLeaseMode mode, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
+    internal static IFileLease? TryAcquire(string path, FileLeaseMode mode, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
     {
         if (mode is not (FileLeaseMode.Shared or FileLeaseMode.Exclusive)) throw new ArgumentOutOfRangeException(nameof(mode));
         if (PlatformHost.Current != PlatformOperatingSystem.Linux) throw new PlatformNotSupportedException();

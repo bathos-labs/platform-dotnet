@@ -25,10 +25,8 @@ public sealed class LinuxPlatformProvider : IPlatformProvider
                 ? DesktopBus.PickColor(parentWindow) : throw new PlatformNotSupportedException("A Linux desktop portal is required."));
     }
 
-    /// <summary>Gets cooperative file leases; invoke on the matching runtime with a stable lock location.</summary>
-    public IFileLeaseProvider FileLeases => SharedFileLeases;
-    /// <summary>Gets native shared/exclusive leases over stable artifacts on the matching runtime.</summary>
-    public ISharedFileLeaseProvider SharedFileLeases { get; } = new LinuxFileLeaseProvider();
+    /// <summary>Gets cooperative shared or exclusive file leases; invoke on the matching runtime with a stable lock location.</summary>
+    public IFileLeaseProvider FileLeases { get; } = new LinuxFileLeaseProvider();
     /// <summary>Gets standard directory discovery; invoke on the matching runtime.</summary>
     public IStandardDirectories Directories { get; } = new LinuxStandardDirectories();
     /// <summary>Gets lexical path operations for the matching runtime; no filesystem identity is inferred.</summary>
