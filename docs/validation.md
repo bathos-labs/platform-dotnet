@@ -163,3 +163,11 @@ ICC validity, current display association accuracy, HDR behavior, or another OS'
 Profile read tests also verify recovery after missing/oversized reads and exact macOS byte-limit behavior.
 Native allocation failures, cancellation during a running native call, and exhaustive ColorSync/WCS handle/callback
 fault injection remain unverified; successful inventory/readback does not establish those failure paths.
+
+## Lexical paths and portability
+
+Path tests exercise the executing runtime's native parser without filesystem discovery: absolute paths, dot segments,
+root/directory references, escaped punctuation and Unicode, significant whitespace, foreign references, and malformed
+URI boundaries. Windows matrix execution additionally covers drive/UNC syntax and device-namespace rejection; POSIX
+execution covers literal backslashes and ambiguous-root rejection. Portable filename policy tests run on every host.
+These tests establish lexical behavior only, not alias equivalence, network coordination, or lease exclusion.

@@ -26,7 +26,7 @@ advisory and is not a path reservation.
 Linux is its own runtime target, not generic POSIX. Its experimental provider supplies statx file-kind inspection
 and opt-in desktop-portal color sampling; native rename and broader host validation are pending.
 Do not hide missing capabilities behind a weaker implementation. Add capabilities from demonstrated consumers,
-keeping product entities, document lifecycle, path policy, UI toolkits, and image pipelines in their owning packages.
+keeping product entities, document lifecycle, product-specific path policy, UI toolkits, and image pipelines in their owning packages.
 
 Screen colors are eight-bit RGB for everyday selection, without a promise of calibrated appearance, original image
 values, or identical results across display profiles and HDR configurations. AppKit owns macOS selection and callback
@@ -76,3 +76,30 @@ The core owns inventory/reference values and configurable resource limits; macOS
 and byte retrieval. Linux leaves it unavailable. Profile keys are provider-owned references, not portable identities.
 Partial discovery retains usable entries; read failures and cancellation remain distinct. No ICC parser, image-library
 dependency, profile installation, or color-management policy belongs to this capability.
+
+## Path and cooperative lease boundary
+
+The accepted boundary for [path contracts](https://github.com/bathos-labs/platform-dotnet/issues/4) and
+[cooperative leases](https://github.com/bathos-labs/platform-dotnet/issues/6) separates lexical location handling
+from ownership. The path capability is implemented; cooperative leases remain planned. Shared native path syntax, lossless file-URI conversion,
+and an explicitly selected portability ruleset belong in Platform. Product-relative references and storage policy
+remain with the host. Normalization preserves significant characters; it does not sanitize an existing location,
+resolve filesystem aliases, or prove that two paths identify the same resource. Lexical comparison is explicit and
+must not be presented as observed filesystem identity.
+
+The lease contract is bounded to cooperating instances of the same application on one device, using the same lock
+protocol and a stable location on a supported filesystem. The common API provides platform-specific implementations;
+it does not promise coordination between operating systems, network clients, unrelated applications, or callers
+that bypass the protocol. Different aliases and representations across path/URI normalization boundaries are not
+promised to share a lease. Hosts with critical exclusion requirements must establish consistent locations and restrict
+storage to supported configurations. A process-local path dictionary alone cannot provide cross-process exclusion.
+
+The host must keep the lock location, including its containing directory, stable for the entire lease lifetime.
+Deleting/replacing a lock artifact or relocating its directory while leased is outside the guarantee unless an
+explicitly supported relocation protocol preserves exclusion. Document-session locks and output-folder relocation
+must be reconciled against that rule before consumer integration. Disposal and process exit release ownership;
+a leftover artifact alone must not prevent reacquisition, and diagnostic metadata is not ownership authority.
+
+Public path APIs carry these bounds; the eventual lease APIs must also carry them in their shipped XML documentation and usage
+examples, including caller obligations and the distinction between contention and operational failure. Native tests
+must establish the supported same-device guarantees independently on each supported OS; lexical tests cannot do so.

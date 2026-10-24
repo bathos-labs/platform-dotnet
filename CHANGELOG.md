@@ -12,6 +12,8 @@ a new major version and are called out here. Linux native support remains experi
 
 ### Added
 
+- Optional host-native path normalization and file-URI conversion, with explicit portability validation for new filenames. Lexical conversion does not establish filesystem identity or lease ownership.
+
 - Optional installed color-profile discovery and raw-byte access through `IColorProfileProvider` and the provider facade.
   macOS uses ColorSync with observed current device associations; Windows uses installed ICC/WCS inventory and native
   reads, without claiming device defaults or HDR coverage. Linux leaves the capability unavailable.
