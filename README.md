@@ -2,6 +2,7 @@
 
 [![NuGet](https://img.shields.io/nuget/vpre/Bathos.Platform?label=NuGet)](https://www.nuget.org/packages/Bathos.Platform)
 [![Native validation](https://github.com/bathos-labs/platform-dotnet/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/bathos-labs/platform-dotnet/actions/workflows/validate.yml)
+[![Codecov](https://img.shields.io/codecov/c/github/bathos-labs/platform-dotnet?branch=master)](https://app.codecov.io/gh/bathos-labs/platform-dotnet)
 
 Bathos-written libraries that give .NET applications common interfaces for native OS operations: publish files
 atomically, inspect file entries, reveal files in Finder or Explorer, open documents in a selected application,

@@ -39,7 +39,15 @@ jobs:
       - run: dotnet restore Bathos.Platform.slnx --locked-mode
       - run: dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
       - run: dotnet build Bathos.Platform.slnx --configuration Release --no-restore
-      - run: dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --report-xunit-trx --results-directory artifacts/test-results
+      - name: Test with line and branch coverage
+        run: >-
+          dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
+          --coverlet --coverlet-output-format cobertura --coverlet-include '[Bathos.Platform*]*'
+          --coverlet-exclude '[Bathos.Platform.Tests]*' --coverlet-exclude '[Bathos.Platform.TestApplication]*'
+          --coverlet-exclude-by-file '**/obj/**' --coverlet-exclude-by-attribute GeneratedCodeAttribute
+          --report-xunit-trx --results-directory artifacts/test-results
+      - name: Require inspectable shipping-code coverage
+        run: dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-coverage artifacts/test-results artifacts/coverage/coverage.cobertura.xml
       - run: dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
       - run: dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
       - name: Retain native test evidence
@@ -47,8 +55,10 @@ jobs:
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
         with:
           name: native-results-${{ matrix.os }}
-          path: artifacts/test-results/
-          if-no-files-found: warn
+          path: |
+            artifacts/test-results/
+            artifacts/coverage/
+          if-no-files-found: error
           retention-days: 14
       - name: Retain verified release packages
         if: ${{ matrix.os == 'ubuntu-24.04' }}
@@ -58,3 +68,49 @@ jobs:
           path: artifacts/packages/
           if-no-files-found: error
           retention-days: 14
+
+  coverage:
+    name: Complete native coverage upload
+    needs: native
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - uses: actions/download-artifact@9000827ccba6bdab643e8b6fd33ac0654aef8333 # v8
+        with:
+          pattern: native-results-*
+          path: artifacts/native
+      - name: Require all three platform reports before uploading any
+        run: |
+          for os in ubuntu-24.04 windows-2025 macos-15; do
+            test -s "artifacts/native/native-results-$os/coverage/coverage.cobertura.xml"
+          done
+      - name: Upload Linux coverage
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
+        with:
+          use_oidc: true
+          files: artifacts/native/native-results-ubuntu-24.04/coverage/coverage.cobertura.xml
+          flags: linux
+          disable_search: true
+          fail_ci_if_error: true
+      - name: Upload Windows coverage
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
+        with:
+          use_oidc: true
+          files: artifacts/native/native-results-windows-2025/coverage/coverage.cobertura.xml
+          flags: windows
+          disable_search: true
+          fail_ci_if_error: true
+      - name: Upload macOS coverage
+        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7
+        with:
+          use_oidc: true
+          files: artifacts/native/native-results-macos-15/coverage/coverage.cobertura.xml
+          flags: macos
+          disable_search: true
+          fail_ci_if_error: true

@@ -26,6 +26,9 @@ jobs:
           git merge-base --is-ancestor HEAD origin/master
           dotnet run --project eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true -- verify-tag "$RELEASE_TAG"
   validate:
+    permissions:
+      contents: read
+      id-token: write
     needs: version
     uses: ./.github/workflows/validate.yml
   publish:
