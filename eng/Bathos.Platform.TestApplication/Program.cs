@@ -40,13 +40,12 @@ try
         if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
         return 0;
     }
-    if (configuration.Mode is "file-lease" or "shared-file-lease")
+    if (configuration.Mode == "file-lease")
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
         var path = configuration.Document ?? throw new InvalidDataException("Missing lock path.");
-        var mode = configuration.Mode == "shared-file-lease" ? FileLeaseMode.Shared : FileLeaseMode.Exclusive;
         using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
-            .TryAcquire(path, mode);
+            .TryAcquire(path, configuration.LeaseMode);
         Console.WriteLine(lease is null ? "contended" : "acquired");
         if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
         return 0;
@@ -55,7 +54,7 @@ try
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
         using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
-            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."), FileLeaseMode.Exclusive)
+            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."), configuration.LeaseMode)
             ?? throw new InvalidOperationException("The owned parent did not acquire the lease.");
         var descendantConfiguration = Path.Combine(Path.GetDirectoryName(args.Single()) ?? throw new InvalidDataException("Missing fixture directory."), "descendant.json");
         await File.WriteAllTextAsync(descendantConfiguration, JsonSerializer.Serialize(configuration with { Mode = "lease-descendant" }));
@@ -114,5 +113,6 @@ try
 }
 catch (Exception error) { Console.Error.WriteLine(error); return 1; }
 
-internal sealed record ProbeConfiguration(string Mode, string PipeName, string? Document = null, string? DesktopId = null);
+internal sealed record ProbeConfiguration(string Mode, string PipeName, string? Document = null, string? DesktopId = null,
+    FileLeaseMode LeaseMode = FileLeaseMode.Exclusive);
 internal sealed record ProbeResult(int ProcessId, string[] Arguments);
