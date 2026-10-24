@@ -1,4 +1,5 @@
 using System.Diagnostics.CodeAnalysis;
+using System.Text;
 
 namespace Bathos.Platform.Paths;
 
@@ -21,6 +22,7 @@ public interface INativeFilePaths
 /// No current directory, filesystem probe, Unicode normalization, case folding, or filename sanitization is applied.</remarks>
 public sealed class NativeFilePaths : INativeFilePaths
 {
+    private static readonly UTF8Encoding StrictUtf8 = new(false, true);
     private readonly bool _windows;
     private NativeFilePaths(bool windows) => _windows = windows;
     /// <summary>Windows drive and UNC syntax. Extended/device namespaces are outside this contract.</summary>
@@ -50,6 +52,11 @@ public sealed class NativeFilePaths : INativeFilePaths
     public string ToFileUri(string path, bool directory = false)
     {
         var normalized = NormalizeAbsolute(path);
+        try { StrictUtf8.GetByteCount(normalized); }
+        catch (EncoderFallbackException exception)
+        {
+            throw new ArgumentException("A file URI requires well-formed Unicode.", nameof(path), exception);
+        }
         if (directory) normalized = Path.TrimEndingDirectorySeparator(normalized);
         var portable = _windows ? normalized.Replace('\\', '/') : normalized;
         var uri = !_windows ? "file://" + Escape(portable)
@@ -81,13 +88,29 @@ public sealed class NativeFilePaths : INativeFilePaths
 
     private static bool ValidEscapes(string value)
     {
-        for (var i = 0; i < value.Length; i++)
+        try
         {
-            if (value[i] != '%') continue;
-            if (i + 2 >= value.Length || !Uri.IsHexDigit(value[i + 1]) || !Uri.IsHexDigit(value[i + 2])) return false;
-            i += 2;
+            StrictUtf8.GetByteCount(value);
+            byte[]? bytes = null;
+            for (var i = 0; i < value.Length; i++)
+            {
+                if (value[i] != '%') continue;
+                bytes ??= new byte[(value.Length - i) / 3];
+                var count = 0;
+                do
+                {
+                    if (i + 2 >= value.Length || !Uri.IsHexDigit(value[i + 1]) || !Uri.IsHexDigit(value[i + 2])) return false;
+                    bytes[count++] = (byte)((Uri.FromHex(value[i + 1]) << 4) | Uri.FromHex(value[i + 2]));
+                    i += 3;
+                } while (i < value.Length && value[i] == '%');
+                // Uri's permissive decoder leaves invalid UTF-8 escaped, which would select a literal-percent filename.
+                StrictUtf8.GetCharCount(bytes, 0, count);
+                i--;
+            }
+            return true;
         }
-        return true;
+        catch (EncoderFallbackException) { return false; }
+        catch (DecoderFallbackException) { return false; }
     }
 
     private static bool IsDrivePath(string path) => path.Length >= 3 && path[0] == '/' && char.IsAsciiLetter(path[1]) && path[2] == ':';

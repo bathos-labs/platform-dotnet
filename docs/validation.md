@@ -168,6 +168,8 @@ fault injection remain unverified; successful inventory/readback does not establ
 
 Path tests exercise the executing runtime's native parser without filesystem discovery: absolute paths, dot segments,
 root/directory references, escaped punctuation and Unicode, significant whitespace, foreign references, and malformed
-URI boundaries. Windows matrix execution additionally covers drive/UNC syntax and device-namespace rejection; POSIX
+URI boundaries. Conversion rejects unpaired surrogates and invalid escaped UTF-8 without replacing them or reinterpreting
+them as literal-percent filenames; valid supplementary characters and escaped-percent names round-trip unchanged.
+Windows matrix execution additionally covers drive/UNC syntax and device-namespace rejection; POSIX
 execution covers literal backslashes and ambiguous-root rejection. Portable filename policy tests run on every host.
 These tests establish lexical behavior only, not alias equivalence, network coordination, or lease exclusion.

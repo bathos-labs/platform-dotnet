@@ -12,6 +12,7 @@ public sealed class FilePathTests
     [InlineData("image #日本%20.png")]
     [InlineData(" trailing space.png ")]
     [InlineData("a+b;@name.png")]
+    [InlineData("\U0001F3A8 %FF %2F.png")]
     public void NativeRoundtripPreservesCharactersAndDoesNotRequireExistence(string name)
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -44,6 +45,42 @@ public sealed class FilePathTests
     [InlineData("file:///bad%zz")]
     [InlineData(" file:///leading")]
     public void UnsupportedUriEvidenceRemainsUnresolved(string uri) => Assert.False(Native.TryFromFileUri(uri, out _));
+
+    [Fact]
+    public void FileUriEncodingRejectsMalformedUnicodeInsteadOfReplacingIt()
+    {
+        var directory = Path.GetTempPath();
+        foreach (var name in new[] { "\ud800", "\udc00", "a\ud800b" })
+        {
+            var exception = Assert.Throws<ArgumentException>(() => Native.ToFileUri(Path.Combine(directory, name)));
+            Assert.Equal("path", exception.ParamName);
+        }
+    }
+
+    [Fact]
+    public void FileUriDecodingRejectsMalformedUnicodeInsteadOfReplacingIt()
+    {
+        var uriPrefix = Native.ToFileUri(Path.GetTempPath(), directory: true);
+        foreach (var name in new[] { "\ud800", "\udc00", "a\ud800b" })
+        {
+            Assert.False(Native.TryFromFileUri(uriPrefix + name, out var restored));
+            Assert.Null(restored);
+        }
+    }
+
+    [Theory]
+    [InlineData("%FF")]
+    [InlineData("%C0%AF")]
+    [InlineData("%E2%82")]
+    [InlineData("%ED%A0%80")]
+    [InlineData("%F4%90%80%80")]
+    [InlineData("%C3x%A9")]
+    public void FileUriConversionRejectsInvalidUtf8InsteadOfTreatingItAsALiteralName(string escapedName)
+    {
+        var uri = Native.ToFileUri(Path.GetTempPath(), directory: true) + escapedName;
+        Assert.False(Native.TryFromFileUri(uri, out var restored));
+        Assert.Null(restored);
+    }
 
     [Fact]
     public void ForeignSyntaxRequiresItsHostAndDoesNotUseTheWorkingDirectory()

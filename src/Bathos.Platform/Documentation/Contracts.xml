@@ -80,13 +80,15 @@
 <summary>Encodes an absolute native path as an escaped file URI. Directory references end with a slash.</summary>
 <param name="path">Absolute native path; no filesystem existence or file-kind check occurs.</param>
 <param name="directory">Whether to produce a directory reference, independently of existence.</param>
+<exception cref="ArgumentException">The path is not an admitted absolute native path or contains malformed Unicode.</exception>
+<exception cref="PlatformNotSupportedException">The syntax does not match the runtime host.</exception>
   </ToFileUri>
   <TryFromFileUri>
 <summary>Decodes an admitted absolute file URI, returning false for malformed or foreign evidence.</summary>
 <param name="fileUri">Escaped absolute file URI.</param>
 <param name="path">Normalized native path on success; null otherwise.</param>
 <returns>Whether the URI has an admitted local representation.</returns>
-<remarks>Queries, fragments, credentials, ports, encoded separators, and Windows device namespaces are rejected.
+<remarks>Queries, fragments, credentials, ports, encoded separators, malformed Unicode/UTF-8, and Windows device namespaces are rejected.
 This does not resolve aliases or assert existence. Invocation requires a matching runtime host.</remarks>
   </TryFromFileUri>
 </contracts>

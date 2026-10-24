@@ -350,9 +350,10 @@ public static class PathExample
 ```
 
 Normalization collapses lexical dot segments without filesystem probing. Encoding preserves significant whitespace,
-Unicode, and literal URI punctuation; it never sanitizes an existing filename. URI decoding rejects queries,
-fragments, credentials, ports, malformed escapes, encoded separators, and unsupported foreign evidence. A literal
-backslash in a POSIX filename is escaped and preserved. Directory references explicitly request a trailing slash.
+Unicode, and literal URI punctuation; it never sanitizes an existing filename. Encoding rejects malformed Unicode
+instead of replacing it. URI decoding rejects queries, fragments, credentials, ports, malformed escapes or UTF-8,
+encoded separators, and unsupported foreign evidence. A literal backslash in a POSIX filename is escaped and preserved.
+Directory references explicitly request a trailing slash.
 
 Comparison is host policy: choose an ordinal or ordinal-ignore-case comparer deliberately; neither proves filesystem
 identity. Alias resolution, network coordination, and ownership across alternate representations are not guaranteed.
