@@ -354,6 +354,9 @@ Unicode, and literal URI punctuation; it never sanitizes an existing filename. E
 instead of replacing it. URI decoding rejects queries, fragments, credentials, ports, malformed escapes or UTF-8,
 encoded separators, and unsupported foreign evidence. A literal backslash in a POSIX filename is escaped and preserved.
 Directory references explicitly request a trailing slash.
+Windows normalization preserves trailing dots/spaces and short-name spellings rather than applying Win32 trimming
+or filesystem-based short-name expansion. This lexical preservation does not establish how a later filesystem API
+will interpret the path.
 
 Comparison is host policy: choose an ordinal or ordinal-ignore-case comparer deliberately; neither proves filesystem
 identity. Alias resolution, network coordination, and ownership across alternate representations are not guaranteed.

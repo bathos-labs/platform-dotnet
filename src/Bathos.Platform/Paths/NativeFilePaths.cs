@@ -42,10 +42,24 @@ public sealed class NativeFilePaths : INativeFilePaths
             throw new ArgumentException("Windows device namespaces are not supported.", nameof(path));
         if (!_windows && path.StartsWith("//", StringComparison.Ordinal))
             throw new ArgumentException("Double-slash network roots are not supported.", nameof(path));
-        var normalized = Path.GetFullPath(path);
+        var normalized = _windows ? NormalizeWindows(path) : Path.GetFullPath(path);
         if (!_windows && (normalized.StartsWith("//", StringComparison.Ordinal) || IsDrivePath(normalized)))
             throw new ArgumentException("Ambiguous network or drive syntax is not a local POSIX reference.", nameof(path));
         return normalized;
+    }
+
+    private static string NormalizeWindows(string path)
+    {
+        var native = path.Replace('/', '\\');
+        var rootLength = Path.GetPathRoot(native.AsSpan()).Length;
+        var root = Path.GetPathRoot(native) ?? throw new ArgumentException("A native root is required.", nameof(path));
+        if (rootLength == native.Length) return root;
+        var unc = root.StartsWith(@"\\", StringComparison.Ordinal);
+        var extendedRoot = unc ? @"\\?\UNC\" + root[2..] : @"\\?\" + root;
+        // The relative overload with a device base uses the runtime's lexical segment removal rather than Win32
+        // normalization, which trims names and probes the filesystem to expand short names. The prefix stays internal.
+        var normalized = Path.GetFullPath(@".\" + native[rootLength..], extendedRoot);
+        return unc ? @"\\" + normalized[8..] : normalized[4..];
     }
 
     /// <include file="../Documentation/Contracts.xml" path="contracts/ToFileUri/*" />

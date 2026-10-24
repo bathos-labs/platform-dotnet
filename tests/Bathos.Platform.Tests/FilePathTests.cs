@@ -13,6 +13,9 @@ public sealed class FilePathTests
     [InlineData(" trailing space.png ")]
     [InlineData("a+b;@name.png")]
     [InlineData("\U0001F3A8 %FF %2F.png")]
+    [InlineData("trailing dot.")]
+    [InlineData("trailing dots and spaces..  ")]
+    [InlineData("SAMPLE~1.png")]
     public void NativeRoundtripPreservesCharactersAndDoesNotRequireExistence(string name)
     {
         var root = Path.Combine(Path.GetTempPath(), Guid.NewGuid().ToString("N"));
@@ -22,6 +25,23 @@ public sealed class FilePathTests
         Assert.True(Native.TryFromFileUri(Native.ToFileUri(path), out var restored));
         Assert.Equal(normalized, restored);
         Assert.False(Directory.Exists(root));
+    }
+
+    [Theory]
+    [InlineData("C:/folder /nested/../file. ", @"C:\folder \file. ")]
+    [InlineData("//server/share/folder /nested/../file. ", @"\\server\share\folder \file. ")]
+    [InlineData(@"C:\..\..\file ", @"C:\file ")]
+    [InlineData(@"\\server\share\..\..\file ", @"\\server\share\file ")]
+    [InlineData(@"C:\a:b", @"C:\a:b")]
+    [InlineData("C:/", @"C:\")]
+    [InlineData("//server/share", @"\\server\share")]
+    public void WindowsNormalizationPreservesNamesAndKeepsDotSegmentsWithinTheNativeRoot(string path, string expected)
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows drive and UNC normalization requires the Windows runtime.");
+        var normalized = NativeFilePaths.Windows.NormalizeAbsolute(path);
+        Assert.Equal(expected, normalized);
+        Assert.True(NativeFilePaths.Windows.TryFromFileUri(NativeFilePaths.Windows.ToFileUri(path), out var restored));
+        Assert.Equal(expected, restored);
     }
 
     [Fact]
