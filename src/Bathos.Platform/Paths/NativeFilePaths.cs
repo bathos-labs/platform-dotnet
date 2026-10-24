@@ -38,7 +38,8 @@ public sealed class NativeFilePaths : INativeFilePaths
         if (path.Contains('\0') || !Path.IsPathFullyQualified(path))
             throw new ArgumentException("An absolute native path without NUL is required.", nameof(path));
         if (_windows && (path.Replace('/', '\\').StartsWith(@"\\?\", StringComparison.Ordinal) ||
-                         path.Replace('/', '\\').StartsWith(@"\\.\", StringComparison.Ordinal)))
+                         path.Replace('/', '\\').StartsWith(@"\\.\", StringComparison.Ordinal) ||
+                         path.Replace('/', '\\').StartsWith(@"\??\", StringComparison.Ordinal)))
             throw new ArgumentException("Windows device namespaces are not supported.", nameof(path));
         if (!_windows && path.StartsWith("//", StringComparison.Ordinal))
             throw new ArgumentException("Double-slash network roots are not supported.", nameof(path));

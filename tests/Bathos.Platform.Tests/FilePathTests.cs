@@ -113,6 +113,9 @@ public sealed class FilePathTests
         {
             Assert.Equal(@"C:\folder\file", Native.NormalizeAbsolute("C:/folder/file"));
             Assert.Throws<ArgumentException>(() => Native.NormalizeAbsolute(@"\\?\C:\file"));
+            Assert.Throws<ArgumentException>(() => Native.NormalizeAbsolute(@"\\.\C:\file"));
+            Assert.Throws<ArgumentException>(() => Native.NormalizeAbsolute(@"\??\C:\file"));
+            Assert.Throws<ArgumentException>(() => Native.NormalizeAbsolute("/??/C:/file"));
             Assert.False(Native.TryFromFileUri("file:///C:/a%5Cb", out _));
         }
         else
