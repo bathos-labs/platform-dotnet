@@ -6,18 +6,32 @@ using Microsoft.Win32.SafeHandles;
 // Runs only in an owned child. It never opens a user's terminal or changes the test runner's session.
 internal static partial class UnixLeaseProbe
 {
-    internal static void RejectTerminal(IFileLeaseProvider leases)
+    internal static SafeFileHandle CreateTerminal(out string path, out SafeFileHandle slave)
+    {
+        if (OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
+        var noTerminal = OperatingSystem.IsMacOS() ? 0x20000 : 0x100;
+        var descriptor = OpenTerminal(2 | noTerminal);
+        if (descriptor < 0) throw NativeError();
+        var master = new SafeFileHandle((nint)descriptor, ownsHandle: true);
+        try
+        {
+            if (GrantTerminal(master) != 0 || UnlockTerminal(master) != 0) throw NativeError();
+            // ptsname's static result is copied immediately; this child has no concurrent terminal lookup.
+            path = Marshal.PtrToStringUTF8(TerminalName(master)) ?? throw NativeError();
+            // Keep the slave open too, matching openpty and avoiding a hangup between fixture setup and the probe.
+            var slaveDescriptor = Open(path, 2 | noTerminal);
+            if (slaveDescriptor < 0) throw NativeError();
+            slave = new SafeFileHandle((nint)slaveDescriptor, ownsHandle: true);
+            return master;
+        }
+        catch { master.Dispose(); throw; }
+    }
+
+    internal static void RejectTerminal(IFileLeaseProvider leases, string path)
     {
         if (OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         if (SetSid() < 0) throw NativeError();
         if (HasTerminal()) throw new InvalidOperationException("The isolated session already has a terminal.");
-        var noTerminal = OperatingSystem.IsMacOS() ? 0x20000 : 0x100;
-        var descriptor = OpenTerminal(2 | noTerminal);
-        if (descriptor < 0) throw NativeError();
-        using var master = new SafeFileHandle((nint)descriptor, ownsHandle: true);
-        if (GrantTerminal(master) != 0 || UnlockTerminal(master) != 0) throw NativeError();
-        // ptsname's static result is copied immediately; this isolated child has no concurrent terminal lookup.
-        var path = Marshal.PtrToStringUTF8(TerminalName(master)) ?? throw NativeError();
         try
         {
             using var lease = leases.TryAcquire(path);

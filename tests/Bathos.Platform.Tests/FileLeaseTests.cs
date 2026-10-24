@@ -1,4 +1,6 @@
 using System.Diagnostics;
+using System.Globalization;
+using System.IO.Pipes;
 using System.Net.Sockets;
 using System.Text.Json;
 using Bathos.Platform.Files;
@@ -58,6 +60,39 @@ public sealed class FileLeaseTests
     }
 
     [Fact]
+    public void CancellationAfterNativeAcquisitionReleasesOwnershipWithoutChangingTheArtifact()
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-lease-cancel-");
+        try
+        {
+            var path = Path.Combine(folder.FullName, "writer.lock");
+            File.WriteAllText(path, "preserve stale diagnostics");
+            using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            var reached = false;
+            void BeforeTransfer()
+            {
+                reached = true;
+                Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                cancellation.Cancel();
+            }
+            IFileLease? Acquire() => PlatformHost.Current switch
+            {
+                PlatformOperatingSystem.Windows => WindowsFileLeaseProvider.TryAcquire(path, BeforeTransfer, cancellation.Token),
+                PlatformOperatingSystem.MacOS => MacOSFileLeaseProvider.TryAcquire(path, BeforeTransfer, cancellation.Token),
+                PlatformOperatingSystem.Linux => LinuxFileLeaseProvider.TryAcquire(path, BeforeTransfer, cancellation.Token),
+                _ => throw new PlatformNotSupportedException(),
+            };
+            var error = Assert.Throws<OperationCanceledException>(() => { using var unexpected = Acquire(); });
+            Assert.True(reached);
+            Assert.Equal(cancellation.Token, error.CancellationToken);
+            Assert.Equal("preserve stale diagnostics", File.ReadAllText(path));
+            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            Assert.NotNull(next);
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
     public void LinksCannotRedirectLeaseOwnership()
     {
         var folder = Directory.CreateTempSubdirectory("bathos-leases-");
@@ -104,10 +139,17 @@ public sealed class FileLeaseTests
         var folder = Directory.CreateTempSubdirectory("bathos-lease-terminal-");
         try
         {
-            await using var child = await Child.StartAsync(folder.FullName, "", mode: "reject-terminal-lease");
-            Assert.Equal("rejected-without-terminal", await child.ReadAsync());
-            await child.WaitAsync();
-            Assert.Equal(0, child.Process.ExitCode);
+            await using var fixture = await Child.StartAsync(folder.FullName, "", mode: "lease-terminal-fixture");
+            var path = await fixture.ReadAsync() ?? throw new InvalidDataException("Missing owned terminal path.");
+            await using (var child = await Child.StartAsync(folder.FullName, path, mode: "reject-terminal-lease"))
+            {
+                Assert.Equal("rejected-without-terminal", await child.ReadAsync());
+                await child.WaitAsync();
+                Assert.Equal(0, child.Process.ExitCode);
+            }
+            await fixture.Process.StandardInput.WriteLineAsync("finish");
+            await fixture.WaitAsync();
+            Assert.Equal(0, fixture.Process.ExitCode);
         }
         finally { folder.Delete(true); }
     }
@@ -158,12 +200,69 @@ public sealed class FileLeaseTests
             await using var child = await Child.StartAsync(folder.FullName, path);
             Assert.Equal("contended", await child.ReadAsync());
             lease.Dispose();
-            // The still-running child must not inherit the parent's native ownership handle.
+            // Disposal releases ownership while the contending child remains alive.
             using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
             await child.Process.StandardInput.WriteLineAsync("finish");
             await child.WaitAsync();
             Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
+    public async Task OwnerExitReleasesLeaseWhileItsDescendantRemainsAlive()
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-lease-inheritance-");
+        try
+        {
+            var pipeName = "bl_" + Guid.NewGuid().ToString("N");
+            await using var pipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
+            using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            deadline.CancelAfter(TimeSpan.FromSeconds(20));
+            var connected = pipe.WaitForConnectionAsync(deadline.Token);
+            try
+            {
+                var path = Path.Combine(folder.FullName, "writer.lock");
+                await using var owner = await Child.StartAsync(folder.FullName, path, mode: "file-lease-owner", pipeName: pipeName);
+                Process? descendant = null;
+                try
+                {
+                    var processId = int.Parse(await owner.ReadAsync() ?? throw new InvalidDataException("Missing descendant ID."), CultureInfo.InvariantCulture);
+                    descendant = Process.GetProcessById(processId);
+                    await connected;
+                    using var reader = new StreamReader(pipe, leaveOpen: true);
+                    using var writer = new StreamWriter(pipe, leaveOpen: true) { AutoFlush = true };
+                    var message = await reader.ReadLineAsync(deadline.Token) ?? throw new InvalidDataException("Missing descendant readiness.");
+                    using var ready = JsonDocument.Parse(message);
+                    Assert.Equal(processId, ready.RootElement.GetProperty("ProcessId").GetInt32());
+                    Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                    // Abrupt exit avoids explicit unlock, which would also release an inherited Unix description's lock.
+                    owner.Process.Kill(entireProcessTree: false);
+                    await owner.WaitAsync();
+                    Assert.False(descendant.HasExited);
+                    using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+                    Assert.NotNull(next);
+                    await writer.WriteLineAsync("finish".AsMemory(), deadline.Token);
+                    Assert.Equal("finished", await reader.ReadLineAsync(deadline.Token));
+                    await descendant.WaitForExitAsync(deadline.Token);
+                }
+                finally
+                {
+                    if (descendant is not null)
+                    {
+                        if (!descendant.HasExited) descendant.Kill(entireProcessTree: true);
+                        await descendant.WaitForExitAsync(CancellationToken.None);
+                        descendant.Dispose();
+                    }
+                }
+            }
+            finally
+            {
+                await deadline.CancelAsync();
+                try { await connected; }
+                catch (OperationCanceledException) { }
+            }
         }
         finally { folder.Delete(true); }
     }
@@ -200,7 +299,7 @@ public sealed class FileLeaseTests
         var folder = Directory.CreateTempSubdirectory("bathos-leases-");
         try
         {
-            var path = Path.Combine(folder.FullName, "writer.lock");
+            var path = Path.Combine(folder.FullName, "writer-日本 \U0001F3A8.lock");
             using var first = Current().TryAcquire(path, TestContext.Current.CancellationToken);
             using var second = Current().TryAcquire(path + " ", TestContext.Current.CancellationToken);
             Assert.NotNull(first);
@@ -258,10 +357,10 @@ public sealed class FileLeaseTests
         }
         internal async Task<string?> ReadAsync() => await Process.StandardOutput.ReadLineAsync(_deadline.Token);
         internal async Task WaitAsync() => await Process.WaitForExitAsync(_deadline.Token);
-        internal static async Task<Child> StartAsync(string folder, string path, bool reject = false, string? mode = null)
+        internal static async Task<Child> StartAsync(string folder, string path, bool reject = false, string? mode = null, string pipeName = "")
         {
             var configuration = Path.Combine(folder, "probe.json");
-            await File.WriteAllTextAsync(configuration, JsonSerializer.Serialize(new { Mode = mode ?? (reject ? "reject-file-lease" : "file-lease"), PipeName = "", Document = path }), TestContext.Current.CancellationToken);
+            await File.WriteAllTextAsync(configuration, JsonSerializer.Serialize(new { Mode = mode ?? (reject ? "reject-file-lease" : "file-lease"), PipeName = pipeName, Document = path }), TestContext.Current.CancellationToken);
             var executable = Path.Combine(AppContext.BaseDirectory, "TestApplication", "Bathos.Platform.TestApplication" + (OperatingSystem.IsWindows() ? ".exe" : ""));
             var start = new ProcessStartInfo(executable) { UseShellExecute = false, RedirectStandardInput = true, RedirectStandardOutput = true, RedirectStandardError = true };
             start.ArgumentList.Add(configuration);

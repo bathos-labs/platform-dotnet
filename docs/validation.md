@@ -201,5 +201,9 @@ locking semantics. Windows link tests require developer mode or symlink privileg
 
 The guarantee requires stable artifacts and a common protocol on supported storage. Noncooperating replacement,
 network-client coordination, and filesystem alias discovery are intentionally not guaranteed by these tests.
-Unix tests reject malformed Unicode without creating or retargeting an artifact. An owned session-leader child
-creates a private pseudo-terminal and verifies that rejecting its slave does not assign a controlling terminal.
+Unix tests reject malformed Unicode without creating or retargeting an artifact. An owned child holds a private
+pseudo-terminal while a separate session-leader child verifies that rejecting its slave does not assign a controlling terminal.
+Cancellation at an internal gate after a real native lock verifies contention before cancellation, then reacquisition
+and unchanged bytes after rollback. A separate owner is killed while its descendant remains alive, without explicit
+unlock; reacquisition verifies that ownership did not survive in the descendant. Unix launches that descendant through
+plain `posix_spawn`, so runtime descriptor cleanup cannot mask a missing close-on-exec flag. Windows uses the runtime launcher.

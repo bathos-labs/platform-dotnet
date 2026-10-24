@@ -9,7 +9,11 @@ namespace Bathos.Platform.Windows;
 public sealed partial class WindowsFileLeaseProvider : IFileLeaseProvider
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireFileLease/*" />
-    public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default)
+    public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default) =>
+        TryAcquire(path, beforeOwnershipTransfer: null, cancellationToken);
+
+    // Call-scoped seam for retirement after the real native lock, before transferring ownership to the caller.
+    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
     {
         if (PlatformHost.Current != PlatformOperatingSystem.Windows) throw new PlatformNotSupportedException();
         path = NativeFilePaths.Windows.NormalizeAbsolute(path);
@@ -33,6 +37,7 @@ public sealed partial class WindowsFileLeaseProvider : IFileLeaseProvider
                 throw new IOException("The native file lease could not be acquired.", new System.ComponentModel.Win32Exception(error));
             }
             acquired = true;
+            beforeOwnershipTransfer?.Invoke();
             cancellationToken.ThrowIfCancellationRequested();
             var lease = new HeldFileLease(handle, Release);
             handle = null;
