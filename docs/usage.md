@@ -425,6 +425,7 @@ access failures, temporary workspace allocation and cleanup, and the decision to
 
 Use an application-owned, persistent lock artifact. Its parent must exist. Never infer ownership from file existence
 or diagnostic metadata, and do not delete the artifact when releasing a lease. Each successful result must be disposed.
+Keep the artifact and its containing directory tree intact at the same location for the entire lease lifetime.
 
 ```csharp
 using Bathos.Platform;
@@ -450,8 +451,7 @@ Cancellation can leave an unowned artifact; process exit releases the native han
 Windows may complete implicit unlock after process exit is signaled; an immediate attempt can still report contention.
 Store optional owner diagnostics separately and treat missing or stale metadata as diagnostic uncertainty.
 
-Do not delete or replace the artifact while leased. The supported relocation protocol is one same-filesystem rename
-of the containing directory tree to an unoccupied destination while retaining the lease. After success, use only the
-new location; the old pathname is not reserved. No copy/delete move or lock-file replacement is supported. Hosts own
-admission, rename failure handling, publication receipts, and any directory-ownership policy. Aliases, network clients,
+Moving, renaming, deleting, or replacing the lock artifact or its containing directory tree while leased is unsupported
+on every platform. If application data may move, choose a stable lock location outside that tree; every cooperating
+instance must keep using that same lock location. Hosts own admission, publication receipts, and any directory-ownership policy. Aliases, network clients,
 other operating systems, noncooperating actors, and alternate path representations are outside the exclusion guarantee.

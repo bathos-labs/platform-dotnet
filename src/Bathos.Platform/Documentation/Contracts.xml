@@ -102,9 +102,9 @@ This does not resolve aliases or assert existence. Invocation requires a matchin
     Windows may finish implicit unlock after process exit is signaled; an immediate attempt may still report contention.
     Cooperative exclusion is limited to the same application, device, protocol, and stable location.
     Aliases, alternate path representations, network clients, and noncooperating actors are outside the guarantee.
-    Do not delete or replace the artifact. The only supported relocation is a same-filesystem rename of its containing
-    directory tree to an unoccupied destination while retaining the lease. Use the new location afterward; the old
-    pathname is not reserved. Copy/delete moves and independent artifact relocation are unsupported.</remarks>
+    Keep the artifact and its containing directory tree intact at the same location for the entire lease lifetime.
+    Moving, renaming, deleting, or replacing either is unsupported on every platform. If application data may move,
+    choose a stable lock location outside that tree.</remarks>
     <exception cref="IOException">Opening, validating, or locking fails for an operational reason.</exception>
     <exception cref="ArgumentException">The path is invalid or cannot be represented losslessly at the native boundary.</exception>
     <exception cref="OperationCanceledException">Cancellation is observed before ownership is returned.</exception>

@@ -94,10 +94,10 @@ that bypass the protocol. Different aliases and representations across path/URI 
 promised to share a lease. Hosts with critical exclusion requirements must establish consistent locations and restrict
 storage to supported configurations. A process-local path dictionary alone cannot provide cross-process exclusion.
 
-The host must keep the lock artifact intact for the entire lease lifetime. It may rename the containing directory
-once to an unoccupied destination on the same filesystem while retaining the lease; subsequent work must use the
-new location. The old pathname is not reserved. Copy/delete moves, deleting/replacing the lock, and independent
-artifact relocation are unsupported. Host document admission and output ownership policy remain outside Platform. Disposal and process exit release ownership;
+The host must keep the lock artifact and its containing directory tree intact at the same location for the entire
+lease lifetime. Moving, renaming, deleting, or replacing either is unsupported on every platform. If application data
+may move, hosts must choose a stable lock location outside that tree. Platform does not supply a relocation protocol.
+Host document admission and output ownership policy remain outside Platform. Disposal and process exit release ownership;
 a leftover artifact alone must not prevent reacquisition, and diagnostic metadata is not ownership authority.
 
 Public path and lease APIs carry these bounds in their shipped XML documentation and usage

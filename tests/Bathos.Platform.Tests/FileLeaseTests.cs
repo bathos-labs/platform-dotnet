@@ -293,26 +293,29 @@ public sealed class FileLeaseTests
     }
 
     [Fact]
-    public async Task AtomicDirectoryRenameRetainsExclusionAtTheDestination()
+    public async Task StableLockOutsideTheDataTreeRemainsExclusiveWhenDataMoves()
     {
         var folder = Directory.CreateTempSubdirectory("bathos-leases-");
         try
         {
             var source = Directory.CreateDirectory(Path.Combine(folder.FullName, "source")).FullName;
             var destination = Path.Combine(folder.FullName, "destination");
-            var path = Path.Combine(source, "writer.lock");
-            var moved = Path.Combine(destination, "writer.lock");
+            var path = Path.Combine(folder.FullName, "writer.lock");
+            File.WriteAllText(Path.Combine(source, "document.txt"), "complete document");
             using (var lease = Current().TryAcquire(path, TestContext.Current.CancellationToken))
             {
                 Assert.NotNull(lease);
                 Directory.Move(source, destination);
-                Assert.Null(Current().TryAcquire(moved, TestContext.Current.CancellationToken));
-                await using var child = await Child.StartAsync(folder.FullName, moved);
+                Assert.False(Directory.Exists(source));
+                Assert.Equal("complete document", File.ReadAllText(Path.Combine(destination, "document.txt")));
+                Assert.True(File.Exists(path));
+                Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                await using var child = await Child.StartAsync(folder.FullName, path);
                 Assert.Equal("contended", await child.ReadAsync());
                 await child.Process.StandardInput.WriteLineAsync("finish");
                 await child.WaitAsync();
             }
-            using var next = Current().TryAcquire(moved, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
         finally { folder.Delete(true); }

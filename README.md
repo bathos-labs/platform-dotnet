@@ -90,6 +90,10 @@ Installed color-profile discovery/readback is available on macOS and Windows thr
 It returns provider-owned lookup keys and raw bytes, without ICC parsing, installation, or conversion. Linux leaves
 this optional capability null. See the integration guide for limits, partial discovery, and platform coverage.
 
+Cooperative file leases require a persistent lock artifact at a stable location on every platform. Keep the artifact
+and its containing directory tree intact while leased. If application data may move, place its lock outside that tree.
+Artifact existence and diagnostic metadata do not establish ownership; see the integration guide for the full contract.
+
 ## Support and documentation
 
 Repository documentation describes current development. For the version you installed, use the XML API documentation
