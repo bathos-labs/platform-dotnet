@@ -4,11 +4,16 @@ namespace Bathos.Platform.Directories;
 
 internal static class DirectoryDiscovery
 {
-    internal static StandardDirectoryRoots Discover(PlatformOperatingSystem host)
+    internal static StandardDirectoryRoots Discover(PlatformOperatingSystem host) => DiscoverCore(host, Folder);
+
+    internal static StandardDirectoryRoots Discover(PlatformOperatingSystem host, Func<string?> home) =>
+        DiscoverCore(host, folder => folder == Environment.SpecialFolder.UserProfile ? home() ?? "" : Folder(folder));
+
+    private static StandardDirectoryRoots DiscoverCore(PlatformOperatingSystem host, Func<Environment.SpecialFolder, string> folder)
     {
         if (PlatformHost.Current != host) throw new PlatformNotSupportedException("Directory discovery requires the matching runtime host.");
         var paths = host == PlatformOperatingSystem.Windows ? NativeFilePaths.Windows : NativeFilePaths.Posix;
-        return Resolve(host, paths, Folder, Environment.GetEnvironmentVariable, Path.GetTempPath(), AppContext.BaseDirectory);
+        return Resolve(host, paths, folder, Environment.GetEnvironmentVariable, Path.GetTempPath(), AppContext.BaseDirectory);
     }
 
     private static string Folder(Environment.SpecialFolder folder) =>
@@ -33,8 +38,10 @@ internal static class DirectoryDiscovery
             State = host == PlatformOperatingSystem.Linux ? Xdg("XDG_STATE_HOME", ".local", "state") : data,
             Temporary = Normalize(temporary),
             ApplicationBase = Normalize(applicationBase),
-            Documents = Normalize(folder(Environment.SpecialFolder.MyDocuments)),
-            Desktop = Normalize(folder(Environment.SpecialFolder.DesktopDirectory)),
+            // The runtime's Linux user-folder lookup also substitutes '/' when no home exists. Keep only explicit
+            // independent overrides in that case, without consulting a fallback user-dirs file beneath '/'.
+            Documents = host == PlatformOperatingSystem.Linux && home is null ? Normalize(environment("XDG_DOCUMENTS_DIR")) : Normalize(folder(Environment.SpecialFolder.MyDocuments)),
+            Desktop = host == PlatformOperatingSystem.Linux && home is null ? Normalize(environment("XDG_DESKTOP_DIR")) : Normalize(folder(Environment.SpecialFolder.DesktopDirectory)),
         };
 
         string? Xdg(string variable, params string[] suffix) => Normalize(environment(variable)) ?? UnderHome(suffix);

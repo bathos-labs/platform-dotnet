@@ -8,6 +8,7 @@ public interface IStandardDirectories
     /// <summary>Observes current host roots. Null locations are unavailable; lookup failures may propagate.</summary>
     /// <remarks>Invoke on the provider's OS. Environment changes are observed on each call, without atomic snapshot guarantees.
     /// Temporary roots are shared locations, not owned workspaces. Application base is a resource location, not writable user storage.</remarks>
+    /// <exception cref="IOException">An operational lookup fails or a Unix account entry exceeds the one-megabyte lookup buffer limit.</exception>
     StandardDirectoryRoots Discover();
 }
 
@@ -17,7 +18,7 @@ public interface IStandardDirectories
 /// through explicit native path syntax; invalid nonnull overrides throw rather than using a working-directory fallback.</remarks>
 public sealed record StandardDirectoryRoots(PlatformOperatingSystem OperatingSystem)
 {
-    /// <summary>User home directory.</summary>
+    /// <summary>User home directory; Unix providers use nonempty HOME or the effective user's account entry, retaining absence as null.</summary>
     public string? Home { get; init; }
     /// <summary>Durable local application data root.</summary>
     public string? Data { get; init; }

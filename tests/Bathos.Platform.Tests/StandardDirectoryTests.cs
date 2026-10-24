@@ -73,6 +73,26 @@ public sealed class StandardDirectoryTests
 
     [Fact]
     [Trait("Validation", "Portable")]
+    public void UnavailableHomeSuppressesDerivedRootsButPreservesIndependentOverrides()
+    {
+        var configured = Path.Combine(Root, "explicit-data");
+        string Folder(Environment.SpecialFolder folder) => folder == Environment.SpecialFolder.UserProfile ? "" : "/runtime-fallback";
+        var roots = DirectoryDiscovery.Resolve(PlatformOperatingSystem.Linux, Paths, Folder,
+            key => key == "XDG_DATA_HOME" ? configured : null, "", "");
+        Assert.Null(roots.Home);
+        Assert.Equal(configured, roots.Data);
+        Assert.Null(roots.Configuration);
+        Assert.Null(roots.Cache);
+        Assert.Null(roots.State);
+        Assert.Null(roots.Documents);
+        Assert.Null(roots.Desktop);
+        var documents = DirectoryDiscovery.Resolve(PlatformOperatingSystem.Linux, Paths, Folder,
+            key => key == "XDG_DOCUMENTS_DIR" ? configured : null, "", "");
+        Assert.Equal(configured, documents.Documents);
+    }
+
+    [Fact]
+    [Trait("Validation", "Portable")]
     public void ExplicitRootsAndIdentityAreValidatedWithoutSanitizingOrUsingTheWorkingDirectory()
     {
         var roots = new StandardDirectoryRoots(PlatformOperatingSystem.Linux) { Data = Root };
@@ -125,9 +145,32 @@ public sealed class StandardDirectoryTests
             var observed = await DiscoverInChildAsync(folder.FullName, home);
             Assert.Equal(home, observed.Roots.Home);
             if (observed.NativeCache is { Length: > 0 } nativeCache)
-                Assert.Equal(Paths.NormalizeAbsolute(nativeCache), observed.Roots.Cache);
+            {
+                try { Assert.Equal(Paths.NormalizeAbsolute(nativeCache), observed.Roots.Cache); }
+                // An invalid native result is unavailable under the path contract, even when nonempty.
+                catch (ArgumentException) { Assert.Null(observed.Roots.Cache); }
+            }
             else Assert.Null(observed.Roots.Cache);
             Assert.False(Directory.Exists(home));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
+    [Trait("Validation", "Native")]
+    public async Task UnixHomeUsesTheEffectiveAccountWhenTheHomeEnvironmentIsUnset()
+    {
+        if (OperatingSystem.IsWindows()) Assert.Skip("Effective Unix account lookup requires macOS or Linux.");
+        var folder = Directory.CreateTempSubdirectory("bathos-account-home-");
+        try
+        {
+            var observed = await DiscoverInChildAsync(folder.FullName, null);
+            if (observed.RuntimeHome is "" or "/") Assert.Skip("This host has no unambiguous independent runtime home to compare.");
+            Assert.Equal(Paths.NormalizeAbsolute(observed.RuntimeHome), observed.Roots.Home);
+            // Exercise the production ABI in this process too; coverage from the owned child is not collected here.
+            var accountHome = UnixHomeDirectory.Resolve(null, OperatingSystem.IsMacOS()
+                ? MacOSStandardDirectories.LookupAccount : LinuxStandardDirectories.LookupAccount);
+            Assert.Equal(Paths.NormalizeAbsolute(observed.RuntimeHome), accountHome);
         }
         finally { folder.Delete(true); }
     }

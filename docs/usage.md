@@ -384,6 +384,11 @@ is inert. Use explicit root snapshots for tests or portable installs rather than
 
 Linux ignores empty, relative, and invalid XDG values and uses the home-based default. Without a usable home, defaults
 are unavailable; independently valid absolute XDG roots still work. See the [XDG specification](https://specifications.freedesktop.org/basedir/0.8/).
+On macOS/Linux, nonempty `HOME` is validated as supplied; otherwise the effective user's account entry supplies the
+home. A missing/empty account home stays unavailable instead of becoming `/`. A genuinely configured `/` remains
+valid. Reentrant native lookup uses an owned buffer capped at one megabyte; operational errors and malformed native
+results fail explicitly. Without a usable Linux home, documents/desktop require independent absolute environment
+overrides rather than the runtime's home-based fallback locations.
 Windows root lookup uses the [runtime's special-folder API](https://learn.microsoft.com/dotnet/api/system.environment.specialfolder),
 including OS redirection. Documents and desktop are returned only when the runtime supplies usable paths; Downloads,
 XDG runtime-directory ownership, and XDG user-dirs parsing are outside this capability.

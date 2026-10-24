@@ -185,3 +185,7 @@ foreign-provider invocation is rejected. Paths and successful lookup do not esta
 An owned macOS child runs with an uncreated home override and compares cache discovery with the independent native
 cache lookup. The parent environment and real user directories are unchanged. Packaged sandbox behavior remains a
 separate host validation case.
+Portable account-boundary tests cover absent and explicit root homes, buffer growth and limits, native errors,
+invalid pointers, missing terminators, malformed UTF-8, and recovery. Owned macOS/Linux children remove `HOME` only
+from their own environment and compare discovery with an independent runtime account lookup. These checks do not
+require changing the parent environment, user identity, permissions, or real user directory contents.

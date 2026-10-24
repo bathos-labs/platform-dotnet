@@ -111,6 +111,10 @@ runtime adapter uses .NET special folders with `DoNotVerify`, the runtime tempor
 The macOS cache root comes from the runtime's native user-cache lookup, independently of the home environment value.
 OS layout policy fills state and XDG conventions. Lookup does not create folders, verify write access, or acquire
 ownership. A missing/invalid location is null; operational lookup failures may propagate.
+Unix home discovery observes `HOME` or a reentrant effective-user account lookup in the matching native provider.
+Shared mechanics own and bound the lookup buffer and validate its returned home pointer/UTF-8 before release.
+This preserves missing-home evidence and genuine root homes without relying on .NET's ambiguous `/` substitution.
+Linux suppresses home-derived defaults when home is unavailable while retaining independently configured roots.
 
 `StandardDirectoryRoots` is a snapshot, with explicit record-copy overrides for host/test/portable-install roots.
 `ApplicationDirectoryIdentity` validates publisher/product as portable components without sanitizing them. Scoping
