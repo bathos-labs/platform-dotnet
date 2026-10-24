@@ -5,9 +5,20 @@ using System.Xml.Linq;
 var root = Directory.GetCurrentDirectory();
 if (!File.Exists(Path.Combine(root, "Bathos.Platform.slnx"))) throw new InvalidOperationException("Run from the repository root.");
 var version = XDocument.Load(Path.Combine(root, "Directory.Build.props")).Descendants("Version").Single().Value;
+if (args is ["clean-test-results"])
+{
+    foreach (var path in new[] { "artifacts/test-results", "artifacts/coverage" })
+        if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
+    return;
+}
 if (args is ["verify-tag", var tag])
 {
     if (tag != "v" + version) throw new InvalidOperationException($"Release tag must be v{version}.");
+    return;
+}
+if (args is ["verify-coverage", var results, var output])
+{
+    CoverageEvidence.Verify(results, output);
     return;
 }
 if (args is not ["verify-packages", var feedArgument]) throw new ArgumentException("Use verify-packages <feed> or verify-tag <tag>.");

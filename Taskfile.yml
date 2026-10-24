@@ -38,6 +38,19 @@ tasks:
       - task: build
       - dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
 
+  test:coverage:
+    desc: Run standalone tests with inspectable line and branch coverage for this host
+    cmds:
+      - task: build
+      - cmd: dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- clean-test-results
+      - >-
+        dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
+        --coverlet --coverlet-output-format cobertura --coverlet-include '[Bathos.Platform*]*'
+        --coverlet-exclude '[Bathos.Platform.Tests]*' --coverlet-exclude '[Bathos.Platform.TestApplication]*'
+        --coverlet-exclude-by-file '**/obj/**' --coverlet-exclude-by-attribute GeneratedCodeAttribute
+        --report-xunit-trx --results-directory artifacts/test-results
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-coverage artifacts/test-results artifacts/coverage/coverage.cobertura.xml
+
   pack:
     desc: Build NuGet packages and symbols locally (does not publish)
     cmds:

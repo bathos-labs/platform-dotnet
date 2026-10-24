@@ -90,3 +90,36 @@ contract. Keep the support status and compatibility commitment current for each 
 experimental; the stable public API compatibility commitment still applies.
 A documentation build does not establish native acceptance or authorize a release. A hosted DocFX site remains an
 optional long-term enhancement rather than part of this validation workflow.
+
+## Standalone coverage and CI setup
+
+`task test:coverage` runs the same standalone suite with Coverlet's Microsoft.Testing.Platform extension and writes
+raw Cobertura/TRX evidence under `artifacts/test-results` plus a repository-relative report under `artifacts/coverage`.
+No consuming application or sibling checkout is needed. Equivalent commands after the Release build are:
+
+```text
+dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- clean-test-results
+dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --coverlet --coverlet-output-format cobertura --coverlet-include "[Bathos.Platform*]*" --coverlet-exclude "[Bathos.Platform.Tests]*" --coverlet-exclude "[Bathos.Platform.TestApplication]*" --coverlet-exclude-by-file "**/obj/**" --coverlet-exclude-by-attribute GeneratedCodeAttribute --report-xunit-trx --results-directory artifacts/test-results
+dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-coverage artifacts/test-results artifacts/coverage/coverage.cobertura.xml
+```
+
+Coverage includes all four shipping assemblies on every host, including unexecuted native code. Exclusions are limited
+to test/engineering assemblies, generated `obj` sources, and `GeneratedCodeAttribute`; compiler-generated async state
+machines and handwritten interop remain measurable. Review changed-code coverage and uncovered failure branches together
+with assertions and ownership guarantees. Executing a line does not establish correctness. See [validation](docs/validation.md)
+for the portable, native, skipped, and manual evidence boundaries.
+
+CI retains each platform's raw and normalized reports with TRX for 14 days. Only after all three native jobs pass and
+all three reports exist does the reporting job upload `linux`, `windows`, and `macos` flags. Codecov combines these into
+aggregate coverage; flags retain host visibility. Notifications wait for three uploads and passing CI, with no carried-forward
+platform evidence. The upload job must also pass: a partially uploaded Codecov view or a missing comment is not complete
+matrix evidence. Missing/empty reports and upload errors fail visibly; coverage percentages and patch checks are informational
+and must not be made required branch-protection checks initially. No percentage threshold is enforced.
+
+Owner setup: enable `bathos-labs/platform-dotnet` in Codecov and authorize the Codecov GitHub App for this repository
+so it can publish PR comments/checks. Uploads use [Codecov OIDC](https://github.com/codecov/codecov-action#using-oidc)
+with `id-token: write` confined to the reporting job; no upload secret is required. Organization policy must allow that
+permission. Fork PRs keep the ordinary `pull_request` security boundary; do not switch to `pull_request_target` or expose
+secrets to make an upload pass. If policy blocks authentication, retain the artifacts and report the blocked upload.
+After merging, verify a complete `master` run in Codecov to establish the comparison baseline and activate the README badge.
+The initial PR may have no base coverage to compare. Never store Codecov credentials in source files.

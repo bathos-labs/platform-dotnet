@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
+  <ItemGroup><PackageReference Include="coverlet.MTP" PrivateAssets="all" /></ItemGroup>
   <ItemGroup>
     <ProjectReference Include="../../src/Bathos.Platform/Bathos.Platform.csproj" />
     <ProjectReference Include="../../src/Bathos.Platform.MacOS/Bathos.Platform.MacOS.csproj" />
