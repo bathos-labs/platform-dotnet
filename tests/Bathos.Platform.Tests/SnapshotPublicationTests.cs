@@ -13,6 +13,82 @@ public sealed class SnapshotPublicationTests
     private static ISnapshotFileRename Rename => Assert.IsAssignableFrom<ISnapshotFileRename>(PlatformProviders.SelectCurrent(
         new WindowsPlatformProvider(), new MacOSPlatformProvider(), new LinuxPlatformProvider()).SnapshotFileRename);
 
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public async Task WindowsDestinationRestrictionsPreserveBothFilesAndAllowRetry(bool readOnly)
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Requires Windows destination sharing and read-only enforcement.");
+        var folder = Directory.CreateTempSubdirectory("bathos-snapshot-");
+        var destination = Path.Combine(folder.FullName, "destination");
+        var token = TestContext.Current.CancellationToken;
+        try
+        {
+            var source = Path.Combine(folder.FullName, "source");
+            await File.WriteAllTextAsync(source, "new", token);
+            await File.WriteAllTextAsync(destination, "old", token);
+            if (readOnly) File.SetAttributes(destination, FileAttributes.ReadOnly);
+            using var reader = readOnly ? null : new FileStream(destination, FileMode.Open, FileAccess.Read, FileShare.Read);
+
+            var rename = Rename;
+            Assert.Equal(FileRenameStatus.Unavailable, rename.Move(source, destination, out var error, replaceExisting: true));
+            Assert.NotEqual(0, error);
+            Assert.Equal("new", await File.ReadAllTextAsync(source, token));
+            Assert.Equal("old", await File.ReadAllTextAsync(destination, token));
+            // A failed destination rename must release the source handle even while the restriction remains.
+            using (var exclusive = new FileStream(source, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                Assert.Equal(3, exclusive.Length);
+
+            var files = new FilePublicationFactory(rename);
+            await Assert.ThrowsAsync<IOException>(() => files.WriteAsync(destination, "replacement"u8.ToArray(), true, false, token).AsTask());
+            Assert.Equal("new", await File.ReadAllTextAsync(source, token));
+            Assert.Equal("old", await File.ReadAllTextAsync(destination, token));
+            Assert.Equal(new[] { destination, source }.Order(StringComparer.Ordinal), Directory.GetFiles(folder.FullName).Order(StringComparer.Ordinal));
+
+            reader?.Dispose();
+            if (readOnly) File.SetAttributes(destination, FileAttributes.Normal);
+            Assert.Equal(FileRenameStatus.Success, rename.Move(source, destination, out error, replaceExisting: true));
+            Assert.Equal(0, error);
+            Assert.False(File.Exists(source));
+            Assert.Equal("new", await File.ReadAllTextAsync(destination, token));
+            using (var exclusive = new FileStream(destination, FileMode.Open, FileAccess.ReadWrite, FileShare.None))
+                Assert.Equal(3, exclusive.Length);
+            await files.WriteAsync(destination, "retried"u8.ToArray(), true, false, token);
+            Assert.Equal("retried", await File.ReadAllTextAsync(destination, token));
+            Assert.Equal([destination], Directory.GetFiles(folder.FullName));
+        }
+        finally
+        {
+            if (File.Exists(destination)) File.SetAttributes(destination, FileAttributes.Normal);
+            folder.Delete(true);
+        }
+    }
+
+    [Fact]
+    public async Task PosixReadOnlyDestinationCanBeReplacedInAWritableDirectory()
+    {
+        if (OperatingSystem.IsWindows())
+        {
+            Assert.Skip("POSIX replacement is controlled by directory permissions.");
+            return;
+        }
+        var folder = Directory.CreateTempSubdirectory("bathos-snapshot-");
+        var token = TestContext.Current.CancellationToken;
+        try
+        {
+            var path = Path.Combine(folder.FullName, "snapshot");
+            await File.WriteAllTextAsync(path, "old", token);
+            File.SetUnixFileMode(path, UnixFileMode.UserRead);
+            await using var reader = new FileStream(path, FileMode.Open, FileAccess.Read, FileShare.Read | FileShare.Delete);
+            await new FilePublicationFactory(Rename).WriteAsync(path, "new"u8.ToArray(), true, false, token);
+            using var text = new StreamReader(reader, Encoding.UTF8, leaveOpen: true);
+            Assert.Equal("old", await text.ReadToEndAsync(token));
+            Assert.Equal("new", await File.ReadAllTextAsync(path, token));
+            Assert.Equal([path], Directory.GetFiles(folder.FullName));
+        }
+        finally { folder.Delete(true); }
+    }
+
     [Fact]
     public async Task FailedOpenPreservesBothFilesAndReleasesItsHandleForRetry()
     {
