@@ -64,10 +64,13 @@ public sealed class PlatformProviderTests
     public void SamplersAreOptInAndDoNotProbeNativeServicesDuringConstruction()
     {
         var dispatcher = new RejectingDispatcher();
+        var mac = new MacOSPlatformProvider(dispatcher).ScreenColorSampler;
         var windows = new WindowsPlatformProvider(dispatcher).ScreenColorSampler;
         var linux = new LinuxPlatformProvider(enableScreenColorSampler: true).ScreenColorSampler;
+        Assert.Equal(OperatingSystem.IsMacOSVersionAtLeast(10, 15), mac is not null);
         Assert.Equal(OperatingSystem.IsWindows(), windows is not null);
         Assert.Equal(OperatingSystem.IsLinux(), linux is not null);
+        if (mac is not null) Assert.Throws<InvalidOperationException>(() => { _ = mac.SampleAsync(); });
         if (windows is not null) Assert.Throws<InvalidOperationException>(() => { _ = windows.SampleAsync(); });
         Assert.Throws<ArgumentException>(() => new LinuxPlatformProvider(true, "invalid"));
         Assert.Throws<ArgumentException>(() => new LinuxPlatformProvider(true, "x11:abc\0suffix"));
