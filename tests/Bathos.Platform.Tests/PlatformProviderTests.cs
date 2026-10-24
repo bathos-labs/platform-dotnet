@@ -16,6 +16,7 @@ public sealed class PlatformProviderTests
         var selected = PlatformProviders.Select(PlatformOperatingSystem.Windows, supplied);
         Assert.Same(supplied, selected);
         Assert.Null(selected.FileRename);
+        Assert.Null(selected.FilePaths);
         Assert.Null(selected.FileEntries);
         Assert.Null(selected.ScreenColorSampler);
         Assert.Null(selected.FileRevealer);
@@ -29,6 +30,7 @@ public sealed class PlatformProviderTests
         var selected = PlatformProviders.Select(PlatformOperatingSystem.Windows, new RevealOnlyProvider(revealer));
         Assert.Same(revealer, selected.FileRevealer);
         Assert.Null(selected.FileRename);
+        Assert.Null(selected.FilePaths);
         Assert.Null(selected.FileEntries);
         Assert.Null(selected.ScreenColorSampler);
         Assert.Null(selected.FileInvoker);
@@ -89,6 +91,7 @@ public sealed class PlatformProviderTests
         foreach (var provider in providers)
         {
             Assert.NotNull(provider.FileEntries);
+            Assert.NotNull(provider.FilePaths);
             Assert.Null(provider.ScreenColorSampler);
             Assert.NotNull(provider.FileRevealer);
             Assert.NotNull(provider.FileInvoker);

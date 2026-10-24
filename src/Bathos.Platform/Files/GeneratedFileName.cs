@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Text;
+using Bathos.Platform.Paths;
 
 namespace Bathos.Platform.Files;
 
@@ -25,10 +26,7 @@ public sealed class GeneratedFileName
         var secondary = string.IsNullOrWhiteSpace(kind) ? string.Empty : Normalize(kind, 48);
         Stem = secondary.Length == 0 ? primary : primary + " - " + secondary;
         // Windows reserves device names even when an extension follows them.
-        var device = Stem.Split('.')[0].TrimEnd().ToUpperInvariant();
-        if (device is "CON" or "PRN" or "AUX" or "NUL" ||
-            (device.Length == 4 && (device.StartsWith("COM", StringComparison.Ordinal) || device.StartsWith("LPT", StringComparison.Ordinal)) &&
-             device[3] is >= '1' and <= '9' or '¹' or '²' or '³')) Stem = "_" + Stem;
+        if (PortableFileNames.IsDeviceName(Stem)) Stem = "_" + Stem;
         Extension = extension;
     }
 

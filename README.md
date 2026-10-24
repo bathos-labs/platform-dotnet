@@ -6,7 +6,7 @@
 
 Bathos-written libraries that give .NET applications common interfaces for native OS operations: publish files
 atomically, inspect file entries, reveal files in Finder or Explorer, open documents in a selected application,
-pick a screen color, and discover/read installed color profiles.
+pick a screen color, discover/read installed color profiles, and convert native paths/file URIs.
 
 The `Bathos.Platform` packages keep platform-specific interop behind focused capability interfaces, so application
 code can use native behavior without implementing each OS integration itself. Choose the Windows, macOS, or

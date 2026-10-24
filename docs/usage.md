@@ -328,3 +328,43 @@ public static class ProfileDiscoveryExample
         CancellationToken token) => profiles.ReadAsync(entry.Key, token);
 }
 ```
+
+## Native paths and portable names
+
+`IPlatformProvider.FilePaths` supplies host-native lexical operations on Windows, macOS, and Linux. The capability
+requires its matching runtime; it does not emulate Windows parsing on POSIX hosts or reinterpret foreign references.
+Windows admits absolute drive and UNC paths, with either separator; device/extended namespaces are excluded. POSIX
+admits local absolute slash paths; ambiguous double-slash network roots and drive-shaped paths are excluded.
+Relative input must be resolved against an explicit host-owned base before calling the capability.
+
+```csharp
+using Bathos.Platform.Paths;
+
+public static class PathExample
+{
+    public static string DirectoryReference(INativeFilePaths paths, string absoluteDirectory) =>
+        paths.ToFileUri(absoluteDirectory, directory: true);
+
+    public static bool IsPortableNewName(string name) => PortableFileNames.IsValid(name);
+}
+```
+
+Normalization collapses lexical dot segments without filesystem probing. Encoding preserves significant whitespace,
+Unicode, and literal URI punctuation; it never sanitizes an existing filename. Encoding rejects malformed Unicode
+instead of replacing it. URI decoding rejects queries, fragments, credentials, ports, malformed escapes or UTF-8,
+encoded separators, and unsupported foreign evidence. A literal backslash in a POSIX filename is escaped and preserved.
+Directory references explicitly request a trailing slash.
+Windows normalization preserves trailing dots/spaces and short-name spellings rather than applying Win32 trimming
+or filesystem-based short-name expansion. This lexical preservation does not establish how a later filesystem API
+will interpret the path.
+
+Comparison is host policy: choose an ordinal or ordinal-ignore-case comparer deliberately; neither proves filesystem
+identity. Alias resolution, network coordination, and ownership across alternate representations are not guaranteed.
+Hosts requiring exclusion must supply consistent locations and keep lock locations and containing directories stable
+throughout ownership. This path capability itself does not acquire a lease or enforce those host obligations.
+
+`PortableFileNames.IsValid` is an opt-in policy for new single names, not a native-path validator. It rejects reserved
+Windows device stems and bare `CONIN$`/`CONOUT$` names, path separators, Windows-reserved punctuation, controls,
+malformed Unicode, trailing dots/spaces, and names exceeding 255 UTF-8 bytes or UTF-16 code units. It never modifies input.
+`GeneratedFileName` remains the separate opt-in generator with its existing sanitization and collision-suffix behavior.
+Unlike legacy device stems such as `CON`, `CONIN$` and `CONOUT$` are admitted when followed by an extension.

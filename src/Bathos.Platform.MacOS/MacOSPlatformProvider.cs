@@ -1,6 +1,7 @@
 using Bathos.Platform.ColorProfiles;
 using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
+using Bathos.Platform.Paths;
 
 namespace Bathos.Platform.MacOS;
 
@@ -17,6 +18,8 @@ public sealed class MacOSPlatformProvider : IPlatformProvider
     }
     /// <summary>Gets installed profile discovery and readback; invoke only on MacOS.</summary>
     public IColorProfileProvider ColorProfiles { get; } = new MacColorProfileProvider();
+    /// <summary>Gets lexical path operations for the matching runtime; no filesystem identity is inferred.</summary>
+    public INativeFilePaths FilePaths { get; } = NativeFilePaths.Posix;
     /// <summary>Gets the MacOS provider identity, independently of the executing host.</summary>
     public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.MacOS;
     /// <summary>Gets macOS same-filesystem rename with explicit replacement policy.</summary>

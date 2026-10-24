@@ -1,5 +1,6 @@
 using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
+using Bathos.Platform.Paths;
 
 namespace Bathos.Platform.Linux;
 
@@ -23,6 +24,8 @@ public sealed class LinuxPlatformProvider : IPlatformProvider
                 ? DesktopBus.PickColor(parentWindow) : throw new PlatformNotSupportedException("A Linux desktop portal is required."));
     }
 
+    /// <summary>Gets lexical path operations for the matching runtime; no filesystem identity is inferred.</summary>
+    public INativeFilePaths FilePaths { get; } = NativeFilePaths.Posix;
     /// <summary>Gets the Linux provider identity, independently of the executing host.</summary>
     public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.Linux;
     /// <summary>Always null: Linux native rename and staged publication are not implemented.</summary>
