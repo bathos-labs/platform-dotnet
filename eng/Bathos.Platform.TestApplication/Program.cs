@@ -10,6 +10,65 @@ try
 {
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))
         ?? throw new InvalidDataException("Missing probe configuration.");
+    if (configuration.Mode == "lease-terminal-fixture")
+    {
+        using var master = UnixLeaseProbe.CreateTerminal(out var path, out var slave);
+        using var ownedSlave = slave;
+        Console.WriteLine(path);
+        if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing terminal completion signal.");
+        return 0;
+    }
+    if (configuration.Mode == "reject-terminal-lease")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        UnixLeaseProbe.RejectTerminal(provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."),
+            configuration.Document ?? throw new InvalidDataException("Missing owned terminal path."));
+        Console.WriteLine("rejected-without-terminal");
+        return 0;
+    }
+    if (configuration.Mode == "reject-file-lease")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        try
+        {
+            using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
+                .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."));
+            throw new InvalidOperationException("A special entry was admitted for leasing.");
+        }
+        catch (IOException) { Console.WriteLine("rejected"); }
+        if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
+        return 0;
+    }
+    if (configuration.Mode == "file-lease")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
+            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."));
+        Console.WriteLine(lease is null ? "contended" : "acquired");
+        if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
+        return 0;
+    }
+    if (configuration.Mode == "file-lease-owner")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
+            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."))
+            ?? throw new InvalidOperationException("The owned parent did not acquire the lease.");
+        var descendantConfiguration = Path.Combine(Path.GetDirectoryName(args.Single()) ?? throw new InvalidDataException("Missing fixture directory."), "descendant.json");
+        await File.WriteAllTextAsync(descendantConfiguration, JsonSerializer.Serialize(configuration with { Mode = "lease-descendant" }));
+        using var descendant = LeaseDescendant.Start(descendantConfiguration);
+        try
+        {
+            Console.WriteLine(descendant.Id);
+            if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing parent completion signal.");
+        }
+        finally
+        {
+            if (!descendant.HasExited) descendant.Kill(entireProcessTree: true);
+            await descendant.WaitForExitAsync(CancellationToken.None);
+        }
+        return 0;
+    }
     if (configuration.Mode == "standard-directories")
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());

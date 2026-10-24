@@ -420,3 +420,38 @@ share locations: the model distinguishes their purpose without promising distinc
 `Temporary` is a shared root, not a unique workspace. `ApplicationBase` locates deployed resources and must not be
 assumed writable. Home/documents/desktop are user locations and are not application-scoped. Hosts own folder creation,
 access failures, temporary workspace allocation and cleanup, and the decision to require or omit each location.
+
+## Cooperative file leases
+
+Use an application-owned, persistent lock artifact. Its parent must exist. Never infer ownership from file existence
+or diagnostic metadata, and do not delete the artifact when releasing a lease. Each successful result must be disposed.
+Keep the artifact and its containing directory tree intact at the same location for the entire lease lifetime.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Files;
+
+public static class LeaseExample
+{
+    public static bool TryUpdate(IPlatformProvider platform, string absoluteLockPath, Action update, CancellationToken token)
+    {
+        var leases = platform.FileLeases ?? throw new PlatformNotSupportedException("File leases are unavailable.");
+        using var lease = leases.TryAcquire(absoluteLockPath, token);
+        if (lease is null) return false; // Another cooperating caller owns it.
+        update();
+        return true;
+    }
+}
+```
+
+This coordinates instances of the same application on one device using the same protocol and stable native location.
+Permission errors, missing parents, special files, and unsupported locking throw rather than masquerading as contention.
+Unix lock paths with malformed Unicode are rejected before native lookup, rather than selecting a replacement filename.
+Cancellation can leave an unowned artifact; process exit releases the native handle. There is no wait/retry policy.
+Windows may complete implicit unlock after process exit is signaled; an immediate attempt can still report contention.
+Store optional owner diagnostics separately and treat missing or stale metadata as diagnostic uncertainty.
+
+Moving, renaming, deleting, or replacing the lock artifact or its containing directory tree while leased is unsupported
+on every platform. If application data may move, choose a stable lock location outside that tree; every cooperating
+instance must keep using that same lock location. Hosts own admission, publication receipts, and any directory-ownership policy. Aliases, network clients,
+other operating systems, noncooperating actors, and alternate path representations are outside the exclusion guarantee.

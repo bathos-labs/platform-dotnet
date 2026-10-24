@@ -6,7 +6,7 @@
 
 Bathos-written libraries that give .NET applications common interfaces for native OS operations: publish files
 atomically, inspect file entries, reveal files in Finder or Explorer, open documents in a selected application,
-pick a screen color, discover/read installed color profiles, convert native paths/file URIs, and discover standard user/application directories.
+pick a screen color, discover/read installed color profiles, convert native paths/file URIs, discover standard user/application directories, and acquire cooperative file leases.
 
 The `Bathos.Platform` packages keep platform-specific interop behind focused capability interfaces, so application
 code can use native behavior without implementing each OS integration itself. Choose the Windows, macOS, or
@@ -89,6 +89,10 @@ that use them. Those interfaces support substitution and test doubles.
 Installed color-profile discovery/readback is available on macOS and Windows through `platform.ColorProfiles`.
 It returns provider-owned lookup keys and raw bytes, without ICC parsing, installation, or conversion. Linux leaves
 this optional capability null. See the integration guide for limits, partial discovery, and platform coverage.
+
+Cooperative file leases require a persistent lock artifact at a stable location on every platform. Keep the artifact
+and its containing directory tree intact while leased. If application data may move, place its lock outside that tree.
+Artifact existence and diagnostic metadata do not establish ownership; see the integration guide for the full contract.
 
 ## Support and documentation
 

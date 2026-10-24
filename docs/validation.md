@@ -189,3 +189,24 @@ Portable account-boundary tests cover absent and explicit root homes, buffer gro
 invalid pointers, missing terminators, malformed UTF-8, and recovery. Owned macOS/Linux children remove `HOME` only
 from their own environment and compare discovery with an independent runtime account lookup. These checks do not
 require changing the parent environment, user identity, permissions, or real user directory contents.
+
+## File leases
+
+The native lease tests use disposable roots and owned child processes, with redirected pipe messages for acquisition
+and completion. They cover separate providers in one process, parent/child contention, disposal, forced process exit,
+stale artifact bytes, pre-cancellation, missing parents, invalid paths, links/special files, noninherited handles, creation permissions, significant names,
+and retained exclusion at a stable lock location outside a moved application-data tree. Watchdogs only bound hangs; no timing-based synchronization
+is used. Foreign providers reject invocation. Run on all three hosts: local success does not establish another OS's
+locking semantics. Windows link tests require developer mode or symlink privileges and explicitly skip otherwise.
+
+The guarantee requires stable artifacts and a common protocol on supported storage. Moving the artifact or any
+containing directory while leased is outside the contract on every platform. Noncooperating replacement,
+network-client coordination, and filesystem alias discovery are intentionally not guaranteed by these tests.
+Unix tests reject malformed Unicode without creating or retargeting an artifact. An owned child holds a private
+pseudo-terminal while a separate session-leader child verifies that rejecting its slave does not assign a controlling terminal.
+Cancellation at an internal gate after a real native lock verifies contention before cancellation, then reacquisition
+and unchanged bytes after rollback. A separate owner is killed while its descendant remains alive, without explicit
+unlock; reacquisition verifies that ownership did not survive in the descendant. Unix launches that descendant through
+plain `posix_spawn`, so runtime descriptor cleanup cannot mask a missing close-on-exec flag. Windows uses the runtime launcher.
+Windows can finish implicit unlock after signaling process exit. Abrupt-exit tests await a cancellable native lock
+completion before asserting reacquisition, without sleeping or polling. A retained lock still fails the bounded wait.

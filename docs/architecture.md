@@ -81,7 +81,7 @@ dependency, profile installation, or color-management policy belongs to this cap
 
 The accepted boundary for [path contracts](https://github.com/bathos-labs/platform-dotnet/issues/4) and
 [cooperative leases](https://github.com/bathos-labs/platform-dotnet/issues/6) separates lexical location handling
-from ownership. The path capability is implemented; cooperative leases remain planned. Shared native path syntax, lossless file-URI conversion,
+from ownership. The path capability is implemented; cooperative file leases are implemented. Shared native path syntax, lossless file-URI conversion,
 and an explicitly selected portability ruleset belong in Platform. Product-relative references and storage policy
 remain with the host. Normalization preserves significant characters; it does not sanitize an existing location,
 resolve filesystem aliases, or prove that two paths identify the same resource. Lexical comparison is explicit and
@@ -94,13 +94,13 @@ that bypass the protocol. Different aliases and representations across path/URI 
 promised to share a lease. Hosts with critical exclusion requirements must establish consistent locations and restrict
 storage to supported configurations. A process-local path dictionary alone cannot provide cross-process exclusion.
 
-The host must keep the lock location, including its containing directory, stable for the entire lease lifetime.
-Deleting/replacing a lock artifact or relocating its directory while leased is outside the guarantee unless an
-explicitly supported relocation protocol preserves exclusion. Document-session locks and output-folder relocation
-must be reconciled against that rule before consumer integration. Disposal and process exit release ownership;
+The host must keep the lock artifact and its containing directory tree intact at the same location for the entire
+lease lifetime. Moving, renaming, deleting, or replacing either is unsupported on every platform. If application data
+may move, hosts must choose a stable lock location outside that tree. Platform does not supply a relocation protocol.
+Host document admission and output ownership policy remain outside Platform. Disposal and process exit release ownership;
 a leftover artifact alone must not prevent reacquisition, and diagnostic metadata is not ownership authority.
 
-Public path APIs carry these bounds; the eventual lease APIs must also carry them in their shipped XML documentation and usage
+Public path and lease APIs carry these bounds in their shipped XML documentation and usage
 examples, including caller obligations and the distinction between contention and operational failure. Native tests
 must establish the supported same-device guarantees independently on each supported OS; lexical tests cannot do so.
 
@@ -122,3 +122,23 @@ validates nonnull roots with supplied native path syntax. Unknown layouts and re
 there is no working-directory fallback. User home/documents/desktop, shared temporary storage, and deployed resources
 remain separate from application data/configuration/cache/state. Hosts retain filenames, recovery layouts, cache
 ownership and cleanup, and product-specific placement choices.
+
+## Cooperative file leases
+
+`IFileLeaseProvider.TryAcquire` makes one native acquisition attempt at an absolute lock-file path whose parent
+already exists. Null means native contention; other errors throw. Cancellation is checked before the attempt and
+before returning ownership, not by interrupting native calls. Construction is inert. All built-in providers expose
+the optional capability; partial providers can omit it without breaking their existing contracts.
+
+Windows opens a noninheritable regular disk handle with sharing enabled and takes an immediate exclusive lock on
+byte zero using `LockFileEx`. macOS/Linux use raw noninheritable, nonblocking, no-follow opens, validate the opened
+file kind, and acquire `flock(LOCK_EX | LOCK_NB)`. Raw Unix opening avoids the runtime's implicit shared lock and
+its best-effort treatment of unsupported locking. Native lock errors other than contention fail explicitly. Disposal explicitly unlocks before closing the handle, avoiding transient retention by concurrent Unix fork/exec.
+Process exit closes the handle and releases ownership; disposal is idempotent and no native handle or stream escapes to the consumer.
+The implementation does not rely on a process-local path dictionary.
+
+The artifact persists and its bytes are not modified or interpreted. Hosts must not delete it during normal lease
+release: unlinking/recreating a path can split ownership across distinct open files. Diagnostic metadata belongs in
+a separate host-owned file and cannot prove current ownership. Existing foreign locking protocols are not coordinated.
+Local filesystems supporting the native operations are the intended environment; no network-client or alias guarantee
+is made. The leaf is validated, but ancestor replacement by noncooperating actors is outside the contract.
