@@ -175,3 +175,10 @@ URI round-trips, and device-namespace rejection; POSIX
 execution covers literal backslashes and ambiguous-root rejection. Portable filename policy tests run on every host,
 including case-insensitive console-device rejection and the distinction between bare names and names with extensions.
 These tests establish lexical behavior only, not alias equivalence, network coordination, or lease exclusion.
+
+## Directory discovery
+
+Deterministic tests supply folder/environment values without changing the process environment. They cover XDG defaults,
+invalid relative overrides, unavailable home and roots, application identity validation, explicit overrides, and
+Windows/macOS/Linux layout scoping. Native tests read the current host's roots without writing into user directories;
+foreign-provider invocation is rejected. Paths and successful lookup do not establish filesystem access or ownership.

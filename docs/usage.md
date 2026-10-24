@@ -368,3 +368,48 @@ Windows device stems and bare `CONIN$`/`CONOUT$` names, path separators, Windows
 malformed Unicode, trailing dots/spaces, and names exceeding 255 UTF-8 bytes or UTF-16 code units. It never modifies input.
 `GeneratedFileName` remains the separate opt-in generator with its existing sanitization and collision-suffix behavior.
 Unlike legacy device stems such as `CON`, `CONIN$` and `CONOUT$` are admitted when followed by an extension.
+
+## Standard directories and application identity
+
+The optional `platform.Directories` capability discovers roots on the matching host. Null roots are unavailable;
+returned paths do not establish existence, write access, or ownership. No directories are created. Discovery observes
+current environment values each time; concurrent environment changes are not an atomic snapshot. Provider construction
+is inert. Use explicit root snapshots for tests or portable installs rather than modifying process environment.
+
+| Layout | Data | Configuration | Cache | State |
+| --- | --- | --- | --- | --- |
+| Windows | .NET local application data | .NET roaming application data | Local application data, then publisher/product/Cache | Same root as data |
+| macOS | .NET local application data | Same root as data | Home/Library/Caches | Same root as data |
+| Linux | XDG_DATA_HOME or Home/.local/share | XDG_CONFIG_HOME or Home/.config | XDG_CACHE_HOME or Home/.cache | XDG_STATE_HOME or Home/.local/state |
+
+Linux ignores empty, relative, and invalid XDG values and uses the home-based default. Without a usable home, defaults
+are unavailable; independently valid absolute XDG roots still work. See the [XDG specification](https://specifications.freedesktop.org/basedir/0.8/).
+Windows root lookup uses the [runtime's special-folder API](https://learn.microsoft.com/dotnet/api/system.environment.specialfolder),
+including OS redirection. Documents and desktop are returned only when the runtime supplies usable paths; Downloads,
+XDG runtime-directory ownership, and XDG user-dirs parsing are outside this capability.
+
+```csharp
+using Bathos.Platform.Directories;
+using Bathos.Platform.Paths;
+
+public static class StorageExample
+{
+    public static ApplicationDirectoryLocations Resolve(IStandardDirectories directories, INativeFilePaths paths,
+        string? portableDataRoot = null)
+    {
+        var roots = directories.Discover();
+        if (portableDataRoot is not null) roots = roots with { Data = portableDataRoot };
+        return roots.ForApplication(new ApplicationDirectoryIdentity("Example", "Publisher"), paths);
+    }
+}
+```
+
+Application identity components use the explicit Bathos portable filename policy and are never sanitized. Scoping
+appends publisher (if present), then product. Windows adds Cache beneath the scoped cache root; macOS/Linux already
+supply a distinct cache root. Override roots independently with record copies; a relative nonnull override throws.
+Hosts may instead supply final application locations for a completely custom layout. Data/configuration/state can
+share locations: the model distinguishes their purpose without promising distinct OS directories.
+
+`Temporary` is a shared root, not a unique workspace. `ApplicationBase` locates deployed resources and must not be
+assumed writable. Home/documents/desktop are user locations and are not application-scoped. Hosts own folder creation,
+access failures, temporary workspace allocation and cleanup, and the decision to require or omit each location.

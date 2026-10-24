@@ -1,5 +1,6 @@
 using Bathos.Platform.ColorProfiles;
 using Bathos.Platform.Desktop;
+using Bathos.Platform.Directories;
 using Bathos.Platform.Files;
 using Bathos.Platform.Paths;
 
@@ -46,6 +47,8 @@ public interface IPlatformProvider
     INativeFileRename? FileRename => null;
     /// <summary>Gets host-native lexical paths, or null when unavailable. This does not establish filesystem identity or lease ownership.</summary>
     INativeFilePaths? FilePaths => null;
+    /// <summary>Gets standard directory discovery, or null when unavailable. Lookup does not create directories or establish access.</summary>
+    IStandardDirectories? Directories => null;
     /// <summary>Gets regular-file inspection, or null when unavailable. Inspection is advisory, not a path reservation.</summary>
     IFileEntryProbe? FileEntries => null;
     /// <summary>Gets interactive color selection, or null when unsupported or not configured. A null sample instead means user cancellation.</summary>
