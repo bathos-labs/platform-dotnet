@@ -27,7 +27,7 @@ editors. The test application runs outside the test-project directory so it does
 Update lockfiles intentionally with an unlocked restore after dependency changes. Keep package versions central.
 The package check uses an isolated consumer and cache outside the repository. It verifies MIT license metadata,
 dependencies, and expanded XML documentation, and loads only the current host's provider. Tests use disposable files
-and real native operations on the executing host. Linux rename/publication and macOS-only scenarios on other hosts
+and real native operations on the executing host. Host-specific scenarios on other hosts
 are explicitly skipped; skips do not establish implementation acceptance. Native permission, cross-volume,
 special-file, and interactive scenarios require their own evidence.
 

@@ -98,7 +98,7 @@ public sealed class PlatformProviderTests
         }
         Assert.NotNull(providers[0].FileRename);
         Assert.NotNull(providers[1].FileRename);
-        Assert.Null(providers[2].FileRename);
+        Assert.NotNull(providers[2].FileRename);
     }
 
     [Fact]

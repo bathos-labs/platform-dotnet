@@ -2,7 +2,7 @@
   <Import Project="../../eng/Bathos.Package.props" />
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Description>Experimental Linux support for .NET 10: regular-file inspection, file-manager reveal, application handoff and lookup, native paths, standard directories, cooperative file leases, and optional desktop-portal screen color sampling. Native rename and atomic file publication are unavailable. Depends only on Bathos.Platform and the .NET runtime.</Description>
+    <Description>Experimental Linux support for .NET 10: atomic rename and file publication, regular-file inspection, file-manager reveal, application handoff and lookup, native paths, standard directories, cooperative file leases, and optional desktop-portal screen color sampling. Depends only on Bathos.Platform and the .NET runtime.</Description>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Bathos.Platform/Bathos.Platform.csproj" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.Tests" /></ItemGroup>
