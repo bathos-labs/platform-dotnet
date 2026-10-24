@@ -70,3 +70,9 @@ document entities, icons, or UI belong here. Missing registrations are explicit 
 Cancellation is checked before irreversible handoff, including immediately before submission after preparation.
 After submission, await any owned helper/connection cleanup and report the native outcome without rechecking a
 caller token. Success establishes submission, not document readiness, foreground focus, or target-process lifetime.
+
+Installed color-profile discovery is an optional facade capability with a focused `IColorProfileProvider` interface.
+The core owns inventory/reference values and configurable resource limits; macOS and Windows own native discovery
+and byte retrieval. Linux leaves it unavailable. Profile keys are provider-owned references, not portable identities.
+Partial discovery retains usable entries; read failures and cancellation remain distinct. No ICC parser, image-library
+dependency, profile installation, or color-management policy belongs to this capability.

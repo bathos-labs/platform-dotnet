@@ -10,6 +10,14 @@ a new major version and are called out here. Linux native support remains experi
 
 ## [Unreleased]
 
+### Added
+
+- Optional installed color-profile discovery and raw-byte access through `IColorProfileProvider` and the provider facade.
+  macOS uses ColorSync with observed current device associations; Windows uses installed ICC/WCS inventory and native
+  reads, without claiming device defaults or HDR coverage. Linux leaves the capability unavailable.
+- Configurable profile-count and read-byte limits, incomplete-inventory reporting, and cancellation support. Profile
+  interpretation, installation, and color conversion remain application responsibilities.
+
 ## [1.0.0] - 2026-10-23
 
 First stable release of the native platform abstractions for .NET 10. Windows and macOS provide file inspection,

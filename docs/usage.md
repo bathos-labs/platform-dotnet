@@ -291,3 +291,40 @@ included in the NuGet packages.
 
 See [native validation](validation.md) for commands, human acceptance procedures, and manual checks.
 Headless Linux tests establish protocol and transport behavior, not graphical desktop support.
+
+## Installed color profiles
+
+The optional `IColorProfileProvider` capability discovers installed profiles and reads their current bytes. Keys are
+opaque provider references; do not convert them into filesystem paths or persist them as portable identities. A scan
+can be incomplete while retaining useful entries. `Finding` is informational diagnostic text, not a status code.
+Read failure is separate from inventory completeness; cancellation throws rather than returning partial success.
+
+macOS observes ColorSync installed profiles and current device associations. Device names are labels, not stable
+identities or a guarantee of display accuracy. Windows observes user/system ICC/WCS inventory; it does not evaluate
+device defaults or advanced-color/HDR profiles. Linux currently has no built-in capability. Native calls execute on
+worker threads without a native UI dispatcher; cancellation joins an already running native call.
+
+Built-in defaults bound scans to 10,000 distinct profiles and individual reads to 16 MiB. Windows additionally bounds
+each native enumeration buffer to 4 MiB. To select different count/read bounds, construct `MacColorProfileProvider`
+or `WindowsColorProfileProvider` with `ColorProfileAccessLimits` and inject that focused capability directly.
+Returned bytes are not inspected or converted by this library. Keep ICC validation and catalog policy in the consumer.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.ColorProfiles;
+using Bathos.Platform.MacOS;
+using Bathos.Platform.Windows;
+
+public static class ProfileDiscoveryExample
+{
+    public static async Task<ColorProfileInventory> ScanAsync(CancellationToken token)
+    {
+        var platform = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider());
+        var profiles = platform.ColorProfiles ?? throw new PlatformNotSupportedException("Profile discovery is unavailable.");
+        return await profiles.EnumerateAsync(token);
+    }
+
+    public static ValueTask<ReadOnlyMemory<byte>> ReadAsync(IColorProfileProvider profiles, ColorProfileLocation entry,
+        CancellationToken token) => profiles.ReadAsync(entry.Key, token);
+}
+```

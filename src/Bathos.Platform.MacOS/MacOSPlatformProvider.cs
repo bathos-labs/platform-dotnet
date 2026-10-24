@@ -1,3 +1,4 @@
+using Bathos.Platform.ColorProfiles;
 using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
 
@@ -14,7 +15,9 @@ public sealed class MacOSPlatformProvider : IPlatformProvider
         if (dispatcher is not null && System.OperatingSystem.IsMacOSVersionAtLeast(10, 15))
             ScreenColorSampler = new MacScreenColorSampler(dispatcher);
     }
-    /// <summary>Gets the macOS provider identity, independently of the executing host.</summary>
+    /// <summary>Gets installed profile discovery and readback; invoke only on MacOS.</summary>
+    public IColorProfileProvider ColorProfiles { get; } = new MacColorProfileProvider();
+    /// <summary>Gets the MacOS provider identity, independently of the executing host.</summary>
     public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.MacOS;
     /// <summary>Gets macOS same-filesystem rename with explicit replacement policy.</summary>
     public INativeFileRename FileRename { get; } = new MacFileRename();
