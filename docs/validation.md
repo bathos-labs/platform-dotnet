@@ -175,3 +175,17 @@ URI round-trips, and device-namespace rejection; POSIX
 execution covers literal backslashes and ambiguous-root rejection. Portable filename policy tests run on every host,
 including case-insensitive console-device rejection and the distinction between bare names and names with extensions.
 These tests establish lexical behavior only, not alias equivalence, network coordination, or lease exclusion.
+
+## Directory discovery
+
+Deterministic tests supply folder/environment values without changing the process environment. They cover XDG defaults,
+invalid relative overrides, unavailable home and roots, application identity validation, explicit overrides, and
+Windows/macOS/Linux layout scoping. Native tests read the current host's roots without writing into user directories;
+foreign-provider invocation is rejected. Paths and successful lookup do not establish filesystem access or ownership.
+An owned macOS child runs with an uncreated home override and compares cache discovery with the independent native
+cache lookup. The parent environment and real user directories are unchanged. Packaged sandbox behavior remains a
+separate host validation case.
+Portable account-boundary tests cover absent and explicit root homes, buffer growth and limits, native errors,
+invalid pointers, missing terminators, malformed UTF-8, and recovery. Owned macOS/Linux children remove `HOME` only
+from their own environment and compare discovery with an independent runtime account lookup. These checks do not
+require changing the parent environment, user identity, permissions, or real user directory contents.

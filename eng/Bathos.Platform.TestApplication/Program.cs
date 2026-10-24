@@ -10,6 +10,19 @@ try
 {
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))
         ?? throw new InvalidDataException("Missing probe configuration.");
+    if (configuration.Mode == "standard-directories")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        var roots = provider.Directories?.Discover() ?? throw new InvalidOperationException("Missing directory capability.");
+        Console.WriteLine(JsonSerializer.Serialize(new
+        {
+            Roots = roots,
+            RuntimeHome = Environment.GetFolderPath(Environment.SpecialFolder.UserProfile, Environment.SpecialFolderOption.DoNotVerify),
+            NativeCache = OperatingSystem.IsMacOS()
+                ? Environment.GetFolderPath(Environment.SpecialFolder.InternetCache, Environment.SpecialFolderOption.DoNotVerify) : null,
+        }));
+        return 0;
+    }
     if (configuration.Mode == "reject-special")
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());

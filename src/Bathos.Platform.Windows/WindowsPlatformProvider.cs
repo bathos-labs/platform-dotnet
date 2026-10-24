@@ -1,5 +1,6 @@
 using Bathos.Platform.ColorProfiles;
 using Bathos.Platform.Desktop;
+using Bathos.Platform.Directories;
 using Bathos.Platform.Files;
 using Bathos.Platform.Paths;
 
@@ -19,6 +20,8 @@ public sealed class WindowsPlatformProvider : IPlatformProvider
 
     /// <summary>Gets installed profile discovery and readback; invoke only on Windows.</summary>
     public IColorProfileProvider ColorProfiles { get; } = new WindowsColorProfileProvider();
+    /// <summary>Gets standard directory discovery; invoke on the matching runtime.</summary>
+    public IStandardDirectories Directories { get; } = new WindowsStandardDirectories();
     /// <summary>Gets lexical path operations for the matching runtime; no filesystem identity is inferred.</summary>
     public INativeFilePaths FilePaths { get; } = NativeFilePaths.Windows;
     /// <summary>Gets the Windows provider identity, independently of the executing host.</summary>

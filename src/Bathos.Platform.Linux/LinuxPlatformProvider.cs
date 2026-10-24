@@ -1,4 +1,5 @@
 using Bathos.Platform.Desktop;
+using Bathos.Platform.Directories;
 using Bathos.Platform.Files;
 using Bathos.Platform.Paths;
 
@@ -24,6 +25,8 @@ public sealed class LinuxPlatformProvider : IPlatformProvider
                 ? DesktopBus.PickColor(parentWindow) : throw new PlatformNotSupportedException("A Linux desktop portal is required."));
     }
 
+    /// <summary>Gets standard directory discovery; invoke on the matching runtime.</summary>
+    public IStandardDirectories Directories { get; } = new LinuxStandardDirectories();
     /// <summary>Gets lexical path operations for the matching runtime; no filesystem identity is inferred.</summary>
     public INativeFilePaths FilePaths { get; } = NativeFilePaths.Posix;
     /// <summary>Gets the Linux provider identity, independently of the executing host.</summary>

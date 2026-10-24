@@ -12,6 +12,8 @@ a new major version and are called out here. Linux native support remains experi
 
 ### Added
 
+- Optional standard-directory discovery and explicit application scoping, including Linux XDG roots, unavailable-location results, and host-supplied root overrides without directory creation.
+
 - Optional host-native path normalization and file-URI conversion, with explicit portability validation for new filenames. Lexical conversion does not establish filesystem identity or lease ownership.
 
 - Optional installed color-profile discovery and raw-byte access through `IColorProfileProvider` and the provider facade.

@@ -5,4 +5,5 @@
   </PropertyGroup>
 
   <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.MacOS" /><InternalsVisibleTo Include="Bathos.Platform.Windows" /><InternalsVisibleTo Include="Bathos.Platform.Linux" /></ItemGroup>
+  <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.Tests" /></ItemGroup>
 </Project>
