@@ -99,6 +99,7 @@ This does not resolve aliases or assert existence. Invocation requires a matchin
     <remarks>No waiting or retry policy is supplied. Cancellation or failure may leave an unowned artifact.
     Permission, unsupported-locking, missing-parent, and other operational failures throw; they are not contention.
     The artifact persists after release. Keep diagnostic metadata in a separate host-owned file.
+    Windows may finish implicit unlock after process exit is signaled; an immediate attempt may still report contention.
     Cooperative exclusion is limited to the same application, device, protocol, and stable location.
     Aliases, alternate path representations, network clients, and noncooperating actors are outside the guarantee.
     Do not delete or replace the artifact. The only supported relocation is a same-filesystem rename of its containing

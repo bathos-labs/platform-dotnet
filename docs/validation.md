@@ -207,3 +207,5 @@ Cancellation at an internal gate after a real native lock verifies contention be
 and unchanged bytes after rollback. A separate owner is killed while its descendant remains alive, without explicit
 unlock; reacquisition verifies that ownership did not survive in the descendant. Unix launches that descendant through
 plain `posix_spawn`, so runtime descriptor cleanup cannot mask a missing close-on-exec flag. Windows uses the runtime launcher.
+Windows can finish implicit unlock after signaling process exit. Abrupt-exit tests await a cancellable native lock
+completion before asserting reacquisition, without sleeping or polling. A retained lock still fails the bounded wait.

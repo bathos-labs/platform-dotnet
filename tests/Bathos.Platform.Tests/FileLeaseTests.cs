@@ -93,6 +93,29 @@ public sealed class FileLeaseTests
     }
 
     [Fact]
+    public async Task WindowsPendingReleaseObservationCanBeCanceledWithoutRetainingOwnership()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Native asynchronous lock completion requires Windows.");
+        var folder = Directory.CreateTempSubdirectory("bathos-lease-wait-");
+        try
+        {
+            var path = Path.Combine(folder.FullName, "writer.lock");
+            using var lease = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            Assert.NotNull(lease);
+            using var cancellation = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+            var pending = WindowsLeaseRelease.WaitAsync(path, cancellation.Token);
+            cancellation.Cancel();
+            await Assert.ThrowsAnyAsync<OperationCanceledException>(() => pending);
+            Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+            lease.Dispose();
+            await WindowsLeaseRelease.WaitAsync(path, TestContext.Current.CancellationToken);
+            using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            Assert.NotNull(next);
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
     public void LinksCannotRedirectLeaseOwnership()
     {
         var folder = Directory.CreateTempSubdirectory("bathos-leases-");
@@ -182,6 +205,7 @@ public sealed class FileLeaseTests
                 await child.WaitAsync();
             }
             Assert.True(File.Exists(path));
+            if (kill && OperatingSystem.IsWindows()) await WindowsLeaseRelease.WaitAsync(path, TestContext.Current.CancellationToken);
             using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
@@ -241,6 +265,7 @@ public sealed class FileLeaseTests
                     owner.Process.Kill(entireProcessTree: false);
                     await owner.WaitAsync();
                     Assert.False(descendant.HasExited);
+                    if (OperatingSystem.IsWindows()) await WindowsLeaseRelease.WaitAsync(path, deadline.Token);
                     using var next = Current().TryAcquire(path, TestContext.Current.CancellationToken);
                     Assert.NotNull(next);
                     await writer.WriteLineAsync("finish".AsMemory(), deadline.Token);

@@ -447,6 +447,7 @@ This coordinates instances of the same application on one device using the same 
 Permission errors, missing parents, special files, and unsupported locking throw rather than masquerading as contention.
 Unix lock paths with malformed Unicode are rejected before native lookup, rather than selecting a replacement filename.
 Cancellation can leave an unowned artifact; process exit releases the native handle. There is no wait/retry policy.
+Windows may complete implicit unlock after process exit is signaled; an immediate attempt can still report contention.
 Store optional owner diagnostics separately and treat missing or stale metadata as diagnostic uncertainty.
 
 Do not delete or replace the artifact while leased. The supported relocation protocol is one same-filesystem rename
