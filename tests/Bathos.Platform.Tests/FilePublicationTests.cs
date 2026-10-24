@@ -19,6 +19,7 @@ public sealed class FilePublicationTests
     [InlineData("lpt1.notes", null, "_lpt1.notes.png")]
     [InlineData("...", null, "File.png")]
     [InlineData("桜 café", "Derived", "桜 café - Derived.png")]
+    [Trait("Validation", "Portable")]
     public void NamesKeepReadableComponentsAndNormalizePortableStems(string baseName, string? kind, string expected)
     {
         var name = new GeneratedFileName(baseName, ".png", kind);
@@ -27,6 +28,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
+    [Trait("Validation", "Portable")]
     public void NamesRequireABaseAndSimpleExtensionAndBoundUnicodeLength()
     {
         Assert.Throws<ArgumentException>(() => new GeneratedFileName(" ", ".png"));
@@ -40,7 +42,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
-    [Trait("Platform", "Desktop")]
+    [Trait("Validation", "Native")]
     public async Task ConcurrentPublishersClaimDistinctNamesAndPreserveEveryPayload()
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
@@ -78,7 +80,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
-    [Trait("Platform", "Desktop")]
+    [Trait("Validation", "Native")]
     public async Task PublicationSkipsOccupiedCandidatesAndReusesTheFirstGap()
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
@@ -103,7 +105,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
-    [Trait("Platform", "Desktop")]
+    [Trait("Validation", "Native")]
     public async Task MacPublicationTreatsDirectoriesAndDanglingLinksAsOccupiedNames()
     {
         if (!OperatingSystem.IsMacOS()) Assert.Skip("This symlink scenario requires macOS.");
@@ -128,7 +130,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
-    [Trait("Platform", "Desktop")]
+    [Trait("Validation", "Native")]
     public async Task CompletedPublicationRetainsItsFileAndCannotPublishAgain()
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
@@ -150,7 +152,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
-    [Trait("Platform", "Desktop")]
+    [Trait("Validation", "Native")]
     public async Task ExactPublicationRejectsADestinationCreatedWhileEncoding()
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
@@ -174,7 +176,7 @@ public sealed class FilePublicationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
-    [Trait("Platform", "Desktop")]
+    [Trait("Validation", "Native")]
     public async Task AuthorizedReplacementPreservesDestinationUntilPublication(bool cancel)
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Native rename is supported on macOS and Windows.");
@@ -201,6 +203,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
+    [Trait("Validation", "Portable")]
     public async Task AbandonedAndCanceledPublicationsRemoveOnlyTheirTemporaryFiles()
     {
         var token = TestContext.Current.CancellationToken;
@@ -225,7 +228,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
-    [Trait("Platform", "Desktop")]
+    [Trait("Validation", "Native")]
     public async Task NonCollisionFailuresSurfaceAndExactNamesCannotEscapeTheDirectory()
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Exclusive rename is supported on macOS and Windows.");
@@ -243,6 +246,7 @@ public sealed class FilePublicationTests
         finally { folder.Delete(true); }
     }
     [Fact]
+    [Trait("Validation", "Native")]
     public async Task SuccessfulPublicationRelinquishesTheStagingPath()
     {
         if (!OperatingSystem.IsMacOS() && !OperatingSystem.IsWindows()) Assert.Skip("Native rename is supported on macOS and Windows.");
@@ -264,6 +268,7 @@ public sealed class FilePublicationTests
     [Theory]
     [InlineData(false)]
     [InlineData(true)]
+    [Trait("Validation", "Portable")]
     public async Task StagingNameCannotBePublishedEvenWithReplacement(bool upperCase)
     {
         var folder = Directory.CreateTempSubdirectory("bathos-ownership-");
@@ -280,6 +285,7 @@ public sealed class FilePublicationTests
     }
 
     [Fact]
+    [Trait("Validation", "Portable")]
     public async Task RepeatedDisposalDoesNotReclaimAnAbandonedStagingPath()
     {
         var folder = Directory.CreateTempSubdirectory("bathos-ownership-");

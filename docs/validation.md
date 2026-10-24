@@ -5,7 +5,18 @@ behavior can be checked using the engineering harnesses below. The harnesses are
 
 ## Automated evidence boundaries
 
-All tests build and run from this repository alone with `task test` or `task test:coverage`.
+All tests build and run from this repository alone with `task test` or `task test:coverage`. Every test is labeled
+`Validation=Portable` or `Validation=Native`. After building, use the existing runner to select one evidence tier or
+feature independently, for example:
+
+```text
+dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --filter-trait "Validation=Portable"
+dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --filter-trait "Validation=Native"
+dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --filter-class "*Publication*"
+```
+
+The full CI suite runs both tiers. Platform-inapplicable native cases still report explicit skips; manual checks are
+procedures, not disabled tests counted as automated evidence.
 
 | Evidence | Runs where | What it establishes |
 | --- | --- | --- |

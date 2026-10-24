@@ -4,6 +4,7 @@ using Xunit;
 
 namespace Bathos.Platform.Tests;
 
+[Trait("Validation", "Native")]
 public sealed class LinuxFileRevealTests
 {
     [Theory]

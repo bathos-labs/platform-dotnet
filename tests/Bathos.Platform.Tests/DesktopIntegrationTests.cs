@@ -20,6 +20,7 @@ public sealed class DesktopIntegrationTests
         "Bathos.Platform.TestApplication" + (OperatingSystem.IsWindows() ? ".exe" : ""));
 
     [Fact]
+    [Trait("Validation", "Portable")]
     public void TargetFactoriesRejectCommandsRelativePathsAndMalformedIdentifiers()
     {
         Assert.Throws<ArgumentException>(() => ApplicationTarget.Executable("editor --open"));
@@ -31,6 +32,7 @@ public sealed class DesktopIntegrationTests
     }
 
     [Fact]
+    [Trait("Validation", "Native")]
     public async Task InvalidInputsAndCancellationDoNotLaunchApplicationsOrFileManagers()
     {
         var provider = Current();
@@ -59,6 +61,7 @@ public sealed class DesktopIntegrationTests
     }
 
     [Fact]
+    [Trait("Validation", "Native")]
     public async Task ExistingNonExecutableTargetReportsNativeFailureAndPreservesTheDocument()
     {
         var folder = Directory.CreateTempSubdirectory("bathos-invalid-executable-");
@@ -79,12 +82,14 @@ public sealed class DesktopIntegrationTests
     }
 
     [Fact]
+    [Trait("Validation", "Native")]
     public async Task ExecutableHandoffPreservesArgumentsAndDoesNotWaitForOrKillTheApplication()
     {
         await RunProbeAsync(desktopEntry: false);
     }
 
     [Fact]
+    [Trait("Validation", "Native")]
     public async Task LinuxDesktopEntryDiscoveryAndGioActivationPreserveTheFileArgument()
     {
         if (!OperatingSystem.IsLinux()) Assert.Skip("Native GIO activation requires Linux; no desktop is used.");
@@ -164,6 +169,7 @@ public sealed class DesktopIntegrationTests
     }
 
     [Fact]
+    [Trait("Validation", "Native")]
     public void NativeDiscoveryReturnsRegisteredTargetsAndRepresentsAbsenceExplicitly()
     {
         var missing = "bathos-missing-" + Guid.NewGuid().ToString("N");

@@ -7,6 +7,7 @@ namespace Bathos.Platform.Tests;
 public sealed class LinuxScreenColorSamplerTests
 {
     [Fact]
+    [Trait("Validation", "Portable")]
     public async Task RequestsRejectOverlapAcrossInstancesAndReleaseOwnershipAfterFailure()
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -56,6 +57,7 @@ public sealed class LinuxScreenColorSamplerTests
     [InlineData("short")]
     [InlineData("long")]
     [InlineData("component-type")]
+    [Trait("Validation", "Native")]
     public async Task NativePortalProtocolAgainstPrivateHeadlessService(string scenario)
     {
         if (!OperatingSystem.IsLinux()) Assert.Skip("Native libdbus protocol tests require Linux; no desktop is used.");

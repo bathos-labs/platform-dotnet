@@ -6,6 +6,7 @@ using Xunit;
 
 namespace Bathos.Platform.Tests;
 
+[Trait("Validation", "Portable")]
 public sealed class PlatformProviderTests
 {
     [Fact]
