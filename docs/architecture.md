@@ -1,19 +1,18 @@
 # Platform architecture
 
-The core owns focused capability contracts and shared mechanics. Each OS-specific assembly references only the core
-and runtime; the core never references providers. Provider constructors avoid native work. Hosts explicitly supply
-providers to selection and supply a native dispatcher when enabling interactive capabilities. Independent capability
-interfaces support injection without requiring the facade. The facade supports application-level composition without DI.
+The core defines capability contracts and shared mechanics. Each OS-specific assembly references only the core and
+.NET runtime; the core never references providers. Provider constructors perform no native work. The host supplies
+provider instances to selection and a native dispatcher for capabilities that require one.
 
-The built-in Windows, macOS, and Linux providers are the normal integration path. Focused capability interfaces and
-the native dispatcher are the supported boundaries for host integration, substitution, and testing. The provider facade
-groups capabilities for application composition, with selection using repository-defined OS identities and explicitly
-supplied instances. Partial providers are an optional composition technique: only OS identity is required, and capability
-getters default to null. Consumers check availability before passing focused interfaces to application components.
+Applications normally use the built-in Windows, macOS, and Linux providers. The provider facade groups capabilities
+for application composition without requiring a DI container. Selection uses explicit OS identities and the supplied
+instances. Components can depend directly on focused capability interfaces, which also support substitution and testing.
+Partial providers need only an OS identity; optional capability getters default to null. Applications check availability
+before passing capabilities to their components.
 
-New capabilities use focused interfaces and optional default-null facade properties. Existing providers can omit them;
-public facade implementations remain part of compatibility review. Broader provider infrastructure needs a demonstrated
-consumer requirement. The current model allows capability growth without requiring a third-party provider ecosystem.
+New capabilities use focused interfaces and optional default-null facade properties, so existing providers can omit
+them. Compatibility review covers both callers and public facade implementations. Broader provider infrastructure
+needs a demonstrated consumer requirement.
 Default operation implementations must fulfill the operation's contract; silent no-ops and throwing placeholders do not
 establish capability support. Changes to existing required operations or their guarantees need explicit compatibility review.
 
@@ -23,8 +22,9 @@ never a fallback. Cancellation after successful rename cannot reinterpret public
 staging. File-kind inspection rejects links and special files without opening POSIX special entries; inspection is
 advisory and is not a path reservation.
 
-Linux is its own runtime target, not generic POSIX. Its experimental provider supplies statx file-kind inspection
-and opt-in desktop-portal color sampling; native rename and broader host validation are pending.
+Linux is a distinct runtime target with its own native APIs. Its experimental provider supplies statx file-kind
+inspection, desktop reveal and application handoff, native lookup, paths, standard directories, cooperative file leases,
+and opt-in desktop-portal color sampling. Native rename is unavailable, and graphical desktop validation remains pending.
 Do not hide missing capabilities behind a weaker implementation. Add capabilities from demonstrated consumers,
 keeping product entities, document lifecycle, product-specific path policy, UI toolkits, and image pipelines in their owning packages.
 
@@ -77,13 +77,11 @@ and byte retrieval. Linux leaves it unavailable. Profile keys are provider-owned
 Partial discovery retains usable entries; read failures and cancellation remain distinct. No ICC parser, image-library
 dependency, profile installation, or color-management policy belongs to this capability.
 
-## Path and cooperative lease boundary
+## Paths and ownership
 
-The accepted boundary for [path contracts](https://github.com/bathos-labs/platform-dotnet/issues/4) and
-[cooperative leases](https://github.com/bathos-labs/platform-dotnet/issues/6) separates lexical location handling
-from ownership. The path capability is implemented; cooperative file leases are implemented. Shared native path syntax, lossless file-URI conversion,
-and an explicitly selected portability ruleset belong in Platform. Product-relative references and storage policy
-remain with the host. Normalization preserves significant characters; it does not sanitize an existing location,
+Path handling and lease ownership are separate capabilities. Native path syntax, lossless file-URI conversion, and
+an explicitly selected filename portability policy belong in Platform. Product-relative references and storage
+policy remain with the host. Normalization preserves significant characters; it does not sanitize an existing location,
 resolve filesystem aliases, or prove that two paths identify the same resource. Lexical comparison is explicit and
 must not be presented as observed filesystem identity.
 
@@ -106,11 +104,11 @@ must establish the supported same-device guarantees independently on each suppor
 
 ## Standard directories
 
-`IStandardDirectories` observes standard roots on demand. Provider construction performs no discovery. The common
-runtime adapter uses .NET special folders with `DoNotVerify`, the runtime temporary directory, and application base;
-The macOS cache root comes from the runtime's native user-cache lookup, independently of the home environment value.
-OS layout policy fills state and XDG conventions. Lookup does not create folders, verify write access, or acquire
-ownership. A missing/invalid location is null; operational lookup failures may propagate.
+`IStandardDirectories` discovers standard roots on demand. Provider construction performs no discovery. The shared
+runtime adapter uses .NET special folders with `DoNotVerify`, the runtime temporary directory, and the application
+base directory. The macOS cache root comes from the runtime's native user-cache lookup, independently of `HOME`.
+OS layout rules supply state directories and XDG defaults. Lookup does not create folders, verify write access, or
+acquire ownership. A missing or invalid location is null; operational lookup failures may propagate.
 Unix home discovery observes `HOME` or a reentrant effective-user account lookup in the matching native provider.
 Shared mechanics own and bound the lookup buffer and validate its returned home pointer/UTF-8 before release.
 This preserves missing-home evidence and genuine root homes without relying on .NET's ambiguous `/` substitution.
@@ -133,8 +131,9 @@ the optional capability; partial providers can omit it without breaking their ex
 Windows opens a noninheritable regular disk handle with sharing enabled and takes an immediate exclusive lock on
 byte zero using `LockFileEx`. macOS/Linux use raw noninheritable, nonblocking, no-follow opens, validate the opened
 file kind, and acquire `flock(LOCK_EX | LOCK_NB)`. Raw Unix opening avoids the runtime's implicit shared lock and
-its best-effort treatment of unsupported locking. Native lock errors other than contention fail explicitly. Disposal explicitly unlocks before closing the handle, avoiding transient retention by concurrent Unix fork/exec.
-Process exit closes the handle and releases ownership; disposal is idempotent and no native handle or stream escapes to the consumer.
+its best-effort treatment of unsupported locking. Native lock errors other than contention fail explicitly. Disposal
+unlocks before closing the handle, avoiding transient retention by concurrent Unix fork/exec. Process exit closes the
+handle and releases ownership. Disposal is idempotent, and no native handle or stream is exposed to the caller.
 The implementation does not rely on a process-local path dictionary.
 
 The artifact persists and its bytes are not modified or interpreted. Hosts must not delete it during normal lease

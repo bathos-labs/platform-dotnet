@@ -25,10 +25,11 @@ Desktop-entry activation tests also use system GIO/GLib/GObject and an owned tes
 editors. The test application runs outside the test-project directory so it does not inherit the test runner entry point.
 
 Update lockfiles intentionally with an unlocked restore after dependency changes. Keep package versions central.
-The package check uses an isolated consumer and cache outside the repository, verifies MIT metadata/dependencies and expanded XML documentation,
-and loads only the current host's provider. Tests use disposable files and real native operations on the executing
-host. Linux rename/publication and macOS-only scenarios on other hosts are explicitly skipped; skips do not establish
-implementation acceptance. Native permission, cross-volume, special-file, and interactive scenarios require their own evidence.
+The package check uses an isolated consumer and cache outside the repository. It verifies MIT license metadata,
+dependencies, and expanded XML documentation, and loads only the current host's provider. Tests use disposable files
+and real native operations on the executing host. Linux rename/publication and macOS-only scenarios on other hosts
+are explicitly skipped; skips do not establish implementation acceptance. Native permission, cross-volume,
+special-file, and interactive scenarios require their own evidence.
 
 Tests await owned operations or use explicit gates for races. Do not use sleeps or polling as synchronization.
 Preserve source/destination bytes on failed exclusive rename; never replace it with check-then-move or cross-volume
@@ -39,7 +40,7 @@ Native CI runs on Linux x64, Windows x64, and macOS Arm64 for PRs and `master`, 
 An OS-specific failure is not excused by passing on another host. Screen selection is manual: invoke the picker
 in a native host, sample inside/outside the application, cancel with Escape, and repeat; verify main-loop cleanup and
 caller retirement. `task eng:sampler` supplies a small native launch harness; `task eng:sampler:smoke` checks its dispatch
-and shutdown without opening the picker. See the [manual test guide](docs/validation.md) for the procedure.
+and shutdown without opening the picker. See the [native validation guide](docs/validation.md) for the procedure.
 Respect system privacy controls. Linux support is experimental. Its harness is console-driven;
 the portal owns the native UI loop and has no dispatcher smoke mode.
 Desktop reveal and editor handoff require separate manual validation through `eng/Bathos.Platform.Desktop`;

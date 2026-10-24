@@ -24,6 +24,10 @@ a new major version and are called out here. Linux native support remains experi
 - Configurable profile-count and read-byte limits, incomplete-inventory reporting, and cancellation support. Profile
   interpretation, installation, and color conversion remain application responsibilities.
 
+### Fixed
+
+- Corrected copyright attribution and package authorship to Bathos Pty Ltd.
+
 ## [1.0.0] - 2026-10-23
 
 First stable release of the native platform abstractions for .NET 10. Windows and macOS provide file inspection,

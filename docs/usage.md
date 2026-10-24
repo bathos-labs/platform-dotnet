@@ -1,14 +1,14 @@
 # Integration guide
 
 The [README](../README.md) covers package selection and a runnable publication example. All packages target
-.NET 10. Providers can be retained directly, selected with `PlatformProviders.SelectCurrent`, or registered in
-the host's own composition system. The core does not load or scan provider assemblies.
+.NET 10. Use providers directly, select one with `PlatformProviders.SelectCurrent`, or register them with your
+application's composition system. The core does not load or scan provider assemblies.
 
 ## Compose only the capabilities you need
 
 Pass provider instances explicitly; selection returns the matching instance and does not probe permissions or desktop
 services. Duplicate providers for the same selected OS fail, as does selecting an unknown or omitted OS. Providers
-can be constructed on other hosts, but their native operations must only be invoked on their owning OS.
+can be constructed on other hosts, but their native operations must only be invoked on the matching OS.
 
 ```csharp
 using Bathos.Platform;
@@ -38,7 +38,7 @@ interfaces in your own composition system. No specific DI container is required 
 ## Operation behavior
 
 Use capability availability to decide which actions to offer, and handle cancellation separately from failure.
-Await each operation even when its caller retires; discard a stale result while allowing owned cleanup to finish.
+Await each operation even when its caller is no longer active; discard stale results while allowing cleanup to finish.
 File publication owns staging until success; reveal and application handoff leave the caller's file ownership unchanged.
 
 Cancellation tokens can prevent publication or handoff before its native boundary. After success, the result remains
@@ -251,10 +251,10 @@ exception details for diagnostics; do not silently retry an explicit handoff thr
 
 ## Optional partial providers
 
-The built-in providers are the normal integration path. For individual substitutions or test doubles, supply a focused
-capability interface directly. If your host benefits from grouping a particular subset of capabilities, a partial provider
-is also available as a composition technique. Implement `IPlatformProvider` with an OS identity and only those capabilities;
-all optional getters default to null. For example, this provider exposes file reveal:
+Use the built-in providers for normal integration, and pass focused capability interfaces directly when substituting
+an implementation or test double. A partial provider can group a subset of capabilities for application composition.
+Implement `IPlatformProvider` with an OS identity and only the capabilities you need. All optional getters default to
+null. For example, this provider exposes file reveal:
 
 ```csharp
 using Bathos.Platform;
@@ -453,5 +453,6 @@ Store optional owner diagnostics separately and treat missing or stale metadata 
 
 Moving, renaming, deleting, or replacing the lock artifact or its containing directory tree while leased is unsupported
 on every platform. If application data may move, choose a stable lock location outside that tree; every cooperating
-instance must keep using that same lock location. Hosts own admission, publication receipts, and any directory-ownership policy. Aliases, network clients,
-other operating systems, noncooperating actors, and alternate path representations are outside the exclusion guarantee.
+instance must keep using that same lock location. Hosts own admission, publication receipts, and any directory-ownership
+policy. Aliases, network clients, other operating systems, noncooperating actors, and alternate path representations
+are outside the exclusion guarantee.

@@ -1,7 +1,7 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <Import Project="../../eng/Bathos.Package.props" />
   <PropertyGroup>
-    <Description>Toolkit-independent native capability contracts and atomic staged file publication for .NET 10. Compose explicit providers for Windows, macOS, or experimental Linux support. No UI toolkit or dependency-injection dependencies.</Description>
+    <Description>Common interfaces for native OS operations and atomic file publication on .NET 10. Use the Windows, macOS, or experimental Linux providers without UI toolkit or dependency injection dependencies.</Description>
   </PropertyGroup>
 
   <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.MacOS" /><InternalsVisibleTo Include="Bathos.Platform.Windows" /><InternalsVisibleTo Include="Bathos.Platform.Linux" /></ItemGroup>

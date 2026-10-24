@@ -2,7 +2,7 @@
   <Import Project="../../eng/Bathos.Package.props" />
   <PropertyGroup>
     <AllowUnsafeBlocks>true</AllowUnsafeBlocks>
-    <Description>Windows native capabilities for .NET 10: atomic file rename and replacement, regular-file inspection, Explorer reveal, explicit executable handoff, App Paths discovery, and optional GDI screen color selection. Depends only on Bathos.Platform and the runtime.</Description>
+    <Description>Windows support for .NET 10: atomic file rename and replacement, regular-file inspection, Explorer reveal, application handoff and lookup, installed color profiles, native paths, standard directories, cooperative file leases, and optional GDI screen color sampling. Depends only on Bathos.Platform and the .NET runtime.</Description>
   </PropertyGroup>
   <ItemGroup><ProjectReference Include="../Bathos.Platform/Bathos.Platform.csproj" /></ItemGroup>
   <ItemGroup><InternalsVisibleTo Include="Bathos.Platform.Tests" /></ItemGroup>

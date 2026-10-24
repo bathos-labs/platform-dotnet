@@ -1,4 +1,4 @@
-# Manual native checks
+# Native validation
 
 Linux support is experimental. CI runs automated native tests on Windows, macOS, and Linux; interactive desktop
 behavior can be checked using the engineering harnesses below. The harnesses are not shipped in NuGet packages.

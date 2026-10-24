@@ -20,8 +20,9 @@
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
     <Version>1.0.0</Version>
-    <Authors>Bathos Labs</Authors>
-    <Copyright>Copyright © 2026 Capitalist Pixie</Copyright>
+    <Authors>Bathos Pty Ltd</Authors>
+    <Company>Bathos Pty Ltd</Company>
+    <Copyright>Copyright © 2026 Bathos Pty Ltd</Copyright>
     <RepositoryType>git</RepositoryType>
     <RepositoryUrl>https://github.com/bathos-labs/platform-dotnet</RepositoryUrl>
     <PackageProjectUrl>https://github.com/bathos-labs/platform-dotnet</PackageProjectUrl>
