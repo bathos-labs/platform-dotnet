@@ -51,6 +51,33 @@ or assuming that the same failure has the same numeric error code on every platf
 
 ## File publication and inspection
 
+For complete document snapshots with retained readers, compose the optional `SnapshotFileRename` capability.
+Readers opened with `FileShare.Read | FileShare.Delete` can finish the old snapshot while later opens see the new
+file. Replacement also permits creation when the destination is absent. It does not merge destination metadata or
+coordinate competing writers. Use `FileRename` for directory relocation. Windows snapshot publication requires
+Windows 10 version 1607 or later and filesystem support for `FileRenameInfoEx` with POSIX replacement semantics;
+unsupported operations fail explicitly.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Files;
+
+public static class SnapshotPublicationExample
+{
+    public static ValueTask SaveAsync(IPlatformProvider platform, string destination, ReadOnlyMemory<byte> contents,
+        CancellationToken token)
+    {
+        var rename = platform.SnapshotFileRename ?? throw new PlatformNotSupportedException("Snapshot publication is unavailable.");
+        var files = new FilePublicationFactory(rename);
+        return files.WriteAsync(destination, contents, replaceExisting: true, createDirectory: false, token);
+    }
+}
+```
+
+`createDirectory: false` requires an existing parent. For streaming serialization or a host conflict check between
+staging and publication, use `files.Create(directory, createDirectory: false)`, write to its borrowed stream, perform
+the check, and call `PublishExactAsync`. Always dispose the publication, including when abandoning the staged data.
+
 `FilePublication` owns a private temporary sibling of the destination file. Write to its borrowed `Stream`, then
 publish once using `PublishAsync(new GeneratedFileName(stem, extension), token)` or
 `PublishExactAsync(fileName, token, replaceExisting: false)`. Use an absolute destination directory; it is created

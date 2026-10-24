@@ -5,7 +5,7 @@ namespace Bathos.Platform.Linux;
 
 /// <summary>Linux atomic rename with exclusive creation or explicitly authorized replacement and no copy fallback.</summary>
 /// <remarks>Requires libc renameat2 and filesystem support for RENAME_NOREPLACE. Unsupported operations fail explicitly.</remarks>
-public sealed partial class LinuxFileRename : INativeFileRename
+public sealed partial class LinuxFileRename : ISnapshotFileRename
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/Move/*" />
     public FileRenameStatus Move(string source, string destination, out int errorCode, bool replaceExisting = false)

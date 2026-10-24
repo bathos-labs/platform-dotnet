@@ -9,6 +9,8 @@ namespace Bathos.Platform.Windows;
 /// <summary>Windows capabilities. A dispatcher enables screen sampling; construction does not invoke native APIs.</summary>
 public sealed class WindowsPlatformProvider : IPlatformProvider
 {
+    /// <summary>Gets snapshot publication without a weaker fallback; invoke on a supported Windows filesystem.</summary>
+    public ISnapshotFileRename SnapshotFileRename { get; } = new WindowsSnapshotFileRename();
     /// <summary>Composes Windows capabilities without loading native services.</summary>
     /// <param name="dispatcher">Host dispatcher enabling the optional sampler; null disables sampling.</param>
     /// <remarks>File capabilities are constructed on any host but must be invoked only on Windows. Sampler availability also requires the matching runtime OS. The host owns the dispatcher and UI-loop lifetime.</remarks>
