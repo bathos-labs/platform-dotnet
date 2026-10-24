@@ -89,7 +89,8 @@ public sealed class LinuxScreenColorSamplerTests
             else await Assert.ThrowsAsync<InvalidOperationException>(() => operation.WaitAsync(deadline.Token));
             await service.WaitForExitAsync(deadline.Token);
             Assert.True(service.ExitCode == 0, await errors);
-            // Service exit waits for our unique bus name to vanish: the connection was closed, even after failure.
+            // Except for the intentional service disconnect, exit waits for our unique bus name to vanish.
+            // This checks connection closure even on malformed/native error responses.
             // The real transport must also release the sampler's process-wide slot before completion.
             Assert.Equal(new ScreenColor(1, 2, 3), await new LinuxScreenColorSampler(() => new ScreenColor(1, 2, 3)).SampleAsync());
         }
