@@ -10,6 +10,8 @@ a new major version and are called out here. Linux native support remains experi
 
 ## [Unreleased]
 
+## [1.1.0-beta.1] - 2026-10-25
+
 ### Added
 
 - Cooperative shared or exclusive file leases on Windows, macOS, and Linux, with explicit contention and native
@@ -73,6 +75,7 @@ Prerelease APIs may change without compatibility shims.
 - Desktop handoff reports native submission, not document readiness or application focus. Interactive Finder,
   Explorer, and editor validation remains pending; see the native validation record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.0.0...master
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.1.0-beta.1...master
+[1.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.1
 [1.0.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.0.0
 [0.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v0.1.0-beta.1
