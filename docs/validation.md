@@ -152,3 +152,14 @@ Automated tests use an owned executable and a private D-Bus file-manager fixture
 handoff completion without waiting for application exit, cancellation before handoff, native registration lookup,
 encoded file URIs, and native errors. Linux GIO activation runs with a private child-process XDG data directory.
 These tests do not drive Explorer/Finder or a real editor and do not establish desktop focus or document readiness.
+
+## Installed profile discovery
+
+The automated profile tests exercise native enumeration and bounded readback on the executing macOS/Windows host.
+They also verify incomplete scans under count limits, byte limits, cancellation before native entry, capability absence,
+and Windows enumeration-buffer parsing. Linux explicitly skips native profile discovery. These checks do not prove
+ICC validity, current display association accuracy, HDR behavior, or another OS's native implementation.
+
+Profile read tests also verify recovery after missing/oversized reads and exact macOS byte-limit behavior.
+Native allocation failures, cancellation during a running native call, and exhaustive ColorSync/WCS handle/callback
+fault injection remain unverified; successful inventory/readback does not establish those failure paths.

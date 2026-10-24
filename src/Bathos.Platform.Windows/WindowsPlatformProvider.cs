@@ -1,3 +1,4 @@
+using Bathos.Platform.ColorProfiles;
 using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
 
@@ -15,6 +16,8 @@ public sealed class WindowsPlatformProvider : IPlatformProvider
             ScreenColorSampler = new WindowsScreenColorSampler(dispatcher);
     }
 
+    /// <summary>Gets installed profile discovery and readback; invoke only on Windows.</summary>
+    public IColorProfileProvider ColorProfiles { get; } = new WindowsColorProfileProvider();
     /// <summary>Gets the Windows provider identity, independently of the executing host.</summary>
     public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.Windows;
     /// <summary>Gets Windows same-filesystem rename with explicit replacement policy.</summary>

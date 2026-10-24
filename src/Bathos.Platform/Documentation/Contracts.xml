@@ -49,4 +49,24 @@
     <exception cref="System.PlatformNotSupportedException">The provider is invoked on another OS.</exception>
     <exception cref="System.OperationCanceledException">Cancellation was observed before submission.</exception>
   </OpenAsync>
+  <EnumerateColorProfiles>
+    <summary>Enumerates installed profiles on a worker thread without a UI loop.</summary>
+    <param name="cancellationToken">Cancels between native operations; native calls already running are joined.</param>
+    <returns>Observed entries and completeness. Recoverable enumeration problems retain independently observed entries.</returns>
+    <exception cref="System.OperationCanceledException">Cancellation was requested; it is never reported as an incomplete success.</exception>
+    <exception cref="System.PlatformNotSupportedException">The provider does not match the executing OS.</exception>
+    <remarks>Native loading or unrecoverable failures can throw. A complete scan describes only the provider's documented coverage.</remarks>
+  </EnumerateColorProfiles>
+  <ReadColorProfile>
+    <summary>Reads the current bytes for an observed provider key, subject to its configured byte limit.</summary>
+    <param name="key">Nonempty provider-owned key returned by discovery; embedded NUL is rejected.</param>
+    <param name="cancellationToken">Cancels before/after native operations and during asynchronous file reads.</param>
+    <returns>Profile bytes owned by the returned result, without ICC parsing or conversion.</returns>
+    <exception cref="System.ArgumentException">The key is empty or contains NUL.</exception>
+    <exception cref="System.IO.IOException">The profile cannot be read or changed during the read.</exception>
+    <exception cref="System.IO.InvalidDataException">The profile exceeds the byte limit.</exception>
+    <exception cref="System.OperationCanceledException">Cancellation was requested.</exception>
+    <exception cref="System.PlatformNotSupportedException">The provider does not match the executing OS.</exception>
+    <remarks>Access denial and native loading failures may also propagate. Keys do not establish continued availability.</remarks>
+  </ReadColorProfile>
 </contracts>

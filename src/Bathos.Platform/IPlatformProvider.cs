@@ -1,3 +1,4 @@
+using Bathos.Platform.ColorProfiles;
 using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
 
@@ -50,6 +51,8 @@ public interface IPlatformProvider
     IFileRevealer? FileRevealer => null;
     /// <summary>Gets explicit application handoff, or null when unsupported. Success means submission, not document readiness.</summary>
     IFileInvoker? FileInvoker => null;
+    /// <summary>Gets installed color-profile discovery/readback, or null when unsupported. It does not provide ICC interpretation.</summary>
+    IColorProfileProvider? ColorProfiles => null;
 }
 
 /// <summary>Selects only explicitly supplied providers; the core never references or dynamically scans implementation assemblies.</summary>

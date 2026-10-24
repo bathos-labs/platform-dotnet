@@ -6,7 +6,7 @@
 
 Bathos-written libraries that give .NET applications common interfaces for native OS operations: publish files
 atomically, inspect file entries, reveal files in Finder or Explorer, open documents in a selected application,
-and pick a screen color.
+pick a screen color, and discover/read installed color profiles.
 
 The `Bathos.Platform` packages keep platform-specific interop behind focused capability interfaces, so application
 code can use native behavior without implementing each OS integration itself. Choose the Windows, macOS, or
@@ -25,8 +25,8 @@ only the core and .NET runtime; sibling providers are optional.
 | NuGet package | What it provides |
 | --- | --- |
 | [Bathos.Platform](https://www.nuget.org/packages/Bathos.Platform) | Capability interfaces, explicit OS/provider selection, application targets, and staged file publication with collision-safe naming. Requires a native rename provider for publication. |
-| [Bathos.Platform.Windows](https://www.nuget.org/packages/Bathos.Platform.Windows) | Native file rename/replacement and inspection, Explorer reveal, executable handoff, App Paths lookup, and an optional GDI screen sampler. |
-| [Bathos.Platform.MacOS](https://www.nuget.org/packages/Bathos.Platform.MacOS) | Native file rename/replacement and inspection, Finder reveal, executable/bundle handoff, LaunchServices lookup, and an optional AppKit screen sampler. |
+| [Bathos.Platform.Windows](https://www.nuget.org/packages/Bathos.Platform.Windows) | Native file rename/replacement and inspection, Explorer reveal, executable handoff, App Paths lookup, installed color profiles, and an optional GDI screen sampler. |
+| [Bathos.Platform.MacOS](https://www.nuget.org/packages/Bathos.Platform.MacOS) | Native file rename/replacement and inspection, Finder reveal, executable/bundle handoff, LaunchServices lookup, installed color profiles, and an optional AppKit screen sampler. |
 | [Bathos.Platform.Linux](https://www.nuget.org/packages/Bathos.Platform.Linux) | Experimental statx inspection, file-manager reveal, executable/desktop-entry handoff, GIO lookup, and an optional portal screen sampler. Native rename and file publication are unavailable. |
 
 Each package contains a `net10.0` library, XML API documentation, this README, and MIT license text. Portable PDB
@@ -85,6 +85,10 @@ permission availability.
 
 Use the provider facade when composing your application, then pass focused capability interfaces to the components
 that use them. Those interfaces support substitution and test doubles.
+
+Installed color-profile discovery/readback is available on macOS and Windows through `platform.ColorProfiles`.
+It returns provider-owned lookup keys and raw bytes, without ICC parsing, installation, or conversion. Linux leaves
+this optional capability null. See the integration guide for limits, partial discovery, and platform coverage.
 
 ## Support and documentation
 
