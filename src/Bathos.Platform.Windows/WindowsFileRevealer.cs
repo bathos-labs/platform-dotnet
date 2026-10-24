@@ -1,4 +1,5 @@
 using System.Runtime.InteropServices;
+using System.Runtime.Versioning;
 using Bathos.Platform.Desktop;
 
 namespace Bathos.Platform.Windows;
@@ -12,13 +13,19 @@ public sealed partial class WindowsFileRevealer : IFileRevealer
         DesktopPaths.RequireEntry(path);
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows file reveal requires Windows.");
         cancellationToken.ThrowIfCancellationRequested();
+        return StartWorker(path, new NativeShell(), cancellationToken);
+    }
+
+    [SupportedOSPlatform("windows")]
+    internal static Task StartWorker(string path, IShell shell, CancellationToken cancellationToken)
+    {
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var worker = new Thread(() =>
-        {
-            try { Reveal(path, new NativeShell(), cancellationToken); completion.SetResult(); }
-            catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { completion.SetCanceled(cancellationToken); }
-            catch (Exception error) { completion.SetException(error); }
-        })
+            {
+                try { Reveal(path, shell, cancellationToken); completion.SetResult(); }
+                catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { completion.SetCanceled(cancellationToken); }
+                catch (Exception error) { completion.SetException(error); }
+            })
         { IsBackground = true, Name = "Bathos file reveal" };
         worker.SetApartmentState(ApartmentState.STA);
         worker.Start();
@@ -54,7 +61,8 @@ public sealed partial class WindowsFileRevealer : IFileRevealer
         void Uninitialize();
     }
 
-    private sealed class NativeShell : IShell
+    [SupportedOSPlatform("windows")]
+    internal sealed class NativeShell : IShell
     {
         public int Initialize() => InitializeCom(0, 6); // STA and DISABLE_OLE1DDE.
         public int Parse(string path, out nint item) => ParseDisplayName(path, 0, out item, 0, out _);
