@@ -1,12 +1,23 @@
 using System.IO.Pipes;
 using System.Text.Json;
+using Bathos.Platform;
 using Bathos.Platform.Linux;
+using Bathos.Platform.MacOS;
+using Bathos.Platform.Windows;
 
 // Engineering-only owned test application: never opens an editor or a desktop window.
 try
 {
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))
         ?? throw new InvalidDataException("Missing probe configuration.");
+    if (configuration.Mode == "reject-special")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        var probe = provider.FileEntries ?? throw new InvalidOperationException("Missing inspection capability.");
+        try { probe.RequireRegularFile(configuration.Document ?? throw new InvalidDataException("Missing entry.")); }
+        catch (IOException) { return 0; }
+        throw new InvalidOperationException("Inspection accepted a link or special entry.");
+    }
     if (configuration.Mode == "desktop")
     {
         if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException();

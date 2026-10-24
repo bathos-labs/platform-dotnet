@@ -7,6 +7,7 @@ using Xunit;
 namespace Bathos.Platform.Tests;
 
 /// <summary>Runs real native operations on the current host using disposable files; safe for unattended native runners.</summary>
+[Trait("Validation", "Native")]
 public sealed class NativeFileContractTests
 {
     private static IPlatformProvider Current() => PlatformProviders.SelectCurrent(

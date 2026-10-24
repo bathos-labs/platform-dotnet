@@ -10,6 +10,18 @@
         "dependencies": {
           "Bathos.Platform": "[1.0.0, )"
         }
+      },
+      "bathos.platform.macos": {
+        "type": "Project",
+        "dependencies": {
+          "Bathos.Platform": "[1.0.0, )"
+        }
+      },
+      "bathos.platform.windows": {
+        "type": "Project",
+        "dependencies": {
+          "Bathos.Platform": "[1.0.0, )"
+        }
       }
     }
   }

@@ -37,7 +37,18 @@ def handle(connection, call):
     # Deliberately use a legacy path and emit Response BEFORE the method reply to cover both lifecycle races.
     path = "/org/freedesktop/portal/desktop/request/legacy/" + str(options["handle_token"])
     reply = dbus.lowlevel.MethodReturnMessage(call)
-    reply.append(dbus.ObjectPath(path), signature="o")
+    if scenario == "reply-signature":
+        reply.append(path, signature="s")
+    else:
+        reply.append(dbus.ObjectPath("/wrong/request" if scenario == "reply-path" else path), signature="o")
+    if scenario == "late":
+        connection.send_message(reply)
+        connection.flush()
+    if scenario == "owner-loss":
+        connection.send_message(reply)
+        connection.flush()
+        bus.release_name(portal)
+        return True
     if scenario == "unrelated":
         # A unicast signal can arrive without matching our subscription. Ignore the wrong sender and wrong path.
         other = dbus.SessionBus(private=True)
@@ -64,6 +75,16 @@ def handle(connection, call):
             color = dbus.Struct((float("nan"), 0.5, 1.0), signature="ddd", variant_level=1)
         elif scenario == "range":
             color = dbus.Struct((-0.1, 0.5, 1.0), signature="ddd", variant_level=1)
+        elif scenario == "infinity":
+            color = dbus.Struct((0.0, float("inf"), 1.0), signature="ddd", variant_level=1)
+        elif scenario == "upper-range":
+            color = dbus.Struct((0.0, 0.5, 1.01), signature="ddd", variant_level=1)
+        elif scenario == "short":
+            color = dbus.Struct((0.0, 0.5), signature="dd", variant_level=1)
+        elif scenario == "long":
+            color = dbus.Struct((0.0, 0.5, 1.0, 0.0), signature="dddd", variant_level=1)
+        elif scenario == "component-type":
+            color = dbus.Struct((0.0, 0.5, dbus.Int32(1)), signature="ddi", variant_level=1)
         elif scenario == "type":
             color = dbus.String("wrong", variant_level=1)
         results = {"color": color, "future-key": dbus.String("ignored", variant_level=1)}
@@ -74,7 +95,8 @@ def handle(connection, call):
         else:
             response.append(dbus.UInt32(status), results, signature="ua{sv}")
         connection.send_message(response)
-    connection.send_message(reply)
+    if scenario != "late":
+        connection.send_message(reply)
     connection.flush()
     if scenario == "disconnect":
         GLib.idle_add(loop.quit)

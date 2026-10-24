@@ -5,7 +5,18 @@ behavior can be checked using the engineering harnesses below. The harnesses are
 
 ## Automated evidence boundaries
 
-All tests build and run from this repository alone with `task test` or `task test:coverage`.
+All tests build and run from this repository alone with `task test` or `task test:coverage`. Every test is labeled
+`Validation=Portable` or `Validation=Native`. After building, use the existing runner to select one evidence tier or
+feature independently, for example:
+
+```text
+dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --filter-trait "Validation=Portable"
+dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --filter-trait "Validation=Native"
+dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build --filter-class "*Publication*"
+```
+
+The full CI suite runs both tiers. Platform-inapplicable native cases still report explicit skips; manual checks are
+procedures, not disabled tests counted as automated evidence.
 
 | Evidence | Runs where | What it establishes |
 | --- | --- | --- |
@@ -19,6 +30,21 @@ Coverage reports include handwritten native code even when it cannot run on the 
 useful for locating gaps, but must be read with per-platform flags, successful matrix jobs, skipped-test reasons, and
 behavioral assertions. A macOS run cannot accept Windows/Linux behavior. Cross-volume, permission denial, and special
 filesystem behavior require evidence on the relevant filesystem; an unattended substitute does not establish them.
+
+## Contract audit and remaining gaps
+
+| Capability | Unattended assertions | Remaining native/desktop evidence |
+| --- | --- | --- |
+| Provider composition | Minimal implementers inherit null capabilities; selection rejects absence and ambiguity; construction does no native work. | Service/permission availability cannot be inferred from a nonnull capability. |
+| Publication | Real concurrent publishers, collision gaps, explicit replacement, staging-path reuse; controlled native failures, flush failure, cancellation between attempts and after success, single-use ownership and recovery with a new operation. | Real cross-volume rejection, denied access, and unusual/network filesystems need host/filesystem-specific checks. The portable rename double does not establish atomicity. |
+| Entry inspection/rename | Real files, links, FIFOs/sockets, retained bytes on failed rename, successful subsequent operations, and Windows handle-sharing cleanup. Special-entry probes run in owned child processes with a deadline, so accidentally opening a FIFO cannot strand the runner. | Windows symlink fixtures explicitly skip when privilege is unavailable; run them with privilege or record a manual check. Junctions/devices and adversarial ancestor replacement remain separate cases. |
+| Desktop handoff/discovery | Owned executable argument/exit probe, cancellation before/after submission, native invalid-executable errors; actual registration lookup and malformed Windows App Paths records. | Real application formats, visible selection, focus, app reuse, and macOS bundle handoff remain manual. GIO allocation/launch failures and malformed LaunchServices objects need additional native-boundary fault injection. |
+| Windows Shell reveal | Internal Shell seam exercises the production ownership sequence: balanced COM for S_OK/S_FALSE, initialization/parse/selection failures, null PIDL, pre-submission cancellation, and post-submission cancellation. | The seam does not establish STA/Shell integration or visible Explorer behavior; follow the desktop checks below. |
+| Linux portal/reveal | Private native D-Bus fixtures exercise early/late signals, malformed method replies/paths and color components, owner loss, errors/cancellation, slot recovery, and caller cancellation while awaiting a submitted reveal. Except for intentional disconnects, fixtures wait for the client's bus name to disappear, checking connection cleanup. | A real portal, compositor, file manager, and privacy controls still require manual validation. Native allocation failures are not injected. |
+| Windows/macOS screen samplers | Construction and dispatcher-access contracts; Linux's portable gate test independently covers overlap, error recovery, and user cancellation. | AppKit callback/block retirement and GDI/window cleanup, allocation failures, display changes, and picker cancellation require further focused fault-injection coverage plus the manual procedure below. Linux gate tests do not validate these implementations. |
+
+These gaps are consequences to investigate, not coverage targets. Keep profile-specific tests with their feature;
+new capabilities should use these same standalone runner, boundary, ownership, and evidence conventions.
 
 ## macOS and Windows screen sampler
 

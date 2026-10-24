@@ -7,6 +7,7 @@ namespace Bathos.Platform.Tests;
 public sealed class LinuxScreenColorSamplerTests
 {
     [Fact]
+    [Trait("Validation", "Portable")]
     public async Task RequestsRejectOverlapAcrossInstancesAndReleaseOwnershipAfterFailure()
     {
         var entered = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
@@ -47,6 +48,16 @@ public sealed class LinuxScreenColorSamplerTests
     [InlineData("disconnect")]
     [InlineData("unrelated")]
     [InlineData("method-error")]
+    [InlineData("reply-signature")]
+    [InlineData("reply-path")]
+    [InlineData("late")]
+    [InlineData("owner-loss")]
+    [InlineData("infinity")]
+    [InlineData("upper-range")]
+    [InlineData("short")]
+    [InlineData("long")]
+    [InlineData("component-type")]
+    [Trait("Validation", "Native")]
     public async Task NativePortalProtocolAgainstPrivateHeadlessService(string scenario)
     {
         if (!OperatingSystem.IsLinux()) Assert.Skip("Native libdbus protocol tests require Linux; no desktop is used.");
@@ -69,14 +80,19 @@ public sealed class LinuxScreenColorSamplerTests
             var address = await service.StandardOutput.ReadLineAsync(deadline.Token);
             Assert.NotNull(address);
             Assert.StartsWith("unix:", address, StringComparison.Ordinal);
-            operation = Task.Run(() => OperatingSystem.IsLinux() ? DesktopBus.PickColor("", address)
+            var sampler = new LinuxScreenColorSampler(() => OperatingSystem.IsLinux() ? DesktopBus.PickColor("", address)
                 : throw new PlatformNotSupportedException());
-            if (scenario is "success" or "unrelated") Assert.Equal(new ScreenColor(0, 128, 255), await operation.WaitAsync(deadline.Token));
+            operation = sampler.SampleAsync();
+            if (scenario is "success" or "unrelated" or "late") Assert.Equal(new ScreenColor(0, 128, 255), await operation.WaitAsync(deadline.Token));
             else if (scenario == "cancel") Assert.Null(await operation.WaitAsync(deadline.Token));
-            else if (scenario == "disconnect") await Assert.ThrowsAsync<IOException>(() => operation.WaitAsync(deadline.Token));
+            else if (scenario is "disconnect" or "owner-loss") await Assert.ThrowsAsync<IOException>(() => operation.WaitAsync(deadline.Token));
             else await Assert.ThrowsAsync<InvalidOperationException>(() => operation.WaitAsync(deadline.Token));
             await service.WaitForExitAsync(deadline.Token);
             Assert.True(service.ExitCode == 0, await errors);
+            // Except for the intentional service disconnect, exit waits for our unique bus name to vanish.
+            // This checks connection closure even on malformed/native error responses.
+            // The real transport must also release the sampler's process-wide slot before completion.
+            Assert.Equal(new ScreenColor(1, 2, 3), await new LinuxScreenColorSampler(() => new ScreenColor(1, 2, 3)).SampleAsync());
         }
         finally
         {

@@ -15,7 +15,7 @@ public sealed partial class WindowsFileRevealer : IFileRevealer
         var completion = new TaskCompletionSource(TaskCreationOptions.RunContinuationsAsynchronously);
         var worker = new Thread(() =>
         {
-            try { Reveal(path, cancellationToken); completion.SetResult(); }
+            try { Reveal(path, new NativeShell(), cancellationToken); completion.SetResult(); }
             catch (OperationCanceledException) when (cancellationToken.IsCancellationRequested) { completion.SetCanceled(cancellationToken); }
             catch (Exception error) { completion.SetException(error); }
         })
@@ -25,22 +25,42 @@ public sealed partial class WindowsFileRevealer : IFileRevealer
         return completion.Task;
     }
 
-    private static void Reveal(string path, CancellationToken token)
+    internal static void Reveal(string path, IShell shell, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
-        Marshal.ThrowExceptionForHR(InitializeCom(0, 6)); // STA and DISABLE_OLE1DDE; S_FALSE still requires uninitialization.
+        Marshal.ThrowExceptionForHR(shell.Initialize()); // S_FALSE still requires uninitialization.
         try
         {
-            Marshal.ThrowExceptionForHR(ParseDisplayName(path, 0, out var item, 0, out _));
-            if (item == 0) throw new IOException("The Shell returned no filesystem item.");
+            nint item = 0;
             try
             {
+                Marshal.ThrowExceptionForHR(shell.Parse(path, out item));
+                if (item == 0) throw new IOException("The Shell returned no filesystem item.");
                 token.ThrowIfCancellationRequested();
-                Marshal.ThrowExceptionForHR(OpenFolderAndSelectItems(item, 0, 0, 0));
+                Marshal.ThrowExceptionForHR(shell.Select(item));
             }
-            finally { Marshal.FreeCoTaskMem(item); }
+            finally { if (item != 0) shell.Free(item); }
         }
-        finally { UninitializeCom(); }
+        finally { shell.Uninitialize(); }
+    }
+
+    // Keep the real ownership sequence testable without launching Explorer or substituting the STA worker.
+    internal interface IShell
+    {
+        int Initialize();
+        int Parse(string path, out nint item);
+        int Select(nint item);
+        void Free(nint item);
+        void Uninitialize();
+    }
+
+    private sealed class NativeShell : IShell
+    {
+        public int Initialize() => InitializeCom(0, 6); // STA and DISABLE_OLE1DDE.
+        public int Parse(string path, out nint item) => ParseDisplayName(path, 0, out item, 0, out _);
+        public int Select(nint item) => OpenFolderAndSelectItems(item, 0, 0, 0);
+        public void Free(nint item) => Marshal.FreeCoTaskMem(item);
+        public void Uninitialize() => UninitializeCom();
     }
 
     [LibraryImport("ole32.dll", EntryPoint = "CoInitializeEx")]
