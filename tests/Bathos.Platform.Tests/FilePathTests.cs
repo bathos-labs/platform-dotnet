@@ -118,6 +118,7 @@ public sealed class FilePathTests
         else
         {
             Assert.Throws<ArgumentException>(() => Native.NormalizeAbsolute("//server/share"));
+            Assert.Throws<ArgumentException>(() => Native.NormalizeAbsolute("/folder/../D:/file"));
             const string path = "/folder/literal\\backslash";
             Assert.True(Native.TryFromFileUri(Native.ToFileUri(path), out var restored));
             Assert.Equal(path, restored);
