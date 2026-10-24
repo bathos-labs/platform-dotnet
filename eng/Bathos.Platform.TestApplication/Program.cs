@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using System.Text.Json;
 using Bathos.Platform;
+using Bathos.Platform.Files;
 using Bathos.Platform.Linux;
 using Bathos.Platform.MacOS;
 using Bathos.Platform.Windows;
@@ -39,11 +40,14 @@ try
         if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
         return 0;
     }
-    if (configuration.Mode == "file-lease")
+    if (configuration.Mode is "file-lease" or "shared-file-lease")
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
-        using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
-            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."));
+        var path = configuration.Document ?? throw new InvalidDataException("Missing lock path.");
+        using var lease = configuration.Mode == "shared-file-lease"
+            ? (provider.SharedFileLeases ?? throw new InvalidOperationException("Missing shared lease capability."))
+                .TryAcquire(path, FileLeaseMode.Shared)
+            : (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability.")).TryAcquire(path);
         Console.WriteLine(lease is null ? "contended" : "acquired");
         if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
         return 0;

@@ -6,15 +6,23 @@ using Microsoft.Win32.SafeHandles;
 namespace Bathos.Platform.Windows;
 
 /// <summary>Cooperative Windows leases using an immediate exclusive byte-range lock on an owned disk-file handle.</summary>
-public sealed partial class WindowsFileLeaseProvider : IFileLeaseProvider
+public sealed partial class WindowsFileLeaseProvider : ISharedFileLeaseProvider
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireFileLease/*" />
     public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default) =>
         TryAcquire(path, beforeOwnershipTransfer: null, cancellationToken);
 
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireSharedFileLease/*" />
+    public IFileLease? TryAcquire(string path, FileLeaseMode mode, CancellationToken cancellationToken = default) =>
+        Acquire(path, mode, beforeOwnershipTransfer: null, cancellationToken);
+
     // Call-scoped seam for retirement after the real native lock, before transferring ownership to the caller.
-    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
+    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken) =>
+        Acquire(path, FileLeaseMode.Exclusive, beforeOwnershipTransfer, cancellationToken);
+
+    private static HeldFileLease? Acquire(string path, FileLeaseMode mode, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
     {
+        if (mode is not (FileLeaseMode.Shared or FileLeaseMode.Exclusive)) throw new ArgumentOutOfRangeException(nameof(mode));
         if (PlatformHost.Current != PlatformOperatingSystem.Windows) throw new PlatformNotSupportedException();
         path = NativeFilePaths.Windows.NormalizeAbsolute(path);
         cancellationToken.ThrowIfCancellationRequested();
@@ -30,7 +38,7 @@ public sealed partial class WindowsFileLeaseProvider : IFileLeaseProvider
             if ((attributes.Attributes & (0x10u | 0x400u | 0x40u)) != 0)
                 throw new IOException("A regular lock file without a reparse point is required.");
             var overlapped = new Overlapped();
-            if (!LockFileEx(handle, 3, 0, 1, 0, ref overlapped)) // FAIL_IMMEDIATELY | EXCLUSIVE_LOCK; byte zero
+            if (!LockFileEx(handle, mode == FileLeaseMode.Shared ? 1u : 3u, 0, 1, 0, ref overlapped)) // FAIL_IMMEDIATELY, optionally EXCLUSIVE_LOCK; byte zero
             {
                 var error = Marshal.GetLastPInvokeError();
                 if (error == 33) return null; // ERROR_LOCK_VIOLATION

@@ -5,15 +5,23 @@ using Microsoft.Win32.SafeHandles;
 namespace Bathos.Platform.Linux;
 
 /// <summary>Cooperative Linux leases using nonblocking exclusive flock on an owned file descriptor.</summary>
-public sealed partial class LinuxFileLeaseProvider : IFileLeaseProvider
+public sealed partial class LinuxFileLeaseProvider : ISharedFileLeaseProvider
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireFileLease/*" />
     public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default) =>
         TryAcquire(path, beforeOwnershipTransfer: null, cancellationToken);
 
+    /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireSharedFileLease/*" />
+    public IFileLease? TryAcquire(string path, FileLeaseMode mode, CancellationToken cancellationToken = default) =>
+        Acquire(path, mode, beforeOwnershipTransfer: null, cancellationToken);
+
     // Call-scoped seam for retirement after the real native lock, before transferring ownership to the caller.
-    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
+    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken) =>
+        Acquire(path, FileLeaseMode.Exclusive, beforeOwnershipTransfer, cancellationToken);
+
+    private static HeldFileLease? Acquire(string path, FileLeaseMode mode, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
     {
+        if (mode is not (FileLeaseMode.Shared or FileLeaseMode.Exclusive)) throw new ArgumentOutOfRangeException(nameof(mode));
         if (PlatformHost.Current != PlatformOperatingSystem.Linux) throw new PlatformNotSupportedException();
         path = FileLeasePath.NormalizeUnix(path);
         cancellationToken.ThrowIfCancellationRequested();
@@ -28,7 +36,7 @@ public sealed partial class LinuxFileLeaseProvider : IFileLeaseProvider
             if (StatX(handle, "", 0x1000, 1, out var info) != 0) throw FileEntryErrors.Native();
             if ((info.Mask & 1) == 0) throw new IOException("The filesystem did not identify the lock-file kind.");
             FileEntryErrors.RequireRegular(info.Mode);
-            if (FLock(handle, 2 | 4) != 0) // LOCK_EX | LOCK_NB
+            if (FLock(handle, (mode == FileLeaseMode.Shared ? 1 : 2) | 4) != 0) // LOCK_SH/LOCK_EX | LOCK_NB
             {
                 var error = Marshal.GetLastPInvokeError();
                 if (error == 11) return null; // EWOULDBLOCK

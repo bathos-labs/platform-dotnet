@@ -141,3 +141,8 @@ release: unlinking/recreating a path can split ownership across distinct open fi
 a separate host-owned file and cannot prove current ownership. Existing foreign locking protocols are not coordinated.
 Local filesystems supporting the native operations are the intended environment; no network-client or alias guarantee
 is made. The leaf is validated, but ancestor replacement by noncooperating actors is outside the contract.
+
+`ISharedFileLeaseProvider` adds explicit shared/exclusive compatibility over the same native lock artifact.
+Existing `IFileLeaseProvider` callers remain exclusive; existing third-party implementations need no new members.
+The facade exposes a separate optional `SharedFileLeases` capability. Shared owners coexist and exclude exclusive
+owners. There are no lock upgrades, hierarchy rules, or waiting policies in Platform; these belong to consumers.

@@ -12,6 +12,8 @@ a new major version and are called out here. Linux native support remains experi
 
 ### Added
 
+- Optional shared/exclusive file leases over the same stable artifacts, preserving exclusive-only provider compatibility.
+
 - Cooperative persistent file leases on Windows, macOS, and Linux, with explicit contention and native ownership lifetime. Lock artifacts and their containing directories must remain intact at a stable location while leased.
 
 - Optional standard-directory discovery and explicit application scoping, including Linux XDG roots, unavailable-location results, and host-supplied root overrides without directory creation.

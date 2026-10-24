@@ -20,7 +20,9 @@ public sealed class MacOSPlatformProvider : IPlatformProvider
     /// <summary>Gets installed profile discovery and readback; invoke only on MacOS.</summary>
     public IColorProfileProvider ColorProfiles { get; } = new MacColorProfileProvider();
     /// <summary>Gets cooperative file leases; invoke on the matching runtime with a stable lock location.</summary>
-    public IFileLeaseProvider FileLeases { get; } = new MacOSFileLeaseProvider();
+    public IFileLeaseProvider FileLeases => SharedFileLeases;
+    /// <summary>Gets native shared/exclusive leases over stable artifacts on the matching runtime.</summary>
+    public ISharedFileLeaseProvider SharedFileLeases { get; } = new MacOSFileLeaseProvider();
     /// <summary>Gets standard directory discovery; invoke on the matching runtime.</summary>
     public IStandardDirectories Directories { get; } = new MacOSStandardDirectories();
     /// <summary>Gets lexical path operations for the matching runtime; no filesystem identity is inferred.</summary>

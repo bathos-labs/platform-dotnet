@@ -19,6 +19,32 @@ public sealed class FileLeaseTests
         ?? throw new InvalidOperationException("Missing native lease capability.");
 
     [Fact]
+    public void SharedOwnersCoexistAndExcludeExclusiveOwnersUntilAllHaveReleased()
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-shared-leases-");
+        try
+        {
+            var path = Path.Combine(folder.FullName, "writer.lock");
+            var provider = Assert.IsAssignableFrom<ISharedFileLeaseProvider>(Current());
+            using (var first = provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken))
+            {
+                Assert.NotNull(first);
+                using (var second = provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken))
+                {
+                    Assert.NotNull(second);
+                    Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+                }
+                Assert.Null(Current().TryAcquire(path, TestContext.Current.CancellationToken));
+            }
+            using var exclusive = Current().TryAcquire(path, TestContext.Current.CancellationToken);
+            Assert.NotNull(exclusive);
+            Assert.Null(provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken));
+            Assert.Throws<ArgumentOutOfRangeException>(() => provider.TryAcquire(path, (FileLeaseMode)100, TestContext.Current.CancellationToken));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
     public async Task IndependentProvidersExcludeOneAnotherAndReleaseWithoutDeletingOrChangingBytes()
     {
         var folder = Directory.CreateTempSubdirectory("bathos-leases-");
@@ -129,6 +155,35 @@ public sealed class FileLeaseTests
             { Assert.Skip("Symlink creation requires Windows developer mode or privileges."); }
             Assert.ThrowsAny<IOException>(() => Current().TryAcquire(link, TestContext.Current.CancellationToken));
             Assert.Equal("preserve", File.ReadAllText(target));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
+    public async Task SharedOwnershipCoordinatesAcrossProcesses()
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-shared-leases-");
+        try
+        {
+            var path = Path.Combine(folder.FullName, "shared.lock");
+            var provider = Assert.IsAssignableFrom<ISharedFileLeaseProvider>(Current());
+            using (var parent = provider.TryAcquire(path, FileLeaseMode.Shared, TestContext.Current.CancellationToken))
+            {
+                Assert.NotNull(parent);
+                await using var child = await Child.StartAsync(folder.FullName, path, mode: "shared-file-lease");
+                Assert.Equal("acquired", await child.ReadAsync());
+                Assert.Null(provider.TryAcquire(path, TestContext.Current.CancellationToken));
+                parent.Dispose();
+                Assert.Null(provider.TryAcquire(path, TestContext.Current.CancellationToken));
+                await child.Process.StandardInput.WriteLineAsync("finish");
+                await child.WaitAsync();
+            }
+            using var exclusive = provider.TryAcquire(path, TestContext.Current.CancellationToken);
+            Assert.NotNull(exclusive);
+            await using var contender = await Child.StartAsync(folder.FullName, path, mode: "shared-file-lease");
+            Assert.Equal("contended", await contender.ReadAsync());
+            await contender.Process.StandardInput.WriteLineAsync("finish");
+            await contender.WaitAsync();
         }
         finally { folder.Delete(true); }
     }

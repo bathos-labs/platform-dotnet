@@ -456,3 +456,9 @@ on every platform. If application data may move, choose a stable lock location o
 instance must keep using that same lock location. Hosts own admission, publication receipts, and any directory-ownership
 policy. Aliases, network clients, other operating systems, noncooperating actors, and alternate path representations
 are outside the exclusion guarantee.
+
+For shared/exclusive compatibility, use the optional `platform.SharedFileLeases` capability and call
+`TryAcquire(path, FileLeaseMode.Shared, token)` or `FileLeaseMode.Exclusive`. Shared owners coexist; an exclusive
+owner conflicts with every other owner. The ordinary `FileLeases.TryAcquire` remains exclusive and participates in
+the same protocol. This describes lock compatibility, not application data-access permissions. All stable-location,
+process lifetime, cancellation, and failure boundaries above still apply. No upgrade or waiting operation is supplied.
