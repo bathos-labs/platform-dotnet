@@ -23,7 +23,7 @@ internal static class DirectoryDiscovery
         var configuration = host == PlatformOperatingSystem.Linux ? Xdg("XDG_CONFIG_HOME", ".config")
             : host == PlatformOperatingSystem.Windows ? Normalize(folder(Environment.SpecialFolder.ApplicationData)) : data;
         var cache = host == PlatformOperatingSystem.Linux ? Xdg("XDG_CACHE_HOME", ".cache")
-            : host == PlatformOperatingSystem.MacOS ? UnderHome("Library", "Caches") : data;
+            : host == PlatformOperatingSystem.MacOS ? Normalize(folder(Environment.SpecialFolder.InternetCache)) : data;
         return new(host)
         {
             Home = home,

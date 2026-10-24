@@ -1,3 +1,5 @@
+using System.Diagnostics;
+using System.Text.Json;
 using Bathos.Platform.Directories;
 using Bathos.Platform.Linux;
 using Bathos.Platform.MacOS;
@@ -22,6 +24,7 @@ public sealed class StandardDirectoryTests
             Environment.SpecialFolder.UserProfile => home,
             Environment.SpecialFolder.LocalApplicationData => Path.Combine(home, "local"),
             Environment.SpecialFolder.ApplicationData => Path.Combine(home, "roaming"),
+            Environment.SpecialFolder.InternetCache => Path.Combine(home, "native-cache"),
             _ => "",
         };
         var identity = new ApplicationDirectoryIdentity("Product", "Publisher");
@@ -36,7 +39,7 @@ public sealed class StandardDirectoryTests
             var expectedCache = host switch
             {
                 PlatformOperatingSystem.Windows => Path.Combine(application.Data, "Cache"),
-                PlatformOperatingSystem.MacOS => Path.Combine(home, "Library", "Caches", "Publisher", "Product"),
+                PlatformOperatingSystem.MacOS => Path.Combine(home, "native-cache", "Publisher", "Product"),
                 _ => Path.Combine(home, ".cache", "Publisher", "Product"),
             };
             Assert.Equal(expectedCache, application.Cache);
@@ -109,4 +112,54 @@ public sealed class StandardDirectoryTests
     {
         public PlatformOperatingSystem OperatingSystem => PlatformOperatingSystem.Unknown;
     }
+
+    [Fact]
+    [Trait("Validation", "Native")]
+    public async Task MacCacheUsesNativeLocationEvenWhenHomeIsOverridden()
+    {
+        if (!OperatingSystem.IsMacOS()) Assert.Skip("Native cache selection requires macOS.");
+        var folder = Directory.CreateTempSubdirectory("bathos-directories-");
+        try
+        {
+            var home = Path.Combine(folder.FullName, "uncreated-home");
+            var observed = await DiscoverInChildAsync(folder.FullName, home);
+            Assert.Equal(home, observed.Roots.Home);
+            if (observed.NativeCache is { Length: > 0 } nativeCache)
+                Assert.Equal(Paths.NormalizeAbsolute(nativeCache), observed.Roots.Cache);
+            else Assert.Null(observed.Roots.Cache);
+            Assert.False(Directory.Exists(home));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    private static async Task<DirectoryObservation> DiscoverInChildAsync(string folder, string? home)
+    {
+        var configuration = Path.Combine(folder, "directories.json");
+        await File.WriteAllTextAsync(configuration, JsonSerializer.Serialize(new { Mode = "standard-directories", PipeName = "" }), TestContext.Current.CancellationToken);
+        var executable = Path.Combine(AppContext.BaseDirectory, "TestApplication", "Bathos.Platform.TestApplication" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+        var start = new ProcessStartInfo(executable) { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
+        start.ArgumentList.Add(configuration);
+        // Only this owned child observes the override; the test runner's process environment stays unchanged.
+        if (home is null) start.Environment.Remove("HOME");
+        else start.Environment["HOME"] = home;
+        using var child = Process.Start(start) ?? throw new InvalidOperationException("Directory probe did not start.");
+        var output = child.StandardOutput.ReadToEndAsync();
+        var error = child.StandardError.ReadToEndAsync();
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
+        deadline.CancelAfter(TimeSpan.FromSeconds(15));
+        try
+        {
+            await child.WaitForExitAsync(deadline.Token);
+            Assert.True(child.ExitCode == 0, await error);
+            return JsonSerializer.Deserialize<DirectoryObservation>(await output) ?? throw new InvalidDataException("Missing directory observation.");
+        }
+        finally
+        {
+            if (!child.HasExited) child.Kill(entireProcessTree: true);
+            await child.WaitForExitAsync(CancellationToken.None);
+            await Task.WhenAll(output, error);
+        }
+    }
+
+    private sealed record DirectoryObservation(StandardDirectoryRoots Roots, string RuntimeHome, string? NativeCache);
 }

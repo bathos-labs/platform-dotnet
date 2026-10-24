@@ -379,7 +379,7 @@ is inert. Use explicit root snapshots for tests or portable installs rather than
 | Layout | Data | Configuration | Cache | State |
 | --- | --- | --- | --- | --- |
 | Windows | .NET local application data | .NET roaming application data | Local application data, then publisher/product/Cache | Same root as data |
-| macOS | .NET local application data | Same root as data | Home/Library/Caches | Same root as data |
+| macOS | .NET local application data | Same root as data | Native user caches via .NET InternetCache | Same root as data |
 | Linux | XDG_DATA_HOME or Home/.local/share | XDG_CONFIG_HOME or Home/.config | XDG_CACHE_HOME or Home/.cache | XDG_STATE_HOME or Home/.local/state |
 
 Linux ignores empty, relative, and invalid XDG values and uses the home-based default. Without a usable home, defaults
@@ -387,6 +387,8 @@ are unavailable; independently valid absolute XDG roots still work. See the [XDG
 Windows root lookup uses the [runtime's special-folder API](https://learn.microsoft.com/dotnet/api/system.environment.specialfolder),
 including OS redirection. Documents and desktop are returned only when the runtime supplies usable paths; Downloads,
 XDG runtime-directory ownership, and XDG user-dirs parsing are outside this capability.
+On macOS, the runtime maps `InternetCache` to the native user-domain `NSCachesDirectory`. Cache discovery uses that
+location independently of `HOME`; it does not construct a replacement when the native result is unavailable.
 
 ```csharp
 using Bathos.Platform.Directories;

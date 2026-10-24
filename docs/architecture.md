@@ -108,7 +108,8 @@ must establish the supported same-device guarantees independently on each suppor
 
 `IStandardDirectories` observes standard roots on demand. Provider construction performs no discovery. The common
 runtime adapter uses .NET special folders with `DoNotVerify`, the runtime temporary directory, and application base;
-OS layout policy fills cache/state and XDG conventions. Lookup does not create folders, verify write access, or acquire
+The macOS cache root comes from the runtime's native user-cache lookup, independently of the home environment value.
+OS layout policy fills state and XDG conventions. Lookup does not create folders, verify write access, or acquire
 ownership. A missing/invalid location is null; operational lookup failures may propagate.
 
 `StandardDirectoryRoots` is a snapshot, with explicit record-copy overrides for host/test/portable-install roots.

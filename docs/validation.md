@@ -182,3 +182,6 @@ Deterministic tests supply folder/environment values without changing the proces
 invalid relative overrides, unavailable home and roots, application identity validation, explicit overrides, and
 Windows/macOS/Linux layout scoping. Native tests read the current host's roots without writing into user directories;
 foreign-provider invocation is rejected. Paths and successful lookup do not establish filesystem access or ownership.
+An owned macOS child runs with an uncreated home override and compares cache discovery with the independent native
+cache lookup. The parent environment and real user directories are unchanged. Packaged sandbox behavior remains a
+separate host validation case.
