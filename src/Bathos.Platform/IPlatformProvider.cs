@@ -49,7 +49,7 @@ public interface IPlatformProvider
     INativeFilePaths? FilePaths => null;
     /// <summary>Gets standard directory discovery, or null when unavailable. Lookup does not create directories or establish access.</summary>
     IStandardDirectories? Directories => null;
-    /// <summary>Gets cooperative persistent file leases, or null when unavailable. Stable locations and a common protocol are required.</summary>
+    /// <summary>Gets cooperative shared or exclusive file leases, or null when unavailable. Stable locations and a common protocol are required.</summary>
     IFileLeaseProvider? FileLeases => null;
     /// <summary>Gets regular-file inspection, or null when unavailable. Inspection is advisory, not a path reservation.</summary>
     IFileEntryProbe? FileEntries => null;

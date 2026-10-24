@@ -20,7 +20,7 @@ public sealed class WindowsPlatformProvider : IPlatformProvider
 
     /// <summary>Gets installed profile discovery and readback; invoke only on Windows.</summary>
     public IColorProfileProvider ColorProfiles { get; } = new WindowsColorProfileProvider();
-    /// <summary>Gets cooperative file leases; invoke on the matching runtime with a stable lock location.</summary>
+    /// <summary>Gets cooperative shared or exclusive file leases; invoke on the matching runtime with a stable lock location.</summary>
     public IFileLeaseProvider FileLeases { get; } = new WindowsFileLeaseProvider();
     /// <summary>Gets standard directory discovery; invoke on the matching runtime.</summary>
     public IStandardDirectories Directories { get; } = new WindowsStandardDirectories();

@@ -193,11 +193,14 @@ require changing the parent environment, user identity, permissions, or real use
 ## File leases
 
 The native lease tests use disposable roots and owned child processes, with redirected pipe messages for acquisition
-and completion. They cover separate providers in one process, parent/child contention, disposal, forced process exit,
-stale artifact bytes, pre-cancellation, missing parents, invalid paths, links/special files, noninherited handles, creation permissions, significant names,
-and retained exclusion at a stable lock location outside a moved application-data tree. Watchdogs only bound hangs; no timing-based synchronization
-is used. Foreign providers reject invocation. Run on all three hosts: local success does not establish another OS's
-locking semantics. Windows link tests require developer mode or symlink privileges and explicitly skip otherwise.
+and completion. Shared owners coexist within and across processes, and exclusive owners exclude both modes.
+Releasing one shared owner preserves another owner's claim. Tests cover disposal and forced process exit in both modes,
+stale artifact bytes, pre-cancellation, missing parents, invalid paths, links/special files, noninherited handles,
+creation permissions, significant names, and retained exclusion at a stable lock location outside a moved application-data
+tree. Default-mode acquisition is checked against both shared and exclusive contenders. Watchdogs only bound hangs;
+no timing-based synchronization is used. Foreign providers reject invocation in both modes. Run on all three hosts:
+local success does not establish another OS's locking semantics. Windows link tests require developer mode or symlink
+privileges and explicitly skip otherwise.
 
 The guarantee requires stable artifacts and a common protocol on supported storage. Moving the artifact or any
 containing directory while leased is outside the contract on every platform. Noncooperating replacement,
@@ -205,8 +208,10 @@ network-client coordination, and filesystem alias discovery are intentionally no
 Unix tests reject malformed Unicode without creating or retargeting an artifact. An owned child holds a private
 pseudo-terminal while a separate session-leader child verifies that rejecting its slave does not assign a controlling terminal.
 Cancellation at an internal gate after a real native lock verifies contention before cancellation, then reacquisition
-and unchanged bytes after rollback. A separate owner is killed while its descendant remains alive, without explicit
-unlock; reacquisition verifies that ownership did not survive in the descendant. Unix launches that descendant through
+and unchanged bytes after rollback in both modes. A shared-mode case retains another shared owner, verifies its claim
+survives rollback, then releases it and proves the canceled acquisition did not leak a lock. In both modes, a separate
+owner is killed while its descendant remains alive, without explicit unlock; reacquisition verifies that ownership
+did not survive in the descendant. Unix launches that descendant through
 plain `posix_spawn`, so runtime descriptor cleanup cannot mask a missing close-on-exec flag. Windows uses the runtime launcher.
 Windows can finish implicit unlock after signaling process exit. Abrupt-exit tests await a cancellable native lock
 completion before asserting reacquisition, without sleeping or polling. A retained lock still fails the bounded wait.

@@ -426,6 +426,8 @@ access failures, temporary workspace allocation and cleanup, and the decision to
 Use an application-owned, persistent lock artifact. Its parent must exist. Never infer ownership from file existence
 or diagnostic metadata, and do not delete the artifact when releasing a lease. Each successful result must be disposed.
 Keep the artifact and its containing directory tree intact at the same location for the entire lease lifetime.
+Select `FileLeaseMode.Shared` to coexist with other shared owners, or `FileLeaseMode.Exclusive` to exclude every
+other owner. Both modes use the same optional `platform.FileLeases` capability and native protocol.
 
 ```csharp
 using Bathos.Platform;
@@ -436,9 +438,17 @@ public static class LeaseExample
     public static bool TryUpdate(IPlatformProvider platform, string absoluteLockPath, Action update, CancellationToken token)
     {
         var leases = platform.FileLeases ?? throw new PlatformNotSupportedException("File leases are unavailable.");
-        using var lease = leases.TryAcquire(absoluteLockPath, token);
+        using var lease = leases.TryAcquire(absoluteLockPath, FileLeaseMode.Exclusive, token);
         if (lease is null) return false; // Another cooperating caller owns it.
         update();
+        return true;
+    }
+
+    public static bool TryRead(IFileLeaseProvider leases, string absoluteLockPath, Action read, CancellationToken token)
+    {
+        using var lease = leases.TryAcquire(absoluteLockPath, FileLeaseMode.Shared, token);
+        if (lease is null) return false; // An exclusive owner holds it.
+        read();
         return true;
     }
 }
@@ -456,3 +466,7 @@ on every platform. If application data may move, choose a stable lock location o
 instance must keep using that same lock location. Hosts own admission, publication receipts, and any directory-ownership
 policy. Aliases, network clients, other operating systems, noncooperating actors, and alternate path representations
 are outside the exclusion guarantee.
+
+Modes describe lock compatibility, not application data-access permissions. `Exclusive` is the default enum value;
+every acquisition requires an explicit mode argument. There is no upgrade operation: a held lease cannot change
+modes. Hierarchy and logical resource identity remain application policy.

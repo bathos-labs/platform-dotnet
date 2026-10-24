@@ -123,15 +123,16 @@ ownership and cleanup, and product-specific placement choices.
 
 ## Cooperative file leases
 
-`IFileLeaseProvider.TryAcquire` makes one native acquisition attempt at an absolute lock-file path whose parent
-already exists. Null means native contention; other errors throw. Cancellation is checked before the attempt and
-before returning ownership, not by interrupting native calls. Construction is inert. All built-in providers expose
+`IFileLeaseProvider.TryAcquire` makes one native acquisition attempt in an explicit shared or exclusive mode at an
+absolute lock-file path whose parent already exists. Null means native contention; other errors throw. Cancellation
+is checked before the attempt and before returning ownership, not by interrupting native calls. Construction is inert. All built-in providers expose
 the optional capability; partial providers can omit it without breaking their existing contracts.
 
-Windows opens a noninheritable regular disk handle with sharing enabled and takes an immediate exclusive lock on
-byte zero using `LockFileEx`. macOS/Linux use raw noninheritable, nonblocking, no-follow opens, validate the opened
-file kind, and acquire `flock(LOCK_EX | LOCK_NB)`. Raw Unix opening avoids the runtime's implicit shared lock and
-its best-effort treatment of unsupported locking. Native lock errors other than contention fail explicitly. Disposal
+Windows opens a noninheritable regular disk handle with sharing enabled and takes an immediate shared or exclusive
+lock on byte zero using `LockFileEx`. macOS/Linux use raw noninheritable, nonblocking, no-follow opens, validate the
+opened file kind, and acquire `flock` with `LOCK_SH` or `LOCK_EX`, combined with `LOCK_NB`. Raw Unix opening avoids
+the runtime's implicit shared lock and its best-effort treatment of unsupported locking. Native lock errors other
+than contention fail explicitly. Disposal
 unlocks before closing the handle, avoiding transient retention by concurrent Unix fork/exec. Process exit closes the
 handle and releases ownership. Disposal is idempotent, and no native handle or stream is exposed to the caller.
 The implementation does not rely on a process-local path dictionary.
@@ -141,3 +142,7 @@ release: unlinking/recreating a path can split ownership across distinct open fi
 a separate host-owned file and cannot prove current ownership. Existing foreign locking protocols are not coordinated.
 Local filesystems supporting the native operations are the intended environment; no network-client or alias guarantee
 is made. The leaf is validated, but ancestor replacement by noncooperating actors is outside the contract.
+
+Shared owners coexist and exclude exclusive owners over the same artifact and protocol. `FileLeaseMode.Exclusive`
+is the zero enum value, and every acquisition specifies its mode. The facade exposes one optional `FileLeases`
+capability. There are no lock upgrades, hierarchy rules, or waiting policies in Platform; these belong to consumers.

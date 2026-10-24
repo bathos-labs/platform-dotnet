@@ -4,16 +4,17 @@ using Microsoft.Win32.SafeHandles;
 
 namespace Bathos.Platform.MacOS;
 
-/// <summary>Cooperative MacOS leases using nonblocking exclusive flock on an owned file descriptor.</summary>
+/// <summary>Cooperative macOS shared or exclusive leases using nonblocking flock on an owned file descriptor.</summary>
 public sealed partial class MacOSFileLeaseProvider : IFileLeaseProvider
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/TryAcquireFileLease/*" />
-    public IFileLease? TryAcquire(string path, CancellationToken cancellationToken = default) =>
-        TryAcquire(path, beforeOwnershipTransfer: null, cancellationToken);
+    public IFileLease? TryAcquire(string path, FileLeaseMode mode, CancellationToken cancellationToken = default) =>
+        TryAcquire(path, mode, beforeOwnershipTransfer: null, cancellationToken);
 
     // Call-scoped seam for retirement after the real native lock, before transferring ownership to the caller.
-    internal static IFileLease? TryAcquire(string path, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
+    internal static IFileLease? TryAcquire(string path, FileLeaseMode mode, Action? beforeOwnershipTransfer, CancellationToken cancellationToken)
     {
+        if (mode is not (FileLeaseMode.Shared or FileLeaseMode.Exclusive)) throw new ArgumentOutOfRangeException(nameof(mode));
         if (PlatformHost.Current != PlatformOperatingSystem.MacOS) throw new PlatformNotSupportedException();
         path = FileLeasePath.NormalizeUnix(path);
         cancellationToken.ThrowIfCancellationRequested();
@@ -31,7 +32,7 @@ public sealed partial class MacOSFileLeaseProvider : IFileLeaseProvider
         {
             if (FStat(handle, out var info) != 0) throw FileEntryErrors.Native();
             FileEntryErrors.RequireRegular(info.Mode);
-            if (FLock(handle, 2 | 4) != 0) // LOCK_EX | LOCK_NB
+            if (FLock(handle, (mode == FileLeaseMode.Shared ? 1 : 2) | 4) != 0) // LOCK_SH/LOCK_EX | LOCK_NB
             {
                 var error = Marshal.GetLastPInvokeError();
                 if (error == 35) return null; // EWOULDBLOCK
