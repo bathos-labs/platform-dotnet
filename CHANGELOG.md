@@ -12,6 +12,8 @@ a new major version and are called out here. Linux native support remains experi
 
 ### Added
 
+- Cooperative persistent file leases on Windows, macOS, and Linux, with explicit contention, native ownership lifetime, and a bounded directory-relocation contract.
+
 - Optional standard-directory discovery and explicit application scoping, including Linux XDG roots, unavailable-location results, and host-supplied root overrides without directory creation.
 
 - Optional host-native path normalization and file-URI conversion, with explicit portability validation for new filenames. Lexical conversion does not establish filesystem identity or lease ownership.

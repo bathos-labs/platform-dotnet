@@ -189,3 +189,15 @@ Portable account-boundary tests cover absent and explicit root homes, buffer gro
 invalid pointers, missing terminators, malformed UTF-8, and recovery. Owned macOS/Linux children remove `HOME` only
 from their own environment and compare discovery with an independent runtime account lookup. These checks do not
 require changing the parent environment, user identity, permissions, or real user directory contents.
+
+## File leases
+
+The native lease tests use disposable roots and owned child processes, with redirected pipe messages for acquisition
+and completion. They cover separate providers in one process, parent/child contention, disposal, forced process exit,
+stale artifact bytes, pre-cancellation, missing parents, invalid paths, links/special files, noninherited handles, creation permissions, significant names,
+and retained exclusion at a renamed directory destination. Watchdogs only bound hangs; no timing-based synchronization
+is used. Foreign providers reject invocation. Run on all three hosts: local success does not establish another OS's
+locking semantics. Windows link tests require developer mode or symlink privileges and explicitly skip otherwise.
+
+The guarantee requires stable artifacts and a common protocol on supported storage. Noncooperating replacement,
+network-client coordination, and filesystem alias discovery are intentionally not guaranteed by these tests.

@@ -91,4 +91,21 @@
 <remarks>Queries, fragments, credentials, ports, encoded separators, malformed Unicode/UTF-8, and Windows device namespaces are rejected.
 This does not resolve aliases or assert existence. Invocation requires a matching runtime host.</remarks>
   </TryFromFileUri>
+  <TryAcquireFileLease>
+    <summary>Attempts once to acquire a lease, creating the persistent artifact if necessary without truncating it.</summary>
+    <param name="path">Absolute native path to a regular lock file. Its parent must already exist.</param>
+    <param name="cancellationToken">Checked before acquisition and before ownership is returned; native calls are not interrupted.</param>
+    <returns>An owned lease, or null only when the native lock reports contention. Dispose a successful lease.</returns>
+    <remarks>No waiting or retry policy is supplied. Cancellation or failure may leave an unowned artifact.
+    Permission, unsupported-locking, missing-parent, and other operational failures throw; they are not contention.
+    The artifact persists after release. Keep diagnostic metadata in a separate host-owned file.
+    Cooperative exclusion is limited to the same application, device, protocol, and stable location.
+    Aliases, alternate path representations, network clients, and noncooperating actors are outside the guarantee.
+    Do not delete or replace the artifact. The only supported relocation is a same-filesystem rename of its containing
+    directory tree to an unoccupied destination while retaining the lease. Use the new location afterward; the old
+    pathname is not reserved. Copy/delete moves and independent artifact relocation are unsupported.</remarks>
+    <exception cref="IOException">Opening, validating, or locking fails for an operational reason.</exception>
+    <exception cref="OperationCanceledException">Cancellation is observed before ownership is returned.</exception>
+    <exception cref="PlatformNotSupportedException">Invoked on a foreign runtime.</exception>
+  </TryAcquireFileLease>
 </contracts>

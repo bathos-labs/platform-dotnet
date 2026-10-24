@@ -10,6 +10,28 @@ try
 {
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))
         ?? throw new InvalidDataException("Missing probe configuration.");
+    if (configuration.Mode == "reject-file-lease")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        try
+        {
+            using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
+                .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."));
+            throw new InvalidOperationException("A special entry was admitted for leasing.");
+        }
+        catch (IOException) { Console.WriteLine("rejected"); }
+        if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
+        return 0;
+    }
+    if (configuration.Mode == "file-lease")
+    {
+        var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
+        using var lease = (provider.FileLeases ?? throw new InvalidOperationException("Missing lease capability."))
+            .TryAcquire(configuration.Document ?? throw new InvalidDataException("Missing lock path."));
+        Console.WriteLine(lease is null ? "contended" : "acquired");
+        if (await Console.In.ReadLineAsync() != "finish") throw new InvalidDataException("Missing lease completion signal.");
+        return 0;
+    }
     if (configuration.Mode == "standard-directories")
     {
         var provider = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
