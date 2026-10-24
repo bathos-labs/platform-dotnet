@@ -1,4 +1,5 @@
 <Project Sdk="Microsoft.NET.Sdk">
   <PropertyGroup><OutputType>Exe</OutputType></PropertyGroup>
+  <ItemGroup><ProjectReference Include="../../src/Bathos.Platform.MacOS/Bathos.Platform.MacOS.csproj" /><ProjectReference Include="../../src/Bathos.Platform.Windows/Bathos.Platform.Windows.csproj" /></ItemGroup>
   <ItemGroup><ProjectReference Include="../../src/Bathos.Platform.Linux/Bathos.Platform.Linux.csproj" /></ItemGroup>
 </Project>

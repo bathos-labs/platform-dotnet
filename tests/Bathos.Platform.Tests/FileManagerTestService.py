@@ -30,7 +30,10 @@ def handle(connection, call):
     uris, startup = call.get_args_list()
     assert list(uris) == [expected_uri]
     assert startup == ""
-    if scenario == "error":
+    if scenario.startswith("held-"):
+        print("submitted", flush=True)
+        assert sys.stdin.readline().strip() == "finish"
+    if scenario in ("error", "held-error"):
         reply = dbus.lowlevel.ErrorMessage(call, "org.freedesktop.DBus.Error.NotSupported", "No file manager")
     else:
         reply = dbus.lowlevel.MethodReturnMessage(call)

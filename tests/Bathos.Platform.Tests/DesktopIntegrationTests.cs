@@ -1,3 +1,4 @@
+using System.ComponentModel;
 using System.Diagnostics;
 using System.IO.Pipes;
 using System.Text.Json;
@@ -58,6 +59,26 @@ public sealed class DesktopIntegrationTests
     }
 
     [Fact]
+    public async Task ExistingNonExecutableTargetReportsNativeFailureAndPreservesTheDocument()
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-invalid-executable-");
+        try
+        {
+            var document = Path.Combine(folder.FullName, "document.txt");
+            var executable = Path.Combine(folder.FullName, "invalid.exe");
+            File.WriteAllText(document, "document owner");
+            File.WriteAllText(executable, "This is not an executable image.");
+            var invoke = Assert.IsAssignableFrom<IFileInvoker>(Current().FileInvoker);
+            var error = await Assert.ThrowsAsync<Win32Exception>(() => invoke.OpenAsync(document,
+                ApplicationTarget.Executable(executable), TestContext.Current.CancellationToken));
+            Assert.NotEqual(0, error.NativeErrorCode);
+            Assert.Equal("document owner", File.ReadAllText(document));
+            Assert.Equal("This is not an executable image.", File.ReadAllText(executable));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Fact]
     public async Task ExecutableHandoffPreservesArgumentsAndDoesNotWaitForOrKillTheApplication()
     {
         await RunProbeAsync(desktopEntry: false);
@@ -76,6 +97,7 @@ public sealed class DesktopIntegrationTests
         var pipeName = "bathos_" + Guid.NewGuid().ToString("N");
         await using var pipe = new NamedPipeServerStream(pipeName, PipeDirection.InOut, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
         using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+        using var cancellation = new CancellationTokenSource();
         Process? owner = null, child = null;
         StreamWriter? writer = null;
         Task? connected = null;
@@ -100,7 +122,7 @@ public sealed class DesktopIntegrationTests
                 await owner.WaitForExitAsync(deadline.Token);
                 if (owner.ExitCode != 0) Assert.Fail(await owner.StandardError.ReadToEndAsync(deadline.Token));
             }
-            else await invoke.OpenAsync(document, ApplicationTarget.Executable(TestApplication)).WaitAsync(deadline.Token);
+            else await invoke.OpenAsync(document, ApplicationTarget.Executable(TestApplication), cancellation.Token).WaitAsync(deadline.Token);
             // The application is still waiting for this connection/release, so successful handoff did not wait for exit.
             await connected;
             using var reader = new StreamReader(pipe, leaveOpen: true);
@@ -108,6 +130,7 @@ public sealed class DesktopIntegrationTests
             var text = await reader.ReadLineAsync(deadline.Token) ?? throw new InvalidDataException("The probe did not report its arguments.");
             var response = JsonSerializer.Deserialize<ProbeResult>(text) ?? throw new InvalidDataException("Invalid probe response.");
             child = Process.GetProcessById(response.ProcessId);
+            await cancellation.CancelAsync(); // After submission the launched application's lifetime belongs to the caller.
             Assert.Equal([document], response.Arguments);
             Assert.False(child.HasExited);
             Assert.True(File.Exists(document));
