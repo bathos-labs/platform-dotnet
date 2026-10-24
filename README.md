@@ -36,11 +36,13 @@ Native OS frameworks and Linux system libraries are used from the host rather th
 
 ## Get started
 
-For an application targeting Windows and macOS, install the latest stable packages:
+For the cross-platform example below, install all three provider packages. In your application, install and compose
+only the providers you intend to support. These commands select the latest stable packages:
 
 ```text
 dotnet add package Bathos.Platform.Windows
 dotnet add package Bathos.Platform.MacOS
+dotnet add package Bathos.Platform.Linux
 ```
 
 Add `--prerelease` to include prerelease builds.

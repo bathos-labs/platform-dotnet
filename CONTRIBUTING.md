@@ -79,8 +79,9 @@ implicit IDE inheritance or unresolved `inheritdoc` tags. No documentation gener
 
 Keep the README quick start runnable and integration examples in `docs/usage.md` self-contained. The package verifier
 compiles every `csharp` fenced block in those files against the freshly packed libraries in an isolated consumer.
-The README contains one executable quick start; guide snippets declare public example classes so they compile together.
-On Windows/macOS, validation runs the README twice and verifies the expected bytes and collision-safe publication.
+The README contains one executable quick start, compiled with only the packages listed by its installation commands;
+guide snippets declare public example classes and are compiled separately with all providers available.
+On Windows/macOS/Linux, validation runs the README twice and verifies the expected bytes and collision-safe publication.
 The WPF example in `docs/examples/wpf-dispatcher.md` is compiled separately on Windows with the WPF framework
 reference. Interactive snippets are compiled only; their acceptance remains manual. Retain the separate single-provider
 consumer check before examples bring in all providers. Keep Markdown fences conventional so extraction remains deterministic.
