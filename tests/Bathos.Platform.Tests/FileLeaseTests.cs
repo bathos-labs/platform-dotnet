@@ -120,13 +120,13 @@ public sealed class FileLeaseTests
             var error = Assert.Throws<OperationCanceledException>(() => { using var unexpected = Acquire(); });
             Assert.True(reached);
             Assert.Equal(cancellation.Token, error.CancellationToken);
-            Assert.Equal("preserve stale diagnostics", File.ReadAllText(path));
             if (retained is not null)
             {
                 using var contender = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
                 Assert.Null(contender);
                 retained.Dispose();
             }
+            Assert.Equal("preserve stale diagnostics", File.ReadAllText(path));
             using var next = Current().TryAcquire(path, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken);
             Assert.NotNull(next);
         }
