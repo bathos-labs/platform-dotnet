@@ -171,5 +171,6 @@ root/directory references, escaped punctuation and Unicode, significant whitespa
 URI boundaries. Conversion rejects unpaired surrogates and invalid escaped UTF-8 without replacing them or reinterpreting
 them as literal-percent filenames; valid supplementary characters and escaped-percent names round-trip unchanged.
 Windows matrix execution additionally covers drive/UNC syntax and device-namespace rejection; POSIX
-execution covers literal backslashes and ambiguous-root rejection. Portable filename policy tests run on every host.
+execution covers literal backslashes and ambiguous-root rejection. Portable filename policy tests run on every host,
+including case-insensitive console-device rejection and the distinction between bare names and names with extensions.
 These tests establish lexical behavior only, not alias equivalence, network coordination, or lease exclusion.

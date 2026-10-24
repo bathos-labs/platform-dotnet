@@ -361,6 +361,7 @@ Hosts requiring exclusion must supply consistent locations and keep lock locatio
 throughout ownership. This path capability itself does not acquire a lease or enforce those host obligations.
 
 `PortableFileNames.IsValid` is an opt-in policy for new single names, not a native-path validator. It rejects reserved
-Windows device stems, path separators, Windows-reserved punctuation, controls, malformed Unicode, trailing dots/spaces,
-and names exceeding 255 UTF-8 bytes or UTF-16 code units. It never modifies input. `GeneratedFileName` remains the
-separate opt-in generator with its existing sanitization and collision-suffix behavior.
+Windows device stems and bare `CONIN$`/`CONOUT$` names, path separators, Windows-reserved punctuation, controls,
+malformed Unicode, trailing dots/spaces, and names exceeding 255 UTF-8 bytes or UTF-16 code units. It never modifies input.
+`GeneratedFileName` remains the separate opt-in generator with its existing sanitization and collision-suffix behavior.
+Unlike legacy device stems such as `CON`, `CONIN$` and `CONOUT$` are admitted when followed by an extension.
