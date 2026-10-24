@@ -4,7 +4,7 @@ using Bathos.Platform.Files;
 namespace Bathos.Platform.MacOS;
 
 /// <summary>macOS exclusive rename, or explicitly authorized replacement, on the same filesystem.</summary>
-public sealed partial class MacFileRename : INativeFileRename
+public sealed partial class MacFileRename : ISnapshotFileRename
 {
     /// <include file="../Bathos.Platform/Documentation/Contracts.xml" path="contracts/Move/*" />
     public FileRenameStatus Move(string source, string destination, out int errorCode, bool replaceExisting = false)

@@ -8,6 +8,8 @@ namespace Bathos.Platform.Linux;
 /// <summary>Experimental Linux native file capabilities and optional desktop-portal color sampling.</summary>
 public sealed class LinuxPlatformProvider : IPlatformProvider
 {
+    /// <summary>Gets native snapshot publication that preserves retained readers.</summary>
+    public ISnapshotFileRename SnapshotFileRename { get; } = new LinuxFileRename();
     /// <summary>Composes experimental Linux capabilities without probing desktop services or loading native libraries.</summary>
     /// <param name="enableScreenColorSampler">Enables the experimental sampler without probing the session bus or desktop.</param>
     /// <param name="parentWindow">Portal window identifier (x11: or wayland:), or empty for an unparented picker.</param>

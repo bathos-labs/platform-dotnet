@@ -65,6 +65,12 @@ Disposal removes abandoned staging; a published file survives disposal. `Publish
 filename and explicitly authorized replacement. Publication uses a native rename without a cross-volume copy
 fallback. Atomic visibility does not guarantee survival of a power failure.
 
+For complete-file snapshots with retained readers, pass `platform.SnapshotFileRename` to `FilePublicationFactory`.
+Its `WriteAsync` helper takes explicit replacement and directory-creation policies. Snapshot replacement lets an
+already-open reader finish the previous file while later opens see the new bytes. See the
+[snapshot recipe](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#file-publication-and-inspection)
+for filesystem requirements and host responsibilities.
+
 ## Desktop integration
 
 When available, `platform.FileRevealer` selects a file or directory in its containing folder, and

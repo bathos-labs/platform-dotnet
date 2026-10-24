@@ -12,6 +12,9 @@ a new major version and are called out here. Linux native support remains experi
 
 ### Added
 
+- Optional snapshot-file rename capability and shared byte publication with explicit directory-creation policy.
+  Windows snapshot replacement preserves readers of the previous file through handle-based POSIX rename semantics;
+  directory relocation retains its existing provider. Existing providers may omit the new capability.
 - Experimental Linux atomic rename and staged publication through renameat2, including exclusive claims and explicit replacement without cross-volume copy fallback.
 
 ## [1.1.0-beta.1] - 2026-10-25

@@ -22,6 +22,15 @@ never a fallback. Cancellation after successful rename cannot reinterpret public
 staging. File-kind inspection rejects links and special files without opening POSIX special entries; inspection is
 advisory and is not a path reservation.
 
+Snapshot publication is a focused refinement of native rename, exposed through the optional `SnapshotFileRename`
+capability. It guarantees that readers permitting deletion/replacement can finish the old file after publication.
+Windows uses an owned regular-file handle and `FileRenameInfoEx` with POSIX replacement semantics; unsupported
+filesystems fail without falling back to MoveFileEx or multi-step ReplaceFile behavior. macOS and Linux compose
+their native rename implementations. Directory relocation continues through `FileRename`.
+The shared `FilePublication` lifecycle handles staging, flush, cancellation, and cleanup for either capability.
+Directory creation is explicit in its new overload; existing constructors preserve their creation behavior.
+Hosts own serialization, writer leases, revision checks, cache rules, and the choice to authorize replacement.
+
 Linux is a distinct runtime target with its own native APIs. Its experimental provider supplies statx file-kind
 inspection, desktop reveal and application handoff, native lookup, paths, standard directories, cooperative file leases,
 and opt-in desktop-portal color sampling. Native rename uses libc renameat2 with RENAME_NOREPLACE for exclusive claims; unsupported kernels or filesystems fail without a fallback. Graphical desktop validation remains pending.

@@ -16,6 +16,7 @@ public sealed class PlatformProviderTests
         var selected = PlatformProviders.Select(PlatformOperatingSystem.Windows, supplied);
         Assert.Same(supplied, selected);
         Assert.Null(selected.FileRename);
+        Assert.Null(selected.SnapshotFileRename);
         Assert.Null(selected.FilePaths);
         Assert.Null(selected.FileEntries);
         Assert.Null(selected.ScreenColorSampler);

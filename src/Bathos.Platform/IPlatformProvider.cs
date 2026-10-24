@@ -45,6 +45,8 @@ public interface IPlatformProvider
     PlatformOperatingSystem OperatingSystem { get; }
     /// <summary>Gets native rename support, or null when unavailable. Native failures are rename outcomes; argument validation and native loading can throw.</summary>
     INativeFileRename? FileRename => null;
+    /// <summary>Gets atomic staged-file publication that preserves retained readers, or null when unavailable. Directory relocation uses FileRename.</summary>
+    ISnapshotFileRename? SnapshotFileRename => null;
     /// <summary>Gets host-native lexical paths, or null when unavailable. This does not establish filesystem identity or lease ownership.</summary>
     INativeFilePaths? FilePaths => null;
     /// <summary>Gets standard directory discovery, or null when unavailable. Lookup does not create directories or establish access.</summary>

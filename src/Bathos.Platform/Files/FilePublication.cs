@@ -24,12 +24,23 @@ public sealed class FilePublication : IAsyncDisposable
     /// <param name="directory">Absolute destination directory in which staging is created.</param>
     /// <param name="rename">Native rename capability for the destination filesystem.</param>
     public FilePublication(string directory, INativeFileRename rename)
+        : this(directory, rename, createDirectory: true) { }
+
+    /// <summary>Exclusively opens owned staging, with explicit control over creating the destination directory.</summary>
+    /// <param name="directory">Absolute destination directory.</param>
+    /// <param name="rename">Native rename capability; supply ISnapshotFileRename when retained readers must survive replacement.</param>
+    /// <param name="createDirectory">Whether missing destination directories may be created. False requires an existing directory.</param>
+    /// <exception cref="ArgumentException">The directory is blank or relative.</exception>
+    /// <exception cref="ArgumentNullException">The directory or provider is null.</exception>
+    /// <exception cref="IOException">The directory is missing or staging cannot be created.</exception>
+    /// <exception cref="UnauthorizedAccessException">Filesystem access is denied.</exception>
+    public FilePublication(string directory, INativeFileRename rename, bool createDirectory)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(directory);
         if (!Path.IsPathFullyQualified(directory)) throw new ArgumentException("An absolute publication directory is required.", nameof(directory));
         _rename = rename ?? throw new ArgumentNullException(nameof(rename));
         _directory = directory;
-        Directory.CreateDirectory(directory);
+        if (createDirectory) Directory.CreateDirectory(directory);
         _temporary = Path.Combine(directory, ".bathos-" + Guid.NewGuid().ToString("N") + ".tmp");
         // If exclusive creation fails, this instance never owns the path and must not clean it up.
         Stream = new FileStream(_temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);

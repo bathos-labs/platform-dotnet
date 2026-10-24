@@ -9,6 +9,8 @@ namespace Bathos.Platform.MacOS;
 /// <summary>macOS capabilities. Construction does not invoke native APIs; a dispatcher enables interactive sampling.</summary>
 public sealed class MacOSPlatformProvider : IPlatformProvider
 {
+    /// <summary>Gets native snapshot publication that preserves retained readers.</summary>
+    public ISnapshotFileRename SnapshotFileRename { get; } = new MacFileRename();
     /// <summary>Composes macOS capabilities without loading native services.</summary>
     /// <param name="dispatcher">Host dispatcher enabling the optional sampler; null disables sampling.</param>
     /// <remarks>File capabilities are constructed on any host but must be invoked only on macOS. Sampler availability also requires the matching runtime OS, at least macOS 10.15. The host owns the dispatcher and UI-loop lifetime.</remarks>
