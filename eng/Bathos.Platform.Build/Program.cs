@@ -80,19 +80,22 @@ try
         $"-p:BathosVersion={version}", $"-p:Provider={provider}");
     await Run("run", "--configuration", "Release", "--no-restore", $"-p:BathosVersion={version}", $"-p:Provider={provider}");
 
-    // Compile the actual Markdown snippets against the packed API after testing single-provider isolation.
+    // The quick start must compile with exactly its documented dependencies, before guide examples add providers.
+    var readme = File.ReadAllText(Path.Combine(root, "README.md"));
+    var readmePackages = readme.Split('\n').Select(line => line.Trim())
+        .Where(line => line.StartsWith("dotnet add package ", StringComparison.Ordinal))
+        .Select(line => line["dotnet add package ".Length..].Split(' ', StringSplitOptions.RemoveEmptyEntries)[0])
+        .Distinct(StringComparer.Ordinal).ToArray();
+    if (readmePackages.Length == 0 || readmePackages.Any(name => !names.Contains(name, StringComparer.Ordinal)))
+        throw new InvalidOperationException("README installation commands must name the packages used by its quick start.");
     var consumerProject = XDocument.Load(Path.Combine(scratch.FullName, "Consumer.csproj"));
     consumerProject.Root?.Elements("ItemGroup").Remove();
-    consumerProject.Root?.Add(new XElement("ItemGroup", names.Select(name =>
+    consumerProject.Root?.Add(new XElement("ItemGroup", readmePackages.Select(name =>
         new XElement("PackageReference", new XAttribute("Include", name), new XAttribute("Version", version)))));
     consumerProject.Save(Path.Combine(scratch.FullName, "Consumer.csproj"));
-    var readmeExamples = CSharpExamples(File.ReadAllText(Path.Combine(root, "README.md"))).ToArray();
+    var readmeExamples = CSharpExamples(readme).ToArray();
     if (readmeExamples.Length != 1) throw new InvalidOperationException("Expected one executable README quick start.");
     File.WriteAllText(Path.Combine(scratch.FullName, "Program.cs"), readmeExamples[0]);
-    var usageExamples = CSharpExamples(File.ReadAllText(Path.Combine(root, "docs", "usage.md"))).ToArray();
-    if (usageExamples.Length == 0) throw new InvalidOperationException("Expected integration guide examples.");
-    for (var index = 0; index < usageExamples.Length; index++)
-        File.WriteAllText(Path.Combine(scratch.FullName, $"GuideExample{index}.cs"), usageExamples[index]);
     await Run("restore", "--configfile", "NuGet.Config", "--packages", Path.Combine(scratch.FullName, "cache"));
     await Run("build", "--configuration", "Release", "--no-restore");
     if (provider is "MacOS" or "Windows" or "Linux")
@@ -106,6 +109,18 @@ try
             Directory.GetFiles(directory).Length != 2)
             throw new InvalidOperationException("README publication example did not preserve both complete outputs.");
     }
+
+    // Guide examples cover capabilities from every provider independently of the README's install instructions.
+    consumerProject.Root?.Elements("ItemGroup").Remove();
+    consumerProject.Root?.Add(new XElement("ItemGroup", names.Select(name =>
+        new XElement("PackageReference", new XAttribute("Include", name), new XAttribute("Version", version)))));
+    consumerProject.Save(Path.Combine(scratch.FullName, "Consumer.csproj"));
+    var usageExamples = CSharpExamples(File.ReadAllText(Path.Combine(root, "docs", "usage.md"))).ToArray();
+    if (usageExamples.Length == 0) throw new InvalidOperationException("Expected integration guide examples.");
+    for (var index = 0; index < usageExamples.Length; index++)
+        File.WriteAllText(Path.Combine(scratch.FullName, $"GuideExample{index}.cs"), usageExamples[index]);
+    await Run("restore", "--configfile", "NuGet.Config", "--packages", Path.Combine(scratch.FullName, "cache"));
+    await Run("build", "--configuration", "Release", "--no-restore");
 
     if (provider == "Windows")
     {

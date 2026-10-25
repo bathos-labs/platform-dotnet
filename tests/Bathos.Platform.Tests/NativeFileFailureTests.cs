@@ -51,8 +51,9 @@ public sealed class NativeFileFailureTests
                 if (kind == "directory") Directory.CreateSymbolicLink(link, target);
                 else File.CreateSymbolicLink(link, target);
             }
-            catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows())
+            catch (IOException error) when (OperatingSystem.IsWindows() && error.HResult == unchecked((int)0x80070522))
             {
+                // HRESULT_FROM_WIN32(ERROR_PRIVILEGE_NOT_HELD); other setup failures must remain failures.
                 Assert.Skip("Windows symlink fixture requires developer mode or symlink privilege; validate links manually on this host.");
             }
             await AssertRejectedInOwnedProcessAsync(folder.FullName, link);

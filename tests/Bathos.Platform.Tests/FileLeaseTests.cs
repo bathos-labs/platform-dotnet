@@ -183,8 +183,11 @@ public sealed class FileLeaseTests
             File.WriteAllText(target, "preserve");
             var link = Path.Combine(folder.FullName, "link");
             try { File.CreateSymbolicLink(link, target); }
-            catch (UnauthorizedAccessException) when (OperatingSystem.IsWindows())
-            { Assert.Skip("Symlink creation requires Windows developer mode or privileges."); }
+            catch (IOException error) when (OperatingSystem.IsWindows() && error.HResult == unchecked((int)0x80070522))
+            {
+                // HRESULT_FROM_WIN32(ERROR_PRIVILEGE_NOT_HELD); other setup failures must remain failures.
+                Assert.Skip("Symlink creation requires Windows developer mode or privileges.");
+            }
             Assert.ThrowsAny<IOException>(() => Current().TryAcquire(link, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
             Assert.Equal("preserve", File.ReadAllText(target));
         }
