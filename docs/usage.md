@@ -97,6 +97,11 @@ flushed and closed before one native rename; there is no cross-volume copy/delet
 visibility does not promise survival of a power failure because directory metadata is not
 synchronized.
 
+Exact filenames follow the executing OS's syntax without sanitization. A literal backslash or colon
+is a filename character on macOS/Linux but is rejected on Windows. Directory components and the
+operation's staging name are always rejected. Use `GeneratedFileName` when creating portable names
+rather than publishing a host-selected native filename.
+
 Disposal removes abandoned staging. Once publication succeeds, the file belongs to the caller and
 survives disposal or later cancellation. Windows, macOS, and Linux provide native rename
 capabilities. Linux requires libc renameat2 and filesystem support for RENAME_NOREPLACE; unsupported
