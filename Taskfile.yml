@@ -4,6 +4,9 @@ version: '3'
 vars:
   # Keep the CI pin and CONTRIBUTING.md commands in sync when upgrading.
   PRETTIER_VERSION: '3.9.10'
+  REMARK_PACKAGES: >-
+    --package=remark-cli@12.0.1 --package=remark-gfm@4.0.1
+    --package=remark-validate-links@13.1.0 --package=remark-lint-no-undefined-references@5.0.2
 
 # Keep restore/build/test operations sequential; Task's deps run concurrently.
 tasks:
@@ -25,13 +28,25 @@ tasks:
       - dotnet build Bathos.Platform.slnx --configuration Release --no-restore
 
   format:
-    desc: Apply source formatting
+    desc: Apply C# and Markdown formatting
+    cmds:
+      - task: docs:format
+      - task: code:format
+
+  code:format:
+    desc: Apply C# formatting
     cmds:
       - task: restore
       - dotnet format Bathos.Platform.slnx --no-restore
 
   format:check:
-    desc: Verify source formatting without edits
+    desc: Verify C# and Markdown formatting without edits
+    cmds:
+      - task: docs:check
+      - task: code:check
+
+  code:check:
+    desc: Verify C# formatting without edits
     cmds:
       - task: restore
       - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
@@ -45,6 +60,27 @@ tasks:
     desc: Verify Markdown formatting without edits
     cmds:
       - npx --yes prettier@{{.PRETTIER_VERSION}} --check "**/*.md"
+
+  docs:links:
+    desc: Check local Markdown files, reference links, and heading anchors without HTTP requests
+    cmds:
+      - >-
+        npx --yes {{.REMARK_PACKAGES}} remark --rc-path .remarkrc.cjs
+        --ignore-path .prettierignore --frail --no-stdout --no-color .
+
+  docs:links:test:
+    desc: Verify link-checker configuration against disposable valid and broken Markdown
+    cmds:
+      - npx --yes {{.REMARK_PACKAGES}} node eng/CheckDocumentationLinks.test.cjs
+
+  lint:
+    desc: Check whitespace, documentation links, and formatting with locked restore
+    cmds:
+      - git diff --check
+      - git diff --cached --check
+      - task: docs:check
+      - task: docs:links
+      - task: code:check
 
   test:
     desc: Build and run native tests on this host
@@ -72,19 +108,30 @@ tasks:
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
 
   packages:check:
-    desc: Pack and verify metadata, API documentation, examples, and an isolated consumer
+    desc: Pack and verify metadata, examples, isolated consumption, and publishing
     cmds:
       - task: pack
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 
+  packages:aot:
+    desc: Verify packages and published consumers including Native AOT (requires a native toolchain)
+    cmds:
+      - task: pack
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages --native-aot
+
+  release:test:
+    desc: Verify release guards against isolated local Git repositories (does not publish)
+    cmds:
+      - dotnet build eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true
+      - node eng/CheckReleasePolicy.test.cjs
+
   check:
     desc: Run the complete local validation sequence, including package consumption
     cmds:
-      - git diff --check
-      - task: docs:check
-      - task: restore
-      - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+      - task: lint
+      - task: docs:links:test
       - dotnet build Bathos.Platform.slnx --configuration Release --no-restore
+      - node eng/CheckReleasePolicy.test.cjs
       - dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
@@ -102,12 +149,12 @@ tasks:
       - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build -- --smoke
 
   release:check:
-    desc: Validate locally and verify the proposed tag matches the package version (TAG=vX.Y.Z)
+    desc: Check release branch, version, and changelog, then validate locally (TAG=vX.Y.Z)
     requires:
       vars: [TAG]
     cmds:
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true -- verify-tag {{.TAG | shellQuote}}
       - task: check
-      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-tag {{.TAG | shellQuote}}
 
   release:tag:
     desc: Validate and create an annotated local release tag; does not push (TAG=vX.Y.Z)
@@ -116,8 +163,6 @@ tasks:
     preconditions:
       - sh: test -z "$(git status --porcelain)"
         msg: Commit the version, changelog, lockfiles, and any other changes before tagging.
-      - sh: test "$(git branch --show-current)" = master
-        msg: Create release tags from master.
     cmds:
       - task: release:check
         vars:
@@ -129,4 +174,5 @@ tasks:
     requires:
       vars: [TAG]
     cmds:
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true -- verify-tag {{.TAG | shellQuote}} --remote
       - git push origin {{printf "refs/tags/%s:refs/tags/%s" .TAG .TAG | shellQuote}}

@@ -13,9 +13,35 @@
     <IncludeSymbols>true</IncludeSymbols>
     <SymbolPackageFormat>snupkg</SymbolPackageFormat>
     <EmbedUntrackedSources>true</EmbedUntrackedSources>
+    <_BathosPackageReadme>$([System.IO.Path]::GetFullPath('$(BaseIntermediateOutputPath)package-readme/README.md', '$(MSBuildProjectDirectory)'))</_BathosPackageReadme>
   </PropertyGroup>
   <ItemGroup>
-    <None Include="$(MSBuildThisFileDirectory)../README.md" Pack="true" PackagePath="README.md" />
+    <None Include="$(_BathosPackageReadme)" Pack="true" PackagePath="README.md" />
     <None Include="$(MSBuildThisFileDirectory)../LICENSE" Pack="true" PackagePath="/" />
   </ItemGroup>
+  <!-- Transform only the packaged copy; source Markdown stays static and branch-relative. -->
+  <UsingTask TaskName="WriteBathosPackageReadme" TaskFactory="RoslynCodeTaskFactory"
+             AssemblyFile="$(MSBuildToolsPath)/Microsoft.Build.Tasks.Core.dll">
+    <ParameterGroup>
+      <Source ParameterType="System.String" Required="true" />
+      <Destination ParameterType="System.String" Required="true" />
+      <Repository ParameterType="System.String" Required="true" />
+      <Version ParameterType="System.String" Required="true" />
+    </ParameterGroup>
+    <Task>
+      <Code Type="Fragment" Language="cs"><![CDATA[
+        var text = System.IO.File.ReadAllText(Source);
+        var prefix = Repository.TrimEnd('/') + "/blob/";
+        text = text.Replace(prefix + "master/", prefix + "v" + Version + "/");
+        var directory = System.IO.Path.GetDirectoryName(Destination);
+        if (string.IsNullOrEmpty(directory)) throw new System.ArgumentException("A package README directory is required.");
+        System.IO.Directory.CreateDirectory(directory);
+        System.IO.File.WriteAllText(Destination, text, new System.Text.UTF8Encoding(false));
+      ]]></Code>
+    </Task>
+  </UsingTask>
+  <Target Name="PrepareBathosPackageReadme" BeforeTargets="GenerateNuspec">
+    <WriteBathosPackageReadme Source="$(MSBuildThisFileDirectory)../README.md"
+                             Destination="$(_BathosPackageReadme)" Repository="$(RepositoryUrl)" Version="$(PackageVersion)" />
+  </Target>
 </Project>

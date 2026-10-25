@@ -12,4 +12,9 @@
     <PackageReference Include="Bathos.Platform" Version="$(BathosVersion)" />
     <PackageReference Include="Bathos.Platform.$(Provider)" Version="$(BathosVersion)" />
   </ItemGroup>
+  <!-- Analyze all library code, including callbacks not invoked by the noninteractive probe. -->
+  <ItemGroup Condition="'$(PublishTrimmed)' == 'true' Or '$(PublishAot)' == 'true'">
+    <TrimmerRootAssembly Include="Bathos.Platform" />
+    <TrimmerRootAssembly Include="Bathos.Platform.$(Provider)" />
+  </ItemGroup>
 </Project>

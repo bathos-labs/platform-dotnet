@@ -1,6 +1,6 @@
 # Native platform abstractions for .NET
 
-[![NuGet](https://img.shields.io/nuget/vpre/Bathos.Platform?label=NuGet)](https://www.nuget.org/packages/Bathos.Platform)
+[![NuGet](https://img.shields.io/nuget/v/Bathos.Platform?label=NuGet)](https://www.nuget.org/packages/Bathos.Platform)
 [![Native validation](https://github.com/bathos-labs/platform-dotnet/actions/workflows/validate.yml/badge.svg?branch=master)](https://github.com/bathos-labs/platform-dotnet/actions/workflows/validate.yml)
 [![Codecov](https://img.shields.io/codecov/c/github/bathos-labs/platform-dotnet?branch=master)](https://app.codecov.io/gh/bathos-labs/platform-dotnet)
 
@@ -8,41 +8,60 @@ Common .NET interfaces for native OS operations: atomic file publication, file i
 leases, desktop integration, screen color sampling, installed color profiles, native paths, and
 standard directories.
 
-The `Bathos.Platform` packages keep platform-specific interop behind focused capability interfaces.
-Choose the Windows, macOS, or experimental Linux providers your application needs, and check which
-capabilities are available.
+Choose the providers your application needs, compose them explicitly, and pass focused capability
+interfaces to the components that use them. The libraries have no UI toolkit, dependency injection
+container, or image-processing dependencies. Your application owns its UI loop, application targets,
+and storage policy.
 
-Your application chooses its UI toolkit and composition approach, selects application targets for
-file handoff, and supplies a native dispatcher when needed for screen sampling. The libraries have
-no UI toolkit, dependency injection container, or image-processing dependencies.
+**.NET 10 · [MIT license][license].** All four packages share a version and follow Semantic
+Versioning. Linux implementations remain experimental; their public APIs have the same compatibility
+commitment, and the Linux package follows the same stable/prerelease channel as the other packages.
 
-**.NET 10 · [MIT license](https://github.com/bathos-labs/platform-dotnet/blob/master/LICENSE).**
-Public APIs follow Semantic Versioning. Linux support is experimental.
+## Capabilities
+
+| Capability                                                  | Windows                | macOS                   | Linux                      |
+| ----------------------------------------------------------- | ---------------------- | ----------------------- | -------------------------- |
+| [Atomic file publication and rename][publication]           | Available              | Available               | Available                  |
+| [Snapshot replacement with retained readers][publication]   | Available              | Available               | Available                  |
+| [Regular-file inspection][publication]                      | Available              | Available               | Available                  |
+| [Native paths and file URIs][paths]                         | Available              | Available               | Available                  |
+| [Standard directories and application scoping][directories] | Available              | Available               | Available                  |
+| [Cooperative shared/exclusive file leases][leases]          | Available              | Available               | Available                  |
+| [File-manager reveal][desktop]                              | Explorer               | Finder                  | FileManager1 service       |
+| [Application handoff and native lookup][desktop]            | Executable / App Paths | Executable / app bundle | Executable / desktop entry |
+| [Screen color sampling][sampling]                           | Host dispatcher        | Host dispatcher         | Portal opt-in              |
+| [Installed color profiles][profiles]                        | Available              | Available               | Unavailable                |
+
+Availability describes the built-in implementations. Native operations require the matching OS and
+may require filesystem support, desktop services, or permissions. A null capability means
+unsupported or unconfigured; a null screen sample means user cancellation. Operation failures remain
+distinct. Linux's experimental status applies throughout the table.
+
+See [platform support and prerequisites][support] before deployment, including headless Linux use,
+native library requirements, and the limits of the tested configurations.
 
 ## Packages
 
-Install the providers your application needs. Each depends only on the core package and .NET
-runtime; the core is included as a transitive dependency.
+Install only the providers you intend to support. Each provider depends on the core package and the
+.NET runtime; the core is included transitively.
 
-| NuGet package                                                                     | What it provides                                                                                                                                                                 |
-| --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| [Bathos.Platform](https://www.nuget.org/packages/Bathos.Platform)                 | Capability interfaces, provider selection, application targets, and atomic file publication with collision-safe naming. Publication requires a native rename provider.           |
-| [Bathos.Platform.Windows](https://www.nuget.org/packages/Bathos.Platform.Windows) | Native file rename/replacement and inspection, Explorer reveal, executable handoff, App Paths lookup, installed color profiles, and an optional GDI screen sampler.              |
-| [Bathos.Platform.MacOS](https://www.nuget.org/packages/Bathos.Platform.MacOS)     | Native file rename/replacement and inspection, Finder reveal, executable/bundle handoff, LaunchServices lookup, installed color profiles, and an optional AppKit screen sampler. |
-| [Bathos.Platform.Linux](https://www.nuget.org/packages/Bathos.Platform.Linux)     | Experimental atomic file rename/replacement, statx inspection, file-manager reveal, executable/desktop-entry handoff, GIO lookup, and an optional portal screen sampler.         |
+- [Bathos.Platform](https://www.nuget.org/packages/Bathos.Platform): shared contracts and file
+  publication.
+- [Bathos.Platform.Windows](https://www.nuget.org/packages/Bathos.Platform.Windows): Windows
+  implementations.
+- [Bathos.Platform.MacOS](https://www.nuget.org/packages/Bathos.Platform.MacOS): macOS
+  implementations.
+- [Bathos.Platform.Linux](https://www.nuget.org/packages/Bathos.Platform.Linux): Linux
+  implementations.
 
-All three providers also support native paths, standard directories, and cooperative file leases.
-
-Each package contains a `net10.0` library, XML API documentation, this README, and MIT license text.
-Portable PDB symbols are published separately as `.snupkg` files. The engineering harnesses and test
-applications are not shipped. Native OS frameworks and Linux system libraries are used from the host
-rather than bundled in the packages.
+Packages contain `net10.0` libraries, XML API documentation, this README, and MIT license text.
+Portable PDB symbols are published as `.snupkg` files. Native OS frameworks and Linux system
+libraries come from the host. Engineering harnesses and test applications are not shipped.
 
 ## Get started
 
-For the cross-platform example below, install all three provider packages. In your application,
-install and compose only the providers you intend to support. These commands select the latest
-stable packages:
+In a .NET 10 console project, install all three providers for the cross-platform example below.
+These commands select the latest stable packages:
 
 ```text
 dotnet add package Bathos.Platform.Windows
@@ -50,18 +69,17 @@ dotnet add package Bathos.Platform.MacOS
 dotnet add package Bathos.Platform.Linux
 ```
 
-Add `--prerelease` to include prerelease builds.
-
-This console example writes a complete file to private staging, then publishes it under the first
-available name:
+Write a complete file to private staging, then publish it under the first available name:
 
 ```csharp
 using Bathos.Platform;
 using Bathos.Platform.Files;
+using Bathos.Platform.Linux;
 using Bathos.Platform.MacOS;
 using Bathos.Platform.Windows;
 
-var platform = PlatformProviders.SelectCurrent(new WindowsPlatformProvider(), new MacOSPlatformProvider(), new Bathos.Platform.Linux.LinuxPlatformProvider());
+var platform = PlatformProviders.SelectCurrent(
+    new WindowsPlatformProvider(), new MacOSPlatformProvider(), new LinuxPlatformProvider());
 var rename = platform.FileRename ?? throw new PlatformNotSupportedException("Native publication is unavailable.");
 await using var publication = new FilePublication(Path.GetFullPath("published-files"), rename);
 await publication.Stream.WriteAsync("Hello from .NET!\n"u8.ToArray());
@@ -70,90 +88,54 @@ Console.WriteLine(path); // Greeting.txt, Greeting (2).txt, ...; existing files 
 ```
 
 Disposal removes abandoned staging; a published file survives disposal. `PublishExactAsync` supports
-an exact filename and explicitly authorized replacement. Publication uses a native rename without a
-cross-volume copy fallback. Atomic visibility does not guarantee survival of a power failure.
+an exact filename and explicitly authorized replacement. Publication requires a native rename and
+does not fall back to cross-volume copying. Atomic visibility does not guarantee survival of a power
+failure. See the [publication recipes][publication] for streaming, snapshot replacement, and
+ownership.
 
-For complete-file snapshots with retained readers, pass `platform.SnapshotFileRename` to
-`FilePublicationFactory`. Its `WriteAsync` helper takes explicit replacement and directory-creation
-policies. Snapshot replacement lets an already-open reader finish the previous file while later
-opens see the new bytes. See the
-[snapshot recipe](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#file-publication-and-inspection)
-for filesystem requirements and host responsibilities.
+## Documentation and support
 
-## Desktop integration
+- [Integration guide][usage]: composition, capability recipes, and operation contracts.
+- [Platform support][support]: deployment prerequisites, configuration, and tested environments.
+- [Changelog][changelog] and [releases](https://github.com/bathos-labs/platform-dotnet/releases):
+  history and published artifacts.
+- [Native validation][validation]: automated evidence, limitations, and manual desktop checks.
+- [Architecture][architecture]: capability boundaries and resource ownership.
+- [Contributing][contributing] and [releasing][releasing]: source development and publication.
+- [GitHub Issues](https://github.com/bathos-labs/platform-dotnet/issues): search existing reports,
+  or [open an issue](https://github.com/bathos-labs/platform-dotnet/issues/new/choose) for a bug,
+  capability request, or integration question.
 
-When available, `platform.FileRevealer` selects a file or directory in its containing folder, and
-`platform.FileInvoker` opens a file in an application selected by the host. Both use absolute paths
-and keep file ownership with the caller. A successful handoff means submission, not that the
-document has loaded or the application has focus.
+The README and guides describe the source revision being viewed. Use the matching source tag or
+shipped XML documentation for an older installed package. Package README links point to their
+release snapshot. Stable public API contracts cover callers and implementers within a major version;
+new capabilities are optional, and breaking contract changes require a new major version.
 
-Targets can be an absolute executable path, a macOS `.app` bundle, or a Linux desktop-entry ID.
-Focused native lookup helpers support Windows App Paths, macOS bundle identifiers, and Linux desktop
-entries. The host chooses the target; no product-specific rules or file-association changes are
-imposed.
-
-Screen sampling is optional. On Windows and macOS, supply an `INativeDispatcher` backed by your
-existing native UI loop. On Linux, opt in to the desktop portal sampler. Samples are opaque
-eight-bit RGB for basic color selection; display-profile accuracy and consistent HDR behavior are
-outside the contract.
-
-A null capability means unsupported or unconfigured; a null screen sample means user cancellation.
-Operation failures remain distinct and are reported to the caller. OS detection alone does not
-establish native-service or permission availability.
-
-Use the provider facade to compose your application, then pass focused capability interfaces to the
-components that use them. You can substitute implementations or test doubles through those
-interfaces.
-
-## Color profiles
-
-`platform.ColorProfiles` discovers installed profiles and reads their raw bytes on macOS and
-Windows. It returns provider-owned lookup keys, without ICC parsing, installation, or conversion.
-Linux leaves this optional capability null. See the
-[integration guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#installed-color-profiles)
-for limits and partial discovery.
-
-## Paths, directories, and file leases
-
-`platform.FilePaths` normalizes native paths and converts file URIs without probing the filesystem.
-`platform.Directories` discovers standard user and application roots without creating directories or
-claiming access. Applications choose their storage layout and create the directories they need.
-
-`platform.FileLeases` supports shared owners that coexist and exclusive owners that exclude every
-other owner. Each acquisition specifies its mode and requires a persistent lock artifact at a stable
-location. Keep the artifact and its containing directory tree intact while leased. If application
-data may move, place its lock outside that tree. Artifact existence and diagnostic metadata do not
-establish ownership. See the
-[integration guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#cooperative-file-leases)
-for acquisition, disposal, and the limits of coordination.
-
-## Support and documentation
-
-Repository documentation describes current development. For the version you installed, use the XML
-API documentation shipped with the assemblies and the corresponding source tag listed in
-[releases](https://github.com/bathos-labs/platform-dotnet/releases).
-
-Stable releases preserve public API contracts for callers and implementers within a major version.
-Minor releases can add optional capabilities; breaking contract changes require a new major version.
-Linux native support remains experimental; public API compatibility still applies. See the
-[native validation guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md)
-for automated evidence and manual desktop checks.
-
-- [Integration guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md):
-  capability usage, examples, and native prerequisites.
-- [Changelog](https://github.com/bathos-labs/platform-dotnet/blob/master/CHANGELOG.md) and
-  [releases](https://github.com/bathos-labs/platform-dotnet/releases): release notes and published
-  artifacts.
-- [Architecture](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/architecture.md):
-  capability boundaries and resource ownership.
-- [Contributing](https://github.com/bathos-labs/platform-dotnet/blob/master/CONTRIBUTING.md) and
-  [publishing](https://github.com/bathos-labs/platform-dotnet/blob/master/RELEASING.md): source
-  builds, validation, and NuGet releases.
-- [GitHub Issues](https://github.com/bathos-labs/platform-dotnet/issues): bugs and capability
-  requests.
-
-For source development, install the SDK pinned in `global.json` and Node.js 24 LTS with npm, then
-run `task check`. Task is optional; the contribution guide includes the equivalent validation
-commands.
+For source development, install the SDK pinned in `global.json` and Node.js with npm as described in
+[Contributing][contributing], then run `task check`. Task is optional; equivalent commands are
+listed there.
 
 Copyright © 2026 Bathos Pty Ltd.
+
+[license]: https://github.com/bathos-labs/platform-dotnet/blob/master/LICENSE
+[usage]: https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md
+[support]: https://github.com/bathos-labs/platform-dotnet/blob/master/docs/platform-support.md
+[publication]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#file-publication-and-inspection
+[paths]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#native-paths-and-portable-names
+[directories]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#standard-directories-and-application-identity
+[leases]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#cooperative-file-leases
+[desktop]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#reveal-and-open-in-an-application
+[sampling]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#screen-color-selection
+[profiles]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#installed-color-profiles
+[changelog]: https://github.com/bathos-labs/platform-dotnet/blob/master/CHANGELOG.md
+[validation]: https://github.com/bathos-labs/platform-dotnet/blob/master/docs/validation.md
+[architecture]: https://github.com/bathos-labs/platform-dotnet/blob/master/docs/architecture.md
+[contributing]: https://github.com/bathos-labs/platform-dotnet/blob/master/CONTRIBUTING.md
+[releasing]: https://github.com/bathos-labs/platform-dotnet/blob/master/RELEASING.md

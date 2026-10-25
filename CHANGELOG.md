@@ -5,10 +5,10 @@ compatibility, and security. Internal maintenance and development tooling belong
 and contributor documentation.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html). All four packages share one version.
-Stable releases preserve public API contracts for callers and implementers within a major version.
-Breaking contract changes require a new major version and are called out here. Linux native support
-remains experimental; public API compatibility still applies.
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). All four packages share one version and
+release channel. Stable releases preserve public API contracts for callers and implementers within a
+major version. Breaking contract changes require a new major version and are called out here. Linux
+native support remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
 
