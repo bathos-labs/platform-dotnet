@@ -15,7 +15,9 @@ public static class ReleasedConsumer
         var current = PlatformProviders.SelectCurrent(providers: providers);
         var minimal = CreateMinimalProvider();
         if (minimal.FileRename is not null || minimal.FileEntries is not null || minimal.ScreenColorSampler is not null ||
-            minimal.FileRevealer is not null || minimal.FileInvoker is not null)
+            minimal.FileRevealer is not null || minimal.FileInvoker is not null || minimal.SnapshotFileRename is not null ||
+            minimal.FilePaths is not null || minimal.Directories is not null || minimal.FileLeases is not null ||
+            minimal.ColorProfiles is not null)
             throw new InvalidOperationException("Released provider defaults changed.");
         if (!ReferenceEquals(minimal, PlatformProviders.Select(host: PlatformHost.Current, providers: [minimal])))
             throw new InvalidOperationException("Released provider selection changed.");
@@ -26,8 +28,7 @@ public static class ReleasedConsumer
             var original = Path.Combine(folder.FullName, "original.txt");
             await File.WriteAllTextAsync(original, "original");
             (current.FileEntries ?? throw new InvalidOperationException("No native inspection capability.")).RequireRegularFile(original);
-            // The stable Linux provider may omit rename. Exercise it whenever the loaded provider supplies it.
-            if (current.FileRename is not { } nativeRename) return;
+            var nativeRename = current.FileRename ?? throw new InvalidOperationException("No native rename capability.");
             var rename = new DelegatingRename(nativeRename);
             await using (var publication = new FilePublication(directory: folder.FullName, rename: rename))
             {

@@ -8,19 +8,19 @@
       "bathos.platform.linux": {
         "type": "Project",
         "dependencies": {
-          "Bathos.Platform": "[1.1.0, )"
+          "Bathos.Platform": "[1.1.1, )"
         }
       },
       "bathos.platform.macos": {
         "type": "Project",
         "dependencies": {
-          "Bathos.Platform": "[1.1.0, )"
+          "Bathos.Platform": "[1.1.1, )"
         }
       },
       "bathos.platform.windows": {
         "type": "Project",
         "dependencies": {
-          "Bathos.Platform": "[1.1.0, )"
+          "Bathos.Platform": "[1.1.1, )"
         }
       }
     }
