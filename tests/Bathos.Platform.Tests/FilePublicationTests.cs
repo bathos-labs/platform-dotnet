@@ -1,5 +1,6 @@
 using System.Text;
 using Bathos.Platform.Files;
+using Bathos.Platform.Paths;
 using Xunit;
 
 namespace Bathos.Platform.Tests;
@@ -26,6 +27,11 @@ public sealed class FilePublicationTests
         var name = new GeneratedFileName(baseName, ".png", kind);
         Assert.Equal(expected, name.Candidate(1));
         Assert.Equal(Path.GetFileNameWithoutExtension(expected) + " (2).png", name.Candidate(2));
+        foreach (var sequence in new[] { 1, 2, int.MaxValue })
+        {
+            var candidate = name.Candidate(sequence);
+            Assert.True(PortableFileNames.IsValid(candidate), $"Generated candidate is not portable: {candidate}");
+        }
     }
 
     [Fact]
@@ -35,10 +41,12 @@ public sealed class FilePublicationTests
         Assert.Throws<ArgumentException>(() => new GeneratedFileName(" ", ".png"));
         Assert.Throws<ArgumentException>(() => new GeneratedFileName("Drawing", "png"));
         Assert.Throws<ArgumentException>(() => new GeneratedFileName("Drawing", ".png/other"));
-        var name = new GeneratedFileName(new string('桜', 300), ".png", new string('é', 300));
+        const string extension = ".abcdefghijklmnop";
+        var name = new GeneratedFileName(new string('桜', 300), extension, new string('é', 300));
         var candidate = name.Candidate(int.MaxValue);
+        Assert.True(PortableFileNames.IsValid(candidate), $"Generated candidate is not portable: {candidate}");
         Assert.True(Encoding.UTF8.GetByteCount(candidate) < 255);
-        Assert.EndsWith(" (2147483647).png", candidate, StringComparison.Ordinal);
+        Assert.EndsWith(" (2147483647)" + extension, candidate, StringComparison.Ordinal);
         Assert.DoesNotContain('�', candidate);
     }
 
