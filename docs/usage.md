@@ -91,6 +91,11 @@ of a power failure because directory metadata is not synchronized.
 Disposal removes abandoned staging. Once publication succeeds, the file belongs to the caller and survives
 disposal or later cancellation. Windows, macOS, and Linux provide native rename capabilities. Linux requires libc renameat2 and filesystem support for RENAME_NOREPLACE; unsupported operations fail without a check-then-move or copy fallback.
 
+For maintenance of an owned cache directory, use `FilePublication.IsStagingFileName(Path.GetFileName(path))` to
+recognize publication staging without duplicating its naming convention. Recognition is lexical: it does not prove
+that a file is abandoned or belongs to the caller. Establish directory ownership and exclude active publishers before
+deleting a matching file. Ordinary publication disposal remains responsible for its own staging.
+
 `platform.FileEntries` offers regular-file inspection. `RequireRegularFile(path)` rejects missing or nonregular
 entries. Like other filesystem checks, it describes the observed entry rather than reserving it against later changes.
 

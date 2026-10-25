@@ -12,6 +12,7 @@ a new major version and are called out here. Linux native support remains experi
 
 ### Added
 
+- Staging-filename recognition for host-owned accounting and cleanup, without inferring ownership or abandonment.
 - Optional snapshot-file rename capability and shared byte publication with explicit directory-creation policy.
   Windows snapshot replacement preserves readers of the previous file through handle-based POSIX rename semantics;
   directory relocation retains its existing provider. Existing providers may omit the new capability.
