@@ -1,0 +1,8 @@
+# Generated output and local dependencies
+**/bin/
+**/obj/
+artifacts/
+publish/
+TestResults/
+coverage/
+**/node_modules/

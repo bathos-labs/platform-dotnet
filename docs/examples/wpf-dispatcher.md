@@ -1,13 +1,16 @@
 # WPF dispatcher integration
 
-A WPF application can adapt its window's existing `Dispatcher` to `INativeDispatcher`. This example belongs in the
-host application; the Bathos packages have no WPF dependency. Reference `Bathos.Platform.Windows` from a WPF project
-with `UseWPF` enabled. The example is compiled against the packed libraries by Windows package validation.
+A WPF application can adapt its window's existing `Dispatcher` to `INativeDispatcher`. This example
+belongs in the host application; the Bathos packages have no WPF dependency. Reference
+`Bathos.Platform.Windows` from a WPF project with `UseWPF` enabled. The example is compiled against
+the packed libraries by Windows package validation.
 
 [`VerifyAccess`](https://learn.microsoft.com/en-us/dotnet/api/system.windows.threading.dispatcher.verifyaccess)
-checks access to the WPF UI thread. [`BeginInvoke`](https://learn.microsoft.com/en-us/dotnet/api/system.windows.threading.dispatcher.begininvoke)
-queues work asynchronously, including when called on that thread. Use the dispatcher from an existing window;
-do not create one on a worker thread or replace asynchronous posting with an inline call.
+checks access to the WPF UI thread.
+[`BeginInvoke`](https://learn.microsoft.com/en-us/dotnet/api/system.windows.threading.dispatcher.begininvoke)
+queues work asynchronously, including when called on that thread. Use the dispatcher from an
+existing window; do not create one on a worker thread or replace asynchronous posting with an inline
+call.
 
 ```csharp
 using System.Windows.Threading;
@@ -33,10 +36,11 @@ public sealed class WpfNativeDispatcher : INativeDispatcher
 }
 ```
 
-The following window wires a button to native sampling and previews the result. WPF event handlers resume on the
-UI thread after `await`. Disabling the button prevents overlap; the closing handler keeps the dispatcher alive
-until the operation completes. Exceptions are handled at the event boundary, and canceled selection leaves the
-preview unchanged. The host can adapt the same pattern to its own controls and error presentation.
+The following window wires a button to native sampling and previews the result. WPF event handlers
+resume on the UI thread after `await`. Disabling the button prevents overlap; the closing handler
+keeps the dispatcher alive until the operation completes. Exceptions are handled at the event
+boundary, and canceled selection leaves the preview unchanged. The host can adapt the same pattern
+to its own controls and error presentation.
 
 ```csharp
 using System.ComponentModel;
@@ -92,8 +96,9 @@ public sealed class SamplingWindow : Window
 }
 ```
 
-This prevents ordinary window closing while sampling; it does not take ownership of application-wide shutdown.
-Coordinate an explicit `Application.Shutdown` or other host shutdown paths with outstanding work as well. Do not
-block the UI thread with `.Wait()`/`.Result`, start a nested dispatcher loop, or shut down the dispatcher while
-sampling. See the [general sampling recipe](../usage.md#applying-a-result-to-a-live-caller) when callers can retire
+This prevents ordinary window closing while sampling; it does not take ownership of application-wide
+shutdown. Coordinate an explicit `Application.Shutdown` or other host shutdown paths with
+outstanding work as well. Do not block the UI thread with `.Wait()`/`.Result`, start a nested
+dispatcher loop, or shut down the dispatcher while sampling. See the
+[general sampling recipe](../usage.md#applying-a-result-to-a-live-caller) when callers can retire
 independently of the host window.

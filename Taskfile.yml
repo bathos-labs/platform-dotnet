@@ -1,6 +1,10 @@
 # https://taskfile.dev/docs/reference/schema/
 version: '3'
 
+vars:
+  # Keep the CI pin and CONTRIBUTING.md commands in sync when upgrading.
+  PRETTIER_VERSION: '3.9.10'
+
 # Keep restore/build/test operations sequential; Task's deps run concurrently.
 tasks:
   default:
@@ -31,6 +35,16 @@ tasks:
     cmds:
       - task: restore
       - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+
+  docs:format:
+    desc: Wrap Markdown prose and align tables
+    cmds:
+      - npx --yes prettier@{{.PRETTIER_VERSION}} --write "**/*.md"
+
+  docs:check:
+    desc: Verify Markdown formatting without edits
+    cmds:
+      - npx --yes prettier@{{.PRETTIER_VERSION}} --check "**/*.md"
 
   test:
     desc: Build and run native tests on this host
@@ -67,6 +81,7 @@ tasks:
     desc: Run the complete local validation sequence, including package consumption
     cmds:
       - git diff --check
+      - task: docs:check
       - task: restore
       - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
       - dotnet build Bathos.Platform.slnx --configuration Release --no-restore

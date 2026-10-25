@@ -1,14 +1,18 @@
 # Contributing
 
-Use the SDK pinned by `global.json`. The default branch is `master`. Keep changes focused and preserve explicit
-capability absence, native-resource ownership, nullable analysis, and publication guarantees. Update tests and docs
-with contract changes. Preserve stable public API contracts for callers and implementers within a major version;
-breaking contract changes require an explicitly planned major release.
+Use the SDK pinned by `global.json` and Node.js 24 LTS with its bundled npm/npx for documentation
+formatting. The default branch is `master`. Keep changes focused and preserve explicit capability
+absence, native-resource ownership, nullable analysis, and publication guarantees. Update tests and
+docs with contract changes. Preserve stable public API contracts for callers and implementers within
+a major version; breaking contract changes require an explicitly planned major release.
 
-Run `task check` from the repository root on Windows, macOS, or Linux. `task --list` lists focused build, test,
-formatting, packaging, and release commands. [Task](https://taskfile.dev/) is optional; the equivalent SDK commands are:
+Run `task check` from the repository root on Windows, macOS, or Linux. `task --list` lists focused
+build, test, formatting, packaging, and release commands. [Task](https://taskfile.dev/) is optional;
+the equivalent commands are:
 
 ```text
+git diff --check
+npx --yes prettier@3.9.10 --check "**/*.md"
 dotnet restore Bathos.Platform.slnx --locked-mode
 dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
 dotnet build Bathos.Platform.slnx --configuration Release --no-restore
@@ -17,112 +21,156 @@ dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 ```
 
-Linux headless portal tests also require `libdbus-1.so.3`, `/usr/bin/dbus-run-session`, and system Python 3 with
-`dbus` and `gi` modules (Ubuntu packages `dbus-daemon`, `python3-dbus`, and `python3-gi`). Each test starts its own
-private bus and fake service; it never invokes a desktop picker or uses the user's portal. This validates protocol
-and native transport behavior, not compositor support, permissions, or selection accuracy.
-Desktop-entry activation tests also use system GIO/GLib/GObject and an owned test application. They do not open real
-editors. The test application runs outside the test-project directory so it does not inherit the test runner entry point.
+## Markdown formatting
 
-Update lockfiles intentionally with an unlocked restore after dependency changes. Keep package versions central.
-The package check uses an isolated consumer and cache outside the repository. It verifies MIT license metadata,
-dependencies, and expanded XML documentation, and loads only the current host's provider. Tests use disposable files
-and real native operations on the executing host. Host-specific scenarios on other hosts
-are explicitly skipped; skips do not establish implementation acceptance. Native permission, cross-volume,
-special-file, and interactive scenarios require their own evidence.
+After documentation edits, run `task docs:format` (or
+`npx --yes prettier@3.9.10 --write "**/*.md"`), then review the diff. Prettier wraps prose at a
+100-column target and aligns table columns. Tables, long links, and code blocks may exceed that
+width; embedded code formatting is disabled to preserve examples. Generated output is excluded
+through `.prettierignore` and `.gitignore`.
 
-Tests await owned operations or use explicit gates for races. Do not use sleeps or polling as synchronization.
-Preserve source/destination bytes on failed exclusive rename; never replace it with check-then-move or cross-volume
-copy/delete. Cleanup must delete only files owned by the operation. No sensitive, machine-local, generated, or unrelated
-product content belongs in commits.
+`task docs:check` verifies formatting without edits. It also runs as part of `task check`, and CI
+runs the same pinned Prettier check once in the common validation job. Formatting differences fail
+validation; CI does not write changes back. Agents must apply formatting and complete validation
+before committing.
 
-Native CI runs on Linux x64, Windows x64, and macOS Arm64 for PRs and `master`, and before tagged publication.
-An OS-specific failure is not excused by passing on another host. Screen selection is manual: invoke the picker
-in a native host, sample inside/outside the application, cancel with Escape, and repeat; verify main-loop cleanup and
-caller retirement. `task eng:sampler` supplies a small native launch harness; `task eng:sampler:smoke` checks its dispatch
-and shutdown without opening the picker. See the [native validation guide](docs/validation.md) for the procedure.
-Respect system privacy controls. Linux support is experimental. Its harness is console-driven;
-the portal owns the native UI loop and has no dispatcher smoke mode.
-Desktop reveal and editor handoff require separate manual validation through `eng/Bathos.Platform.Desktop`;
-headless fixtures and argument probes do not establish visible selection or editor compatibility.
+Prettier runs through `npx` with an exact version, using npm's cache without a repository package
+manifest, lockfile, or local installation. A cold cache requires npm registry access. When
+upgrading, update the pins in `Taskfile.yml`, `.github/workflows/validate.yml`, and this guide
+together, then reformat and review the Markdown. Editor integrations should use the same Prettier
+version and repository configuration.
+
+## Native development and validation
+
+Linux headless portal tests also require `libdbus-1.so.3`, `/usr/bin/dbus-run-session`, and system
+Python 3 with `dbus` and `gi` modules (Ubuntu packages `dbus-daemon`, `python3-dbus`, and
+`python3-gi`). Each test starts its own private bus and fake service; it never invokes a desktop
+picker or uses the user's portal. This validates protocol and native transport behavior, not
+compositor support, permissions, or selection accuracy. Desktop-entry activation tests also use
+system GIO/GLib/GObject and an owned test application. They do not open real editors. The test
+application runs outside the test-project directory so it does not inherit the test runner entry
+point.
+
+Update lockfiles intentionally with an unlocked restore after dependency changes. Keep package
+versions central. The package check uses an isolated consumer and cache outside the repository. It
+verifies MIT license metadata, dependencies, and expanded XML documentation, and loads only the
+current host's provider. Tests use disposable files and real native operations on the executing
+host. Host-specific scenarios on other hosts are explicitly skipped; skips do not establish
+implementation acceptance. Native permission, cross-volume, special-file, and interactive scenarios
+require their own evidence.
+
+Tests await owned operations or use explicit gates for races. Do not use sleeps or polling as
+synchronization. Preserve source/destination bytes on failed exclusive rename; never replace it with
+check-then-move or cross-volume copy/delete. Cleanup must delete only files owned by the operation.
+No sensitive, machine-local, generated, or unrelated product content belongs in commits.
+
+CI first runs whitespace, Markdown formatting, and C# formatting checks in a common Ubuntu job. The
+Linux x64, Windows x64, and macOS Arm64 native jobs start only after that job passes. Each native
+job restores locked dependencies, builds with analyzers, runs tests with coverage, and packs and
+verifies packages on its own host. These checks run for PRs and `master`, and before tagged
+publication. An OS-specific failure is not excused by passing on another host. Screen selection is
+manual: invoke the picker in a native host, sample inside/outside the application, cancel with
+Escape, and repeat; verify main-loop cleanup and caller retirement. `task eng:sampler` supplies a
+small native launch harness; `task eng:sampler:smoke` checks its dispatch and shutdown without
+opening the picker. See the [native validation guide](docs/validation.md) for the procedure. Respect
+system privacy controls. Linux support is experimental. Its harness is console-driven; the portal
+owns the native UI loop and has no dispatcher smoke mode. Desktop reveal and editor handoff require
+separate manual validation through `eng/Bathos.Platform.Desktop`; headless fixtures and argument
+probes do not establish visible selection or editor compatibility.
 
 ## Changelog
 
-Record consumer-visible changes under `Unreleased` in [CHANGELOG.md](CHANGELOG.md), grouped as Added, Changed,
-Deprecated, Removed, Fixed, or Security as appropriate. Omit empty categories and internal-only maintenance.
-Describe observable behavior and call out breaking API changes. Do not record an unreleased version as published.
-Follow [RELEASING.md](RELEASING.md) when moving notes into a dated release section.
+Record consumer-visible changes under `Unreleased` in [CHANGELOG.md](CHANGELOG.md), grouped as
+Added, Changed, Deprecated, Removed, Fixed, or Security as appropriate. Omit empty categories and
+internal-only maintenance. Describe observable behavior and call out breaking API changes. Do not
+record an unreleased version as published. Follow [RELEASING.md](RELEASING.md) when moving notes
+into a dated release section.
 
 ## API and developer documentation
 
-Present built-in OS providers as the normal integration path. Keep application dependencies focused on the capability
-interfaces they use; these and the native dispatcher support host integration, substitution, and testing. The provider
-facade is a composition convenience, and partial providers are an optional technique. Expand provider infrastructure
-only for demonstrated consumer requirements.
+Present built-in OS providers as the normal integration path. Keep application dependencies focused
+on the capability interfaces they use; these and the native dispatcher support host integration,
+substitution, and testing. The provider facade is a composition convenience, and partial providers
+are an optional technique. Expand provider infrastructure only for demonstrated consumer
+requirements.
 
-Add new capabilities as focused interfaces with optional default-null properties on `IPlatformProvider`; its OS identity
-is the only required member. Do not add required operations to existing interfaces or weaken their guarantees as an
-additive change. For stable releases, compatibility review covers both callers and implementers, including public facade
-implementations. Default operation bodies must provide meaningful behavior that satisfies the contract.
+Add new capabilities as focused interfaces with optional default-null properties on
+`IPlatformProvider`; its OS identity is the only required member. Do not add required operations to
+existing interfaces or weaken their guarantees as an additive change. For stable releases,
+compatibility review covers both callers and implementers, including public facade implementations.
+Default operation bodies must provide meaningful behavior that satisfies the contract.
 
-Shipping libraries generate XML documentation and fail the build for missing public documentation (CS1591).
-Engineering executables and tests are explicitly exempt in their own directory build properties; XML generation
-remains enabled there because the unused-import analyzer requires it. Do not add a suppression to shipping projects.
+Shipping libraries generate XML documentation and fail the build for missing public documentation
+(CS1591). Engineering executables and tests are explicitly exempt in their own directory build
+properties; XML generation remains enabled there because the unused-import analyzer requires it. Do
+not add a suppression to shipping projects.
 
-Document caller-visible contracts: ownership, null results, native-thread requirements, concurrency, cancellation
-boundaries, exceptions, and the limits of successful completion. Treat native error messages as diagnostic details;
-document actionable outcomes without promising identical native failures across operating systems. Prefer meaningful
-summaries and parameter descriptions to paraphrasing signatures. Shared interface/implementation contracts live in
-`src/Bathos.Platform/Documentation/Contracts.xml` and use compiler-expanded `include` comments. Keep selectors and
-parameter names synchronized with their declarations. The shipped XML must contain real text; do not rely on
-implicit IDE inheritance or unresolved `inheritdoc` tags. No documentation generator is required.
+Document caller-visible contracts: ownership, null results, native-thread requirements, concurrency,
+cancellation boundaries, exceptions, and the limits of successful completion. Treat native error
+messages as diagnostic details; document actionable outcomes without promising identical native
+failures across operating systems. Prefer meaningful summaries and parameter descriptions to
+paraphrasing signatures. Shared interface/implementation contracts live in
+`src/Bathos.Platform/Documentation/Contracts.xml` and use compiler-expanded `include` comments. Keep
+selectors and parameter names synchronized with their declarations. The shipped XML must contain
+real text; do not rely on implicit IDE inheritance or unresolved `inheritdoc` tags. No documentation
+generator is required.
 
-Keep the README quick start runnable and integration examples in `docs/usage.md` self-contained. The package verifier
-compiles every `csharp` fenced block in those files against the freshly packed libraries in an isolated consumer.
-The README contains one executable quick start, compiled with only the packages listed by its installation commands;
-guide snippets declare public example classes and are compiled separately with all providers available.
-On Windows/macOS/Linux, validation runs the README twice and verifies the expected bytes and collision-safe publication.
-The WPF example in `docs/examples/wpf-dispatcher.md` is compiled separately on Windows with the WPF framework
-reference. Interactive snippets are compiled only; their acceptance remains manual. Retain the separate single-provider
-consumer check before examples bring in all providers. Keep Markdown fences conventional so extraction remains deterministic.
+Keep the README quick start runnable and integration examples in `docs/usage.md` self-contained. The
+package verifier compiles every `csharp` fenced block in those files against the freshly packed
+libraries in an isolated consumer. The README contains one executable quick start, compiled with
+only the packages listed by its installation commands; guide snippets declare public example classes
+and are compiled separately with all providers available. On Windows/macOS/Linux, validation runs
+the README twice and verifies the expected bytes and collision-safe publication. The WPF example in
+`docs/examples/wpf-dispatcher.md` is compiled separately on Windows with the WPF framework
+reference. Interactive snippets are compiled only; their acceptance remains manual. Retain the
+separate single-provider consumer check before examples bring in all providers. Keep Markdown fences
+conventional so extraction remains deterministic.
 
-When changing a public contract, update its XML comments, integration recipe, example, and consumer-facing changelog
-entry together. Link published documentation to its tag; distinguish development guidance from the installed package's
-contract. Keep the support status and compatibility commitment current for each release. Linux native support is
-experimental; the stable public API compatibility commitment still applies.
-A documentation build does not establish native acceptance or authorize a release. A hosted DocFX site remains an
-optional long-term enhancement rather than part of this validation workflow.
+When changing a public contract, update its XML comments, integration recipe, example, and
+consumer-facing changelog entry together. Link published documentation to its tag; distinguish
+development guidance from the installed package's contract. Keep the support status and
+compatibility commitment current for each release. Linux native support is experimental; the stable
+public API compatibility commitment still applies. A documentation build does not establish native
+acceptance or authorize a release. A hosted DocFX site remains an optional long-term enhancement
+rather than part of this validation workflow.
 
 ## Released API compatibility
 
-All four shipping packages enable the SDK's package validation during `dotnet pack`. The stable baseline is pinned
-in `eng/Bathos.Package.props`; removed or incompatible signatures, dropped target frameworks, and changed parameter
-names fail the gate. Compatible additions are allowed. Do not enable strict baseline equality or automatically
-suppress diagnostics: a failure requires a compatibility-preserving design or an explicitly approved breaking release.
+All four shipping packages enable the SDK's package validation during `dotnet pack`. The stable
+baseline is pinned in `eng/Bathos.Package.props`; removed or incompatible signatures, dropped target
+frameworks, and changed parameter names fail the gate. Compatible additions are allowed. Do not
+enable strict baseline equality or automatically suppress diagnostics: a failure requires a
+compatibility-preserving design or an explicitly approved breaking release.
 
-The existing `verify-packages` command also exercises `eng/api-compatibility` in isolated temporary projects:
+The existing `verify-packages` command also exercises `eng/api-compatibility` in isolated temporary
+projects:
 
-1. Restore the released packages from NuGet.org using the consumer's committed lockfile, then compile its callers,
-   minimal `IPlatformProvider`, and `INativeFileRename` implementation against that release.
+1. Restore the released packages from NuGet.org using the consumer's committed lockfile, then
+   compile its callers, minimal `IPlatformProvider`, and `INativeFileRename` implementation against
+   that release.
 2. Compile the same source against only the freshly packed candidate packages in a separate cache.
-3. Run the original released consumer assembly with the candidate packages, without recompiling it. Verify all four
-   loaded package assembly hashes and the consumer hash; exercise old constructors, named calls, native inspection,
-   publication, and optional capability defaults on the old provider implementation.
+3. Run the original released consumer assembly with the candidate packages, without recompiling it.
+   Verify all four loaded package assembly hashes and the consumer hash; exercise old constructors,
+   named calls, native inspection, publication, and optional capability defaults on the old provider
+   implementation.
 
-The released consumer must use only baseline APIs. The current runner may assert new optional defaults. Keep the
-baseline consumer's source and lockfile together when advancing the stable baseline after a release; regenerate its
-lockfile in an isolated copy with `BathosVersion` set to the new stable version. Never resolve the baseline from the
-local candidate feed or update it automatically to make a failure disappear. Baseline restore requires NuGet.org;
-candidate consumers use only the local feed. No compatibility tooling becomes a shipping runtime dependency.
+The released consumer must use only baseline APIs. The current runner may assert new optional
+defaults. Keep the baseline consumer's source and lockfile together when advancing the stable
+baseline after a release; regenerate its lockfile in an isolated copy with `BathosVersion` set to
+the new stable version. Never resolve the baseline from the local candidate feed or update it
+automatically to make a failure disappear. Baseline restore requires NuGet.org; candidate consumers
+use only the local feed. No compatibility tooling becomes a shipping runtime dependency.
 
-These checks cover API shape and representative source/binary integration. They do not establish every consumer's
-behavior or replace native ownership, cancellation, filesystem, and manual desktop validation.
+These checks cover API shape and representative source/binary integration. They do not establish
+every consumer's behavior or replace native ownership, cancellation, filesystem, and manual desktop
+validation.
 
 ## Standalone coverage and CI setup
 
-`task test:coverage` runs the same standalone suite with Coverlet's Microsoft.Testing.Platform extension and writes
-raw Cobertura/TRX evidence under `artifacts/test-results` plus a repository-relative report under `artifacts/coverage`.
-No consuming application or sibling checkout is needed. Equivalent commands after the Release build are:
+`task test:coverage` runs the same standalone suite with Coverlet's Microsoft.Testing.Platform
+extension and writes raw Cobertura/TRX evidence under `artifacts/test-results` plus a
+repository-relative report under `artifacts/coverage`. No consuming application or sibling checkout
+is needed. Equivalent commands after the Release build are:
 
 ```text
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- clean-test-results
@@ -130,23 +178,28 @@ dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build -
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-coverage artifacts/test-results artifacts/coverage/coverage.cobertura.xml
 ```
 
-Coverage includes all four shipping assemblies on every host, including unexecuted native code. Exclusions are limited
-to test/engineering assemblies, generated `obj` sources, and `GeneratedCodeAttribute`; compiler-generated async state
-machines and handwritten interop remain measurable. Review changed-code coverage and uncovered failure branches together
-with assertions and ownership guarantees. Executing a line does not establish correctness. See [validation](docs/validation.md)
-for the portable, native, skipped, and manual evidence boundaries.
+Coverage includes all four shipping assemblies on every host, including unexecuted native code.
+Exclusions are limited to test/engineering assemblies, generated `obj` sources, and
+`GeneratedCodeAttribute`; compiler-generated async state machines and handwritten interop remain
+measurable. Review changed-code coverage and uncovered failure branches together with assertions and
+ownership guarantees. Executing a line does not establish correctness. See
+[validation](docs/validation.md) for the portable, native, skipped, and manual evidence boundaries.
 
-CI retains each platform's raw and normalized reports with TRX for 14 days. Only after all three native jobs pass and
-all three reports exist does the reporting job upload `linux`, `windows`, and `macos` flags. Codecov combines these into
-aggregate coverage; flags retain host visibility. Notifications wait for three uploads and passing CI, with no carried-forward
-platform evidence. The upload job must also pass: a partially uploaded Codecov view or a missing comment is not complete
-matrix evidence. Missing/empty reports and upload errors fail visibly; coverage percentages and patch checks are informational
-and must not be made required branch-protection checks initially. No percentage threshold is enforced.
+CI retains each platform's raw and normalized reports with TRX for 14 days. Only after all three
+native jobs pass and all three reports exist does the reporting job upload `linux`, `windows`, and
+`macos` flags. Codecov combines these into aggregate coverage; flags retain host visibility.
+Notifications wait for three uploads and passing CI, with no carried-forward platform evidence. The
+upload job must also pass: a partially uploaded Codecov view or a missing comment is not complete
+matrix evidence. Missing/empty reports and upload errors fail visibly; coverage percentages and
+patch checks are informational and must not be made required branch-protection checks initially. No
+percentage threshold is enforced.
 
-Owner setup: enable `bathos-labs/platform-dotnet` in Codecov and authorize the Codecov GitHub App for this repository
-so it can publish PR comments/checks. Uploads use [Codecov OIDC](https://github.com/codecov/codecov-action#using-oidc)
-with `id-token: write` confined to the reporting job; no upload secret is required. Organization policy must allow that
-permission. Fork PRs keep the ordinary `pull_request` security boundary; do not switch to `pull_request_target` or expose
-secrets to make an upload pass. If policy blocks authentication, retain the artifacts and report the blocked upload.
-After merging, verify a complete `master` run in Codecov to establish the comparison baseline and activate the README badge.
-The initial PR may have no base coverage to compare. Never store Codecov credentials in source files.
+Owner setup: enable `bathos-labs/platform-dotnet` in Codecov and authorize the Codecov GitHub App
+for this repository so it can publish PR comments/checks. Uploads use
+[Codecov OIDC](https://github.com/codecov/codecov-action#using-oidc) with `id-token: write` confined
+to the reporting job; no upload secret is required. Organization policy must allow that permission.
+Fork PRs keep the ordinary `pull_request` security boundary; do not switch to `pull_request_target`
+or expose secrets to make an upload pass. If policy blocks authentication, retain the artifacts and
+report the blocked upload. After merging, verify a complete `master` run in Codecov to establish the
+comparison baseline and activate the README badge. The initial PR may have no base coverage to
+compare. Never store Codecov credentials in source files.
