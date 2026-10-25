@@ -12,6 +12,11 @@ remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
 
+### Fixed
+
+- Exact file publication preserves native macOS/Linux filename characters such as literal
+  backslashes instead of applying Windows separator rules. Generated names remain portable.
+
 ## [1.1.0-beta.2] - 2026-10-25
 
 ### Added

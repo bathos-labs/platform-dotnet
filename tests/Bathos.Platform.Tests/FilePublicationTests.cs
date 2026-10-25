@@ -1,5 +1,6 @@
 using System.Text;
 using Bathos.Platform.Files;
+using Bathos.Platform.Paths;
 using Xunit;
 
 namespace Bathos.Platform.Tests;
@@ -15,6 +16,7 @@ public sealed class FilePublicationTests
     [InlineData("Spring drawing", "Mask", "Spring drawing - Mask.png")]
     [InlineData("Spring drawing", " ", "Spring drawing.png")]
     [InlineData("../Drawing: front/back?", "Paste", "Drawing- front-back - Paste.png")]
+    [InlineData("front\\back", null, "front-back.png")]
     [InlineData("CON", null, "_CON.png")]
     [InlineData("lpt1.notes", null, "_lpt1.notes.png")]
     [InlineData("...", null, "File.png")]
@@ -25,6 +27,11 @@ public sealed class FilePublicationTests
         var name = new GeneratedFileName(baseName, ".png", kind);
         Assert.Equal(expected, name.Candidate(1));
         Assert.Equal(Path.GetFileNameWithoutExtension(expected) + " (2).png", name.Candidate(2));
+        foreach (var sequence in new[] { 1, 2, int.MaxValue })
+        {
+            var candidate = name.Candidate(sequence);
+            Assert.True(PortableFileNames.IsValid(candidate), $"Generated candidate is not portable: {candidate}");
+        }
     }
 
     [Fact]
@@ -34,10 +41,12 @@ public sealed class FilePublicationTests
         Assert.Throws<ArgumentException>(() => new GeneratedFileName(" ", ".png"));
         Assert.Throws<ArgumentException>(() => new GeneratedFileName("Drawing", "png"));
         Assert.Throws<ArgumentException>(() => new GeneratedFileName("Drawing", ".png/other"));
-        var name = new GeneratedFileName(new string('桜', 300), ".png", new string('é', 300));
+        const string extension = ".abcdefghijklmnop";
+        var name = new GeneratedFileName(new string('桜', 300), extension, new string('é', 300));
         var candidate = name.Candidate(int.MaxValue);
+        Assert.True(PortableFileNames.IsValid(candidate), $"Generated candidate is not portable: {candidate}");
         Assert.True(Encoding.UTF8.GetByteCount(candidate) < 255);
-        Assert.EndsWith(" (2147483647).png", candidate, StringComparison.Ordinal);
+        Assert.EndsWith(" (2147483647)" + extension, candidate, StringComparison.Ordinal);
         Assert.DoesNotContain('�', candidate);
     }
 
@@ -232,10 +241,39 @@ public sealed class FilePublicationTests
         {
             await using var publication = new FilePublication(folder.FullName, NativeRename);
             await Assert.ThrowsAsync<ArgumentException>(() => publication.PublishExactAsync("../escape.png", token));
-            await Assert.ThrowsAsync<ArgumentException>(() => publication.PublishExactAsync("..\\escape.png", token));
+            if (OperatingSystem.IsWindows())
+                await Assert.ThrowsAsync<ArgumentException>(() => publication.PublishExactAsync("..\\escape.png", token));
             await Assert.ThrowsAsync<ArgumentException>(() => publication.PublishExactAsync("bad\0name.png", token));
             await Assert.ThrowsAsync<IOException>(() => publication.PublishExactAsync(new string('x', 300) + ".png", token));
             Assert.Empty(Directory.EnumerateFiles(folder.FullName, "*.png"));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Theory]
+    [InlineData("literal\\name.txt")]
+    [InlineData("literal:name.txt")]
+    [Trait("Validation", "Native")]
+    public async Task ExactNamesPreserveNativeCharactersWithoutApplyingPortableNamingRules(string name)
+    {
+        var token = TestContext.Current.CancellationToken;
+        var folder = Directory.CreateTempSubdirectory("bathos-native-name-");
+        try
+        {
+            await using var publication = new FilePublication(folder.FullName, NativeRename);
+            await publication.Stream.WriteAsync("complete"u8.ToArray(), token);
+            if (OperatingSystem.IsWindows())
+            {
+                await Assert.ThrowsAsync<ArgumentException>(() => publication.PublishExactAsync(name, token));
+                Assert.True(publication.Stream.CanWrite);
+            }
+            else
+            {
+                var destination = Path.Combine(folder.FullName, name);
+                Assert.Equal(destination, await publication.PublishExactAsync(name, token));
+                Assert.Equal("complete", await File.ReadAllTextAsync(destination, token));
+                Assert.Equal(destination, Assert.Single(Directory.EnumerateFiles(folder.FullName)));
+            }
         }
         finally { folder.Delete(true); }
     }

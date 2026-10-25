@@ -83,15 +83,17 @@ public sealed class FilePublication : IAsyncDisposable
     /// <exception cref="OperationCanceledException">Cancellation was observed before successful publication.</exception>
     /// <exception cref="InvalidOperationException">Publication was already attempted or the operation was disposed.</exception>
     /// <exception cref="IOException">Staging could not be flushed or published, including an unauthorized collision.</exception>
-    /// <param name="fileName">A single nonblank filename, excluding the staging name and directory components.</param>
+    /// <param name="fileName">A single nonblank native filename, excluding the staging name and directory components.</param>
+    /// <remarks>Exact names follow the executing OS's filename rules. For example, a literal backslash is preserved on macOS/Linux
+    /// but rejected as a directory separator on Windows. Use GeneratedFileName for portable generated names.</remarks>
     /// <param name="token">Cancellation checked before flush and rename, never after successful publication.</param>
     /// <param name="replaceExisting">Explicit authorization to replace an occupied destination atomically.</param>
     /// <exception cref="ArgumentNullException">The filename is null.</exception>
     public Task<string> PublishExactAsync(string fileName, CancellationToken token, bool replaceExisting = false)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(fileName);
-        if (fileName is "." or ".." || fileName.IndexOfAny(['/', '\\', '\0']) >= 0 ||
-            fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 || Path.GetFileName(fileName) != fileName)
+        if (fileName is "." or ".." || fileName.IndexOfAny(Path.GetInvalidFileNameChars()) >= 0 ||
+            Path.GetFileName(fileName) != fileName)
             throw new ArgumentException("A single filename is required.", nameof(fileName));
         // Reject case aliases too, including on case-insensitive macOS volumes.
         var comparableName = OperatingSystem.IsWindows() ? fileName.TrimEnd(' ', '.') : fileName;
