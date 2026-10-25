@@ -102,8 +102,9 @@ ownership.
 - [Native validation][validation]: automated evidence, limitations, and manual desktop checks.
 - [Architecture][architecture]: capability boundaries and resource ownership.
 - [Contributing][contributing] and [releasing][releasing]: source development and publication.
-- [GitHub Issues](https://github.com/bathos-labs/platform-dotnet/issues): bugs and capability
-  requests.
+- [GitHub Issues](https://github.com/bathos-labs/platform-dotnet/issues): search existing reports,
+  or [open an issue](https://github.com/bathos-labs/platform-dotnet/issues/new/choose) for a bug,
+  capability request, or integration question.
 
 The README and guides describe the source revision being viewed. Use the matching source tag or
 shipped XML documentation for an older installed package. Package README links point to their

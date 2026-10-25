@@ -156,6 +156,18 @@ but executed noninteractive operations cover a smaller surface. Keep warnings ac
 evidence explicit; do not add suppressions or compatibility metadata merely to pass a probe. Publish
 modes use clean intermediates and sequential owned processes, not sleeps or polling.
 
+## Issues and pull requests
+
+Use the [issue chooser](https://github.com/bathos-labs/platform-dotnet/issues/new/choose) for bug
+reports, capability requests, and integration questions. Consumers can report an installed-package
+problem without checking out or building this repository. Feature requests and questions have
+lightweight templates; blank issues remain available.
+
+The PR template asks for the resulting behavior, validation on the executing host, and relevant
+documentation and public-contract compatibility details. Link the related issue when applicable, run
+`task check`, and identify pending manual acceptance. Keep detailed contracts and procedures in
+their existing guides rather than copying them into issue or PR templates.
+
 ## Changelog
 
 Record consumer-visible changes under `Unreleased` in [CHANGELOG.md](CHANGELOG.md), grouped as
