@@ -12,6 +12,8 @@ native support remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
 
+## [1.1.0-rc.1] - 2026-10-25
+
 ### Fixed
 
 - Exact file publication preserves native macOS/Linux filename characters such as literal
@@ -112,7 +114,8 @@ experimental. Prerelease APIs may change without compatibility shims.
   Interactive Finder, Explorer, and editor validation remains pending; see the native validation
   record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.1.0-beta.2...master
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.1.0-rc.1...release/1.1.0
+[1.1.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-rc.1
 [1.1.0-beta.2]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.2
 [1.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.1
 [1.0.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.0.0

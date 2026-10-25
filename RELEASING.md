@@ -24,7 +24,7 @@ applies to future release preparation and publication; existing releases and tag
 3. Configure the GitHub **`nuget`** environment for release tags and any desired reviewer
    requirement.
 
-The publish job alone has `id-token: write`. `NuGet/login` exchanges GitHub OIDC evidence for a
+The publish job requests `id-token: write`. `NuGet/login` exchanges GitHub OIDC evidence for a
 short-lived credential; no long-lived API key is stored. NuGet policy setup requires access to the
 publishing account and is not performed by committing this workflow. Official setup:
 https://learn.microsoft.com/en-us/nuget/nuget-org/trusted-publishing
@@ -52,11 +52,21 @@ prerelease, a remote branch under `release/`. The shared checker fetches those h
 and prunes deleted release branches before checking ancestry. A locally invented or stale tracking
 ref is not publication evidence. Keep the source branch available through publication and retries.
 
-For betas before integration, create a `release/<name>` branch from the candidate work and publish
-there without merging each beta. An open PR can provide ordinary native CI evidence; tagging repeats
-the full release validation. A stable release requires merging its preparation into `master` before
-tagging and publication. This creates a short interval when source documentation can precede stable
-packages on NuGet. Publishing stable packages before that merge would require changing the policy.
+For prereleases before integration, create a `release/<name>` branch from the candidate work and
+keep an integration PR from that branch to `master` open for common/native CI. If an existing
+feature PR should merge into the release branch first, create the release branch from `master` and
+retarget that feature PR before merging it. Starting from `master` preserves that feature PR's diff.
+
+Publish betas or release candidates from the release branch without merging each one to `master`.
+Use an `-rc.N` suffix when the intended feature set is complete and downstream integration testing
+has passed; record remaining limitations without treating those results as evidence for untested
+hosts or desktop interactions. All four packages use the same complete prerelease version. Preparing
+an RC still requires changing `Version`, refreshing lockfiles, and creating its dated changelog
+entry; the development value is not automatically the intended published version.
+
+A stable release requires merging its preparation into `master` before tagging and publication. This
+creates a short interval when source documentation can precede stable packages on NuGet. Publishing
+stable packages before that merge would require changing the policy.
 
 1. Choose the next Semantic Version (including a prerelease suffix where appropriate) and update
    `Version` in `Directory.Build.props`. Run `dotnet restore Bathos.Platform.slnx --force-evaluate`
@@ -118,9 +128,36 @@ the consumer fixture's covered contracts and run the full gate. Prereleases do n
 stable baseline. Keep the previous baseline throughout release validation; do not advance it to an
 unpublished candidate or suppress compatibility diagnostics without an explicitly approved
 breaking-release plan. See CONTRIBUTING.md for the checks. Create a GitHub release using the
-corresponding changelog entry, marking prerelease tags as prereleases. Attach the verified
-`packages` workflow artifact's `.nupkg` and `.snupkg` files if providing release downloads; do not
-rebuild them locally.
+corresponding changelog entry, marking prerelease tags as prereleases. NuGet publication is
+automated; the workflow does not create the GitHub release record. Attach the verified `packages`
+workflow artifact's `.nupkg` and `.snupkg` files if providing release downloads; do not rebuild them
+locally.
+
+Monitor the **NuGet release** workflow for the exact tag and commit, including its publication job.
+For example, use `gh run list --workflow release.yml --event push` to find its run, then:
+
+```text
+gh run watch RUN_ID --exit-status
+gh run download RUN_ID --name packages --dir RELEASE_ARTIFACTS
+gh release create vX.Y.Z --verify-tag --prerelease --latest=false \
+  --title X.Y.Z --notes-file RELEASE_NOTES.md \
+  RELEASE_ARTIFACTS/*.nupkg RELEASE_ARTIFACTS/*.snupkg
+```
+
+Replace `RUN_ID` with that release run's ID and `X.Y.Z` with its complete prerelease version. Use a
+new artifact directory and a notes file containing the corresponding dated changelog entry, both
+outside the checkout. For a stable GitHub release, omit `--prerelease` and `--latest=false`. The
+`--verify-tag` option requires the already pushed tag rather than creating a tag implicitly. Wait
+for successful NuGet publication before announcing the GitHub release. NuGet indexing can lag the
+push; confirm each exact package version is downloadable and restorable before reporting it
+available.
+
+To promote an accepted RC, remove the prerelease suffix, refresh lockfiles, and add a dated stable
+changelog entry summarizing the changes since the previous stable release. Preserve prerelease
+history. Update the `Unreleased` comparison to the stable tag and `master`, validate, merge the
+integration PR to `master`, and tag that resulting commit there. Repeat the full publication and
+public-feed verification; stable artifacts are built for the stable version, rather than reusing RC
+package files. Advance the compatibility baseline only afterward as described above.
 
 For local consumers, use a unique prerelease version and a folder feed, or an explicit
 source-project override. Keep consumer package lockfiles and source-mode restore outputs separate.
