@@ -147,6 +147,10 @@ These tools and SDK packs are development requirements, not shipping package dep
 Microsoft's
 [Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
 
+All four publish modes are blocking CI checks, including the experimental trimming and Native AOT
+probes. Keep them blocking unless demonstrated toolchain or maintenance churn warrants an explicit
+decision to change that policy.
+
 The shipping libraries are not marked trim/AOT-compatible. Rooted analysis covers their full code,
 but executed noninteractive operations cover a smaller surface. Keep warnings actionable and runtime
 evidence explicit; do not add suppressions or compatibility metadata merely to pass a probe. Publish
