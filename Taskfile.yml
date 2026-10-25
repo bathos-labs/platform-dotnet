@@ -119,12 +119,19 @@ tasks:
       - task: pack
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages --native-aot
 
+  release:test:
+    desc: Verify release guards against isolated local Git repositories (does not publish)
+    cmds:
+      - dotnet build eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true
+      - node eng/CheckReleasePolicy.test.cjs
+
   check:
     desc: Run the complete local validation sequence, including package consumption
     cmds:
       - task: lint
       - task: docs:links:test
       - dotnet build Bathos.Platform.slnx --configuration Release --no-restore
+      - node eng/CheckReleasePolicy.test.cjs
       - dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
@@ -142,12 +149,12 @@ tasks:
       - dotnet run --project eng/Bathos.Platform.Sampler --configuration Release --no-build -- --smoke
 
   release:check:
-    desc: Validate locally and verify the proposed tag matches the package version (TAG=vX.Y.Z)
+    desc: Check release branch, version, and changelog, then validate locally (TAG=vX.Y.Z)
     requires:
       vars: [TAG]
     cmds:
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true -- verify-tag {{.TAG | shellQuote}}
       - task: check
-      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-tag {{.TAG | shellQuote}}
 
   release:tag:
     desc: Validate and create an annotated local release tag; does not push (TAG=vX.Y.Z)
@@ -156,8 +163,6 @@ tasks:
     preconditions:
       - sh: test -z "$(git status --porcelain)"
         msg: Commit the version, changelog, lockfiles, and any other changes before tagging.
-      - sh: test "$(git branch --show-current)" = master
-        msg: Create release tags from master.
     cmds:
       - task: release:check
         vars:
@@ -169,4 +174,5 @@ tasks:
     requires:
       vars: [TAG]
     cmds:
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true -- verify-tag {{.TAG | shellQuote}} --remote
       - git push origin {{printf "refs/tags/%s:refs/tags/%s" .TAG .TAG | shellQuote}}

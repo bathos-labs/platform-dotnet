@@ -21,6 +21,7 @@ dotnet restore Bathos.Platform.slnx --locked-mode
 dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
 npx --yes --package=remark-cli@12.0.1 --package=remark-gfm@4.0.1 --package=remark-validate-links@13.1.0 --package=remark-lint-no-undefined-references@5.0.2 node eng/CheckDocumentationLinks.test.cjs
 dotnet build Bathos.Platform.slnx --configuration Release --no-restore
+node eng/CheckReleasePolicy.test.cjs
 dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
 dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
@@ -30,7 +31,11 @@ dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-buil
 or pack libraries. Its whitespace checks include both unstaged and staged changes; CI checks the
 commit being validated. Both use the same Markdown/link configuration, pinned tool versions, locked
 restore, and C# formatting rules. The full check also runs disposable link-checker regression
-fixtures and reuses that restore before the Release build.
+fixtures and reuses that restore before the Release build. The full check also runs release-policy
+fixtures against disposable local Git repositories. Common CI builds the engineering checker and
+runs these fixtures before the native matrix; they require Git and Node.js, create no public release
+tags, and do not contact NuGet. Use `task release:test` to run them independently. See
+[release guards and source policy](RELEASING.md#publish).
 
 Use `task code:format` and `task code:check` for C# alone, or `task docs:format` and
 `task docs:check` for Markdown alone. `task format:check` verifies both without edits. Without Task,
@@ -217,6 +222,12 @@ and desktop acceptance explicit. Develop upcoming behavior and its documentation
 branches, advancing `Version` when development resumes; prefer small releases so `master` stays
 close to the published state. Source documentation can describe changes awaiting publication; the
 matching tag and shipped XML describe an installed package.
+
+Release preparation is allowed on `master` for stable or prerelease versions, and on `release/*` for
+prereleases only. Other development branches use `task check`; their release preparation must first
+reach an allowed branch. The publication guard verifies the tagged commit against refreshed remote
+branch ancestry, since tags do not retain a source branch. Stable publication requires integration
+into `master` before tagging. See [RELEASING.md](RELEASING.md) for the complete process.
 
 Present built-in OS providers as the normal integration path. Keep application dependencies focused
 on the capability interfaces they use; these and the native dispatcher support host integration,

@@ -33,3 +33,6 @@
   state, or unrelated code.
 - Commit when requested. Tagging a release publishes packages; follow RELEASING.md and require an
   explicit release request.
+- Release preparation: master permits stable or prerelease versions; release/* permits only
+  prereleases. Other branches cannot prepare releases. Do not publish stable packages from a release
+  branch before integration into master, or change historical tags/releases.

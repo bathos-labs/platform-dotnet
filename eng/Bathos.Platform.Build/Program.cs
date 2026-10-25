@@ -11,16 +11,26 @@ if (args is ["clean-test-results"])
         if (Directory.Exists(path)) Directory.Delete(path, recursive: true);
     return;
 }
-if (args is ["verify-tag", var tag])
+if (args.Length is 2 or 3 && args[0] == "verify-tag" && (args.Length == 2 || args[2] == "--remote"))
 {
-    if (tag != "v" + version) throw new InvalidOperationException($"Release tag must be v{version}.");
-    var changelog = File.ReadAllText(Path.Combine(root, "CHANGELOG.md"));
-    var entry = System.Text.RegularExpressions.Regex.Match(changelog,
-        $@"^## \[{System.Text.RegularExpressions.Regex.Escape(version)}\] - (\d{{4}}-\d{{2}}-\d{{2}})$",
-        System.Text.RegularExpressions.RegexOptions.Multiline);
-    if (!entry.Success || !DateOnly.TryParseExact(entry.Groups[1].Value, "yyyy-MM-dd",
-        System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
-        throw new InvalidOperationException($"Prepare a dated CHANGELOG.md entry for {version} before tagging.");
+    try
+    {
+        var tag = args[1];
+        if (tag != "v" + version) throw new InvalidOperationException($"Release tag must be v{version}.");
+        var changelog = File.ReadAllText(Path.Combine(root, "CHANGELOG.md"));
+        var entry = System.Text.RegularExpressions.Regex.Match(changelog,
+            $@"^## \[{System.Text.RegularExpressions.Regex.Escape(version)}\] - (\d{{4}}-\d{{2}}-\d{{2}})$",
+            System.Text.RegularExpressions.RegexOptions.Multiline);
+        if (!entry.Success || !DateOnly.TryParseExact(entry.Groups[1].Value, "yyyy-MM-dd",
+            System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
+            throw new InvalidOperationException($"Prepare a dated CHANGELOG.md entry for {version} before tagging.");
+        await ReleasePolicy.VerifyAsync(root, version, tag, remote: args.Length == 3);
+    }
+    catch (InvalidOperationException error)
+    {
+        Console.Error.WriteLine(error.Message);
+        Environment.ExitCode = 1;
+    }
     return;
 }
 if (args is ["verify-coverage", var results, var output])
@@ -30,7 +40,7 @@ if (args is ["verify-coverage", var results, var output])
 }
 if (args is not ["verify-packages", ..] || args.Length is < 2 or > 3 ||
     (args.Length == 3 && args[2] != "--native-aot"))
-    throw new ArgumentException("Use verify-packages <feed> [--native-aot] or verify-tag <tag>.");
+    throw new ArgumentException("Use verify-packages <feed> [--native-aot] or verify-tag <tag> [--remote].");
 var feedArgument = args[1];
 var feed = Path.GetFullPath(feedArgument);
 string[] names = ["Bathos.Platform", "Bathos.Platform.MacOS", "Bathos.Platform.Windows", "Bathos.Platform.Linux"];

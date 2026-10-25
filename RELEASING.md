@@ -1,9 +1,17 @@
 # NuGet releases
 
-All four packages use the same version from `Directory.Build.props`. Only a matching `v<Version>`
-tag on a commit contained in `master` can publish. The release workflow runs the complete three-OS
-validation and isolated consumer checks, then publishes the exact Ubuntu job artifacts; it never
-rebuilds packages after validation.
+All four packages use the same version from `Directory.Build.props`. A matching `v<Version>` tag
+authorizes publication only when its source satisfies this policy:
+
+| Source branch  | Allowed versions                                               |
+| -------------- | -------------------------------------------------------------- |
+| `master`       | Stable or prerelease                                           |
+| `release/*`    | Prerelease only, including alpha, beta, and release candidates |
+| Other branches | No release preparation or publication                          |
+
+The release workflow runs the complete three-OS validation and isolated consumer checks, then
+publishes the exact Ubuntu job artifacts; it never rebuilds packages after validation. This policy
+applies to future release preparation and publication; existing releases and tags remain intact.
 
 ## One-time setup
 
@@ -38,6 +46,18 @@ example checks use an isolated local feed and do not establish public package av
 
 ## Publish
 
+Tags do not record their branch of origin. Local release preparation checks the current branch;
+publication checks require the tagged commit to be contained in remote `master`, or, for a
+prerelease, a remote branch under `release/`. The shared checker fetches those heads from `origin`
+and prunes deleted release branches before checking ancestry. A locally invented or stale tracking
+ref is not publication evidence. Keep the source branch available through publication and retries.
+
+For betas before integration, create a `release/<name>` branch from the candidate work and publish
+there without merging each beta. An open PR can provide ordinary native CI evidence; tagging repeats
+the full release validation. A stable release requires merging its preparation into `master` before
+tagging and publication. This creates a short interval when source documentation can precede stable
+packages on NuGet. Publishing stable packages before that merge would require changing the policy.
+
 1. Choose the next Semantic Version (including a prerelease suffix where appropriate) and update
    `Version` in `Directory.Build.props`. Run `dotnet restore Bathos.Platform.slnx --force-evaluate`
    to update affected provider dependency lockfiles, and review them. Check that documentation
@@ -46,23 +66,30 @@ example checks use an isolated local feed and do not establish public package av
    targets are derived from the version property.
 2. Move consumer-facing notes from `Unreleased` in [CHANGELOG.md](CHANGELOG.md) into
    `## [<Version>] - YYYY-MM-DD`. Keep an `Unreleased` section for future changes. Add a release
-   link to its tag and update the `Unreleased` link to compare that tag with `master`.
-3. Run `task release:check TAG=vX.Y.Z`, commit the version, changelog, and lockfiles, then
-   merge/push to `master` and wait for green native CI. The local check covers only the current
-   host; CI covers all three platforms.
-4. Create and push the explicit release tag:
+   link to its tag and update the `Unreleased` link to compare that tag with the source branch
+   (`master` or the relevant `release/*` branch).
+3. Run `task check` and commit the version, changelog, and lockfiles. Push the candidate to its
+   allowed branch: `release/*` or `master` for prereleases, and `master` for stable releases.
+   Changes to `master` require a green PR under the repository ruleset. Use `task check` on ordinary
+   feature branches; release-specific preparation is restricted to the branches in the table above.
+   Wait for green native CI before tagging. Local checks cover only the current host; CI covers all
+   three platforms.
+4. Check out the prepared, pushed commit on its allowed branch, then create and push the explicit
+   release tag:
 
 ```text
 task release:tag TAG=vX.Y.Z
 task release:push TAG=vX.Y.Z
 ```
 
-`release:tag` requires a clean `master`, repeats local validation, verifies the tag matches the
-package version, and creates an annotated local tag. `release:push` pushes only that tag, not branch
-commits or other tags. Push `master` first: CI rejects a tagged commit outside remote `master`.
-Neither task updates versions, commits changes, or edits release notes automatically. Review the
-dated changelog before tagging; `verify-tag` requires a matching version and a dated changelog
-entry.
+`release:check` verifies branch eligibility, Semantic Versioning, the exact tag/version match, and a
+valid dated changelog entry before running full local validation. `release:tag` requires a clean
+checkout, runs that check, and creates an annotated local tag. `release:push` verifies the actual
+tag against refreshed remote branch evidence, then pushes only that tag. Push the source branch
+first. Publication verification requires a clean checkout at the tagged commit; checking another tag
+from a later commit is rejected. CI uses the same `verify-tag --remote` guard from its detached tag
+checkout. None of these tasks updates versions, commits changes, or edits release notes
+automatically.
 
 Task is optional. After running the SDK validation sequence in CONTRIBUTING.md, the corresponding
 commands are:
@@ -70,6 +97,7 @@ commands are:
 ```text
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-tag vX.Y.Z
 git tag -a vX.Y.Z -m "Release X.Y.Z"
+dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-tag vX.Y.Z --remote
 git push origin refs/tags/vX.Y.Z
 ```
 
@@ -78,10 +106,12 @@ Tags authorize public NuGet publication. Do not move published tags or reuse a p
 different bytes. Re-running a partially failed release skips already published packages and
 continues the remaining packages/symbols. A missing publishing policy or identity must be configured
 before retrying. Check all four package listings after publication; four pushes are not an atomic
-transaction. In a fresh .NET console project outside this checkout, execute the README installation
-commands against NuGet.org and run its quick start twice on each supported host. Confirm complete
-output and collision-safe naming. This public-feed smoke check establishes what new consumers
-receive, separately from candidate-feed validation. After a stable release is available, advance
+transaction. In a fresh .NET console project outside this checkout, install the published packages
+and run the README quick start twice on each supported host. For a prerelease, select its exact
+version explicitly; the README's versionless commands intentionally select the latest stable
+packages. After stable publication, execute those commands as written. Confirm complete output and
+collision-safe naming. This public-feed smoke check establishes published-package behavior,
+separately from candidate-feed validation. After a stable release is available, advance
 `PackageValidationBaselineVersion` in `eng/Bathos.Package.props` and regenerate the released
 consumer lockfile under `eng/api-compatibility/consumer` for that version in a follow-up PR. Review
 the consumer fixture's covered contracts and run the full gate. Prereleases do not replace the
@@ -95,3 +125,11 @@ rebuild them locally.
 For local consumers, use a unique prerelease version and a folder feed, or an explicit
 source-project override. Keep consumer package lockfiles and source-mode restore outputs separate.
 Never commit a developer-specific checkout path.
+
+## Guard verification
+
+Run `task release:test` for the isolated Git fixtures, also included in `task check` and common CI.
+They exercise both allowed branches/channels, feature-only and unpushed commits, detached tag
+checkouts, exact tag selection, dirty checkouts, stale/deleted remote refs, failed fetches, Semantic
+Versioning, and changelog validation. Fixtures use only disposable local repositories; they never
+push release tags or obtain publishing credentials.

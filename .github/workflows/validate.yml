@@ -49,6 +49,10 @@ jobs:
       - run: dotnet restore Bathos.Platform.slnx --locked-mode
       - name: Check C# formatting
         run: dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+      - name: Build release guard and verify branch policy
+        run: |
+          dotnet build eng/Bathos.Platform.Build --configuration Release --no-restore
+          node eng/CheckReleasePolicy.test.cjs
 
   native:
     name: Native (${{ matrix.os }})
