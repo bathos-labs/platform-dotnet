@@ -7,19 +7,40 @@ docs with contract changes. Preserve stable public API contracts for callers and
 a major version; breaking contract changes require an explicitly planned major release.
 
 Run `task check` from the repository root on Windows, macOS, or Linux. `task --list` lists focused
-build, test, formatting, packaging, and release commands. [Task](https://taskfile.dev/) is optional;
-the equivalent commands are:
+build, test, formatting, packaging, and release commands. Use `task lint` for the fast whitespace,
+formatting, and documentation-link gate, or `task format` to apply C# and Markdown formatting.
+`task check` runs lint followed by the build, tests, and package verification.
+[Task](https://taskfile.dev/) is optional; the equivalent lint and full-check commands are:
 
 ```text
 git diff --check
+git diff --cached --check
 npx --yes prettier@3.9.10 --check "**/*.md"
+npx --yes --package=remark-cli@12.0.1 --package=remark-gfm@4.0.1 --package=remark-validate-links@13.1.0 --package=remark-lint-no-undefined-references@5.0.2 remark --rc-path .remarkrc.cjs --ignore-path .prettierignore --frail --no-stdout --no-color .
 dotnet restore Bathos.Platform.slnx --locked-mode
 dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+npx --yes --package=remark-cli@12.0.1 --package=remark-gfm@4.0.1 --package=remark-validate-links@13.1.0 --package=remark-lint-no-undefined-references@5.0.2 node eng/CheckDocumentationLinks.test.cjs
 dotnet build Bathos.Platform.slnx --configuration Release --no-restore
+node eng/CheckReleasePolicy.test.cjs
 dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
 dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 ```
+
+`task lint` runs the first six commands above in order and does not build the solution, run tests,
+or pack libraries. Its whitespace checks include both unstaged and staged changes; CI checks the
+commit being validated. Both use the same Markdown/link configuration, pinned tool versions, locked
+restore, and C# formatting rules. The full check also runs disposable link-checker regression
+fixtures and reuses that restore before the Release build. The full check also runs release-policy
+fixtures against disposable local Git repositories. Common CI builds the engineering checker and
+runs these fixtures before the native matrix; they require Git and Node.js, create no public release
+tags, and do not contact NuGet. Use `task release:test` to run them independently. See
+[release guards and source policy](RELEASING.md#publish).
+
+Use `task code:format` and `task code:check` for C# alone, or `task docs:format` and
+`task docs:check` for Markdown alone. `task format:check` verifies both without edits. Without Task,
+apply Markdown with `npx --yes prettier@3.9.10 --write "**/*.md"`, then restore locked dependencies
+and run `dotnet format Bathos.Platform.slnx --no-restore` for C#.
 
 ## Markdown formatting
 
@@ -39,6 +60,33 @@ manifest, lockfile, or local installation. A cold cache requires npm registry ac
 upgrading, update the pins in `Taskfile.yml`, `.github/workflows/validate.yml`, and this guide
 together, then reformat and review the Markdown. Editor integrations should use the same Prettier
 version and repository configuration.
+
+## Documentation links
+
+Run `task docs:links` to validate local file targets, same-file and cross-file heading anchors,
+images, and reference-link definitions. It also runs in `task lint` and the common CI prerequisite
+job, before the native matrix. The command reads Markdown without rewriting it; Prettier continues
+to own formatting. The pinned remark CLI, GFM parser, link validator, and undefined-reference rule
+run through `npx` without a repository package manifest or local installation. Keep their pins in
+`Taskfile.yml`, `.github/workflows/validate.yml`, and the equivalent commands above synchronized.
+
+The checker handles GitHub heading slugs, duplicate headings, encoded paths and fragments, and
+root-relative paths. Fenced code and inline-code examples are not interpreted as links. Markdown
+inputs use `.prettierignore` to exclude generated output and dependency caches. Full GitHub
+`blob/<ref>/...` links into this repository are checked against the local checkout; the ref is not
+fetched. Use relative links or the existing `blob/master/...` references for source documentation,
+and release-page links for historical releases. Slash-containing refs in absolute file URLs are not
+supported by the upstream validator.
+
+The checker makes no HTTP requests to external sites or GitHub. An unavailable website cannot fail
+this gate; installing uncached `npx` tools still requires npm registry access. External availability
+checks are not part of local lint or required CI. Failures identify the source file, line, and
+broken destination; correct the link or target heading and rerun the check.
+
+`task docs:links:test` checks the tool/configuration behavior against disposable fixtures, including
+encoded Unicode anchors, reference links, GFM tables, ignored outputs, missing files/headings, and
+repair. It runs in `task check` and common CI. No native APIs, desktop services, or external
+websites are used.
 
 ## Native development and validation
 
@@ -64,19 +112,91 @@ synchronization. Preserve source/destination bytes on failed exclusive rename; n
 check-then-move or cross-volume copy/delete. Cleanup must delete only files owned by the operation.
 No sensitive, machine-local, generated, or unrelated product content belongs in commits.
 
-CI first runs whitespace, Markdown formatting, and C# formatting checks in a common Ubuntu job. The
-Linux x64, Windows x64, and macOS Arm64 native jobs start only after that job passes. Each native
-job restores locked dependencies, builds with analyzers, runs tests with coverage, and packs and
-verifies packages on its own host. These checks run for PRs and `master`, and before tagged
-publication. An OS-specific failure is not excused by passing on another host. Screen selection is
-manual: invoke the picker in a native host, sample inside/outside the application, cancel with
-Escape, and repeat; verify main-loop cleanup and caller retirement. `task eng:sampler` supplies a
-small native launch harness; `task eng:sampler:smoke` checks its dispatch and shutdown without
-opening the picker. See the [native validation guide](docs/validation.md) for the procedure. Respect
-system privacy controls. Linux support is experimental. Its harness is console-driven; the portal
-owns the native UI loop and has no dispatcher smoke mode. Desktop reveal and editor handoff require
-separate manual validation through `eng/Bathos.Platform.Desktop`; headless fixtures and argument
-probes do not establish visible selection or editor compatibility.
+CI first runs whitespace, Markdown formatting and local-link checks, link-checker regression
+fixtures, and C# formatting checks in a common Ubuntu job. The Linux x64, Windows x64, and macOS
+Arm64 native jobs start only after that job passes. Each native job restores locked dependencies,
+builds with analyzers, runs tests with coverage, and packs and verifies packages on its own host.
+These checks run for PRs and `master`, and before tagged publication. An OS-specific failure is not
+excused by passing on another host. Screen selection is manual: invoke the picker in a native host,
+sample inside/outside the application, cancel with Escape, and repeat; verify main-loop cleanup and
+caller retirement. `task eng:sampler` supplies a small native launch harness;
+`task eng:sampler:smoke` checks its dispatch and shutdown without opening the picker. See the
+[native validation guide](docs/validation.md) for the procedure. Respect system privacy controls.
+Linux support is experimental. Its harness is console-driven; the portal owns the native UI loop and
+has no dispatcher smoke mode. Desktop reveal and editor handoff require separate manual validation
+through `eng/Bathos.Platform.Desktop`; headless fixtures and argument probes do not establish
+visible selection or editor compatibility.
+
+## Published package consumers
+
+`task check` and `task packages:check` also publish and execute the isolated consumer in
+self-contained directory, bundled single-file, and rooted trimming modes. This adds three publish
+operations per host and downloads matching SDK runtime/linker packs from NuGet.org into a disposable
+cache. Both Bathos packages are source-mapped exclusively to the freshly packed feed. Native
+operations run only on the executing OS; see the
+[publish evidence](docs/validation.md#published-consumer-evidence) and
+[consumer deployment limits](docs/platform-support.md#consumer-publishing).
+
+Use `task packages:aot` to include the rooted Native AOT publish/run probe. Without Task, pack as
+above, then run:
+
+```text
+dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages --native-aot
+```
+
+AOT is optional for the ordinary local check and required in each native CI job. It adds a fourth
+publish operation and requires a native toolchain: Xcode Command Line Tools on macOS, Visual
+Studio's Desktop development with C++ workload on Windows, or `clang` and `zlib1g-dev` on Ubuntu.
+The macOS and Windows runner images supply their toolchains; CI installs the Linux prerequisites.
+These tools and SDK packs are development requirements, not shipping package dependencies. See
+Microsoft's
+[Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
+
+All four publish modes are blocking CI checks, including the experimental trimming and Native AOT
+probes. Keep them blocking unless demonstrated toolchain or maintenance churn warrants an explicit
+decision to change that policy.
+
+The shipping libraries are not marked trim/AOT-compatible. Rooted analysis covers their full code,
+but executed noninteractive operations cover a smaller surface. Keep warnings actionable and runtime
+evidence explicit; do not add suppressions or compatibility metadata merely to pass a probe. Publish
+modes use clean intermediates and sequential owned processes, not sleeps or polling.
+
+## Issues and pull requests
+
+Use the [issue chooser](https://github.com/bathos-labs/platform-dotnet/issues/new/choose) for bug
+reports, capability requests, and integration questions. Consumers can report an installed-package
+problem without checking out or building this repository. Feature requests and questions have
+lightweight templates; blank issues remain available.
+
+The PR template asks for the resulting behavior, validation on the executing host, and relevant
+documentation and public-contract compatibility details. Link the related issue when applicable, run
+`task check`, and identify pending manual acceptance. Keep detailed contracts and procedures in
+their existing guides rather than copying them into issue or PR templates.
+
+## Merge requirements
+
+The active GitHub ruleset for `master` requires a PR and passing common validation, all three native
+jobs, and complete native coverage upload. The [ruleset definition](eng/master-branch.ruleset.json)
+records the exact check names and pins their source to the GitHub Actions app. Keep this definition
+and the live ruleset synchronized when renaming jobs or changing policy. The definition is
+configuration for GitHub settings; builds do not apply it automatically.
+
+PR branches must be up to date with `master` before merging. No approving reviews are required, and
+there are no owner, administrator, or app bypass actors. Direct pushes, force pushes, and deletion
+of `master` are blocked. An exceptional recovery requires an explicit administrator change to the
+ruleset. Feature branches retain their existing workflow, and the release/tag publication process
+remains governed by [RELEASING.md](RELEASING.md).
+
+Common validation is required independently because its failure skips the downstream native jobs;
+GitHub can accept skipped required checks. Native jobs include the experimental trimming and AOT
+probes, which remain blocking. Complete coverage upload is required, while Codecov percentage and
+patch checks remain informational.
+
+When changing merge policy, verify GitHub's merge eligibility with a temporary ready-for-review PR:
+a failed common job must block merging even when native jobs are skipped, a failed native job must
+block merging, and all required checks passing on an up-to-date branch must allow merging. Inspect
+eligibility without merging the probe; close it and remove its branch afterward. Record the evidence
+in the tracking issue.
 
 ## Changelog
 
@@ -87,6 +207,27 @@ record an unreleased version as published. Follow [RELEASING.md](RELEASING.md) w
 into a dated release section.
 
 ## API and developer documentation
+
+Keep the README and consumer guides largely static: use versionless stable installation commands,
+keep release history in the changelog, and update capability or prerequisite facts only when
+behavior changes. The README owns the capability/platform matrix, `docs/usage.md` owns integration
+recipes, and `docs/platform-support.md` owns native deployment requirements and tested
+configurations. `docs/validation.md` owns evidence and manual acceptance procedures. Link to the
+owning page instead of copying its detailed requirements. Do not add generated installation blocks
+or repeated current package-version declarations.
+
+All four packages share a release version and channel. Linux's experimental implementation status
+does not require its package to use a different version or prerelease channel. Keep pending native
+and desktop acceptance explicit. Develop upcoming behavior and its documentation on feature/release
+branches, advancing `Version` when development resumes; prefer small releases so `master` stays
+close to the published state. Source documentation can describe changes awaiting publication; the
+matching tag and shipped XML describe an installed package.
+
+Release preparation is allowed on `master` for stable or prerelease versions, and on `release/*` for
+prereleases only. Other development branches use `task check`; their release preparation must first
+reach an allowed branch. The publication guard verifies the tagged commit against refreshed remote
+branch ancestry, since tags do not retain a source branch. Stable publication requires integration
+into `master` before tagging. See [RELEASING.md](RELEASING.md) for the complete process.
 
 Present built-in OS providers as the normal integration path. Keep application dependencies focused
 on the capability interfaces they use; these and the native dispatcher support host integration,
@@ -117,10 +258,14 @@ generator is required.
 
 Keep the README quick start runnable and integration examples in `docs/usage.md` self-contained. The
 package verifier compiles every `csharp` fenced block in those files against the freshly packed
-libraries in an isolated consumer. The README contains one executable quick start, compiled with
-only the packages listed by its installation commands; guide snippets declare public example classes
-and are compiled separately with all providers available. On Windows/macOS/Linux, validation runs
-the README twice and verifies the expected bytes and collision-safe publication. The WPF example in
+libraries in an isolated consumer. It executes the README's versionless installation commands
+against a feed containing only the candidate packages and checks the resolved versions. Prerelease
+candidates are opted into only in that isolated feed; this does not establish public package
+availability. The packaged README must preserve the source text while pinning documentation links to
+its release tag. The README contains one executable quick start, compiled with only the packages
+listed by its installation commands; guide snippets declare public example classes and are compiled
+separately with all providers available. On Windows/macOS/Linux, validation runs the README twice
+and verifies the expected bytes and collision-safe publication. The WPF example in
 `docs/examples/wpf-dispatcher.md` is compiled separately on Windows with the WPF framework
 reference. Interactive snippets are compiled only; their acceptance remains manual. Retain the
 separate single-provider consumer check before examples bring in all providers. Keep Markdown fences

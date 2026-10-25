@@ -5,12 +5,45 @@ compatibility, and security. Internal maintenance and development tooling belong
 and contributor documentation.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
-[Semantic Versioning](https://semver.org/spec/v2.0.0.html). All four packages share one version.
-Stable releases preserve public API contracts for callers and implementers within a major version.
-Breaking contract changes require a new major version and are called out here. Linux native support
-remains experimental; public API compatibility still applies.
+[Semantic Versioning](https://semver.org/spec/v2.0.0.html). All four packages share one version and
+release channel. Stable releases preserve public API contracts for callers and implementers within a
+major version. Breaking contract changes require a new major version and are called out here. Linux
+native support remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
+
+## [1.1.0] - 2026-10-25
+
+Changes since the previous stable release, `1.0.0`. Prerelease entries below preserve the
+development history.
+
+### Added
+
+- Cooperative shared and exclusive file leases on Windows, macOS, and Linux, with explicit
+  contention and native ownership lifetime. Lock artifacts and their containing directories must
+  remain intact while leased.
+- Native path normalization and file-URI conversion, explicit portability validation for new
+  filenames, and standard-directory discovery with application scoping and host-supplied root
+  overrides. Discovery does not create directories.
+- Installed color-profile discovery and raw-byte access on Windows and macOS, with configurable
+  inventory/read limits, incomplete-inventory reporting, and cancellation. Linux leaves this
+  optional capability unavailable.
+- Optional snapshot-file rename and shared byte publication with explicit directory-creation policy.
+  Windows snapshot replacement preserves existing readers through handle-based POSIX rename
+  semantics; directory relocation retains its existing provider. Existing providers may omit the new
+  capability.
+- Experimental Linux atomic rename and staged publication through `renameat2`, including exclusive
+  claims and explicit replacement without cross-volume copy fallback.
+- Staging-filename recognition for host-owned accounting and cleanup, without inferring ownership or
+  abandonment.
+
+### Fixed
+
+- Exact file publication preserves native macOS/Linux filename characters such as literal
+  backslashes instead of applying Windows separator rules. Generated names remain portable.
+- Corrected copyright attribution and package authorship to Bathos Pty Ltd.
+
+## [1.1.0-rc.1] - 2026-10-25
 
 ### Fixed
 
@@ -112,7 +145,9 @@ experimental. Prerelease APIs may change without compatibility shims.
   Interactive Finder, Explorer, and editor validation remains pending; see the native validation
   record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.1.0-beta.2...master
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.1.0...master
+[1.1.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0
+[1.1.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-rc.1
 [1.1.0-beta.2]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.2
 [1.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.1
 [1.0.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.0.0

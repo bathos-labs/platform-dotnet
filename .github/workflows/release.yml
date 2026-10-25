@@ -19,12 +19,10 @@ jobs:
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json
-      - name: Require a versioned commit on master
+      - name: Verify release metadata and eligible remote branch
         env:
           RELEASE_TAG: ${{ github.ref_name }}
-        run: |
-          git merge-base --is-ancestor HEAD origin/master
-          dotnet run --project eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true -- verify-tag "$RELEASE_TAG"
+        run: dotnet run --project eng/Bathos.Platform.Build --configuration Release --property:RestoreLockedMode=true -- verify-tag "$RELEASE_TAG" --remote
   validate:
     permissions:
       contents: read

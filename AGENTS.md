@@ -19,6 +19,9 @@
   loops.
 - After Markdown edits, run `task docs:format`, review the changes, and run `task check` before
   committing. CI verifies Markdown formatting without modifying files.
+- Keep consumer documentation static: versionless stable installs, release history in CHANGELOG.md,
+  and detailed deployment requirements in docs/platform-support.md. All providers share a release
+  channel; experimental Linux behavior does not require a separate prerelease package.
 - Screen sampler interaction requires human validation. Do not launch or drive the interactive
   picker with computer-use automation; that path is currently unreliable. Use
   `task eng:sampler:smoke` for noninteractive checks and hand off `task eng:sampler` to the user.
@@ -30,3 +33,6 @@
   state, or unrelated code.
 - Commit when requested. Tagging a release publishes packages; follow RELEASING.md and require an
   explicit release request.
+- Release preparation: master permits stable or prerelease versions; release/* permits only
+  prereleases. Other branches cannot prepare releases. Do not publish stable packages from a release
+  branch before integration into master, or change historical tags/releases.

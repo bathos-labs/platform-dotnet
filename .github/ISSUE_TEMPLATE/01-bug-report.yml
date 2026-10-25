@@ -1,0 +1,60 @@
+name: Bug report
+description: Report unexpected behavior in a Bathos platform capability.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Search existing issues before opening a report. See the
+        [integration guide](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md)
+        and [platform prerequisites](https://github.com/bathos-labs/platform-dotnet/blob/master/docs/platform-support.md).
+  - type: input
+    id: packages
+    attributes:
+      label: Packages and versions
+      description:
+        Include the installed Bathos package IDs and exact versions, or the source commit.
+    validations:
+      required: true
+  - type: input
+    id: environment
+    attributes:
+      label: Operating system, architecture, and .NET runtime
+      description: Include the OS version and process architecture, such as x64 or Arm64.
+    validations:
+      required: true
+  - type: input
+    id: capability
+    attributes:
+      label: Affected capability or API
+      placeholder: FilePublication.PublishExactAsync, FileLeases, ScreenColorSampler, etc.
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+      description: Include relevant exception details, native error codes, or logs.
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Minimal reproduction
+      description: Include a small code example or reproduction link, configuration, and steps.
+    validations:
+      required: true
+  - type: textarea
+    id: native-context
+    attributes:
+      label: Native or deployment context (if relevant)
+      description: |
+        Include the publish mode, filesystem, desktop session/services, permissions, or dispatcher
+        relevant to this operation. Distinguish manual observations on the affected host from
+        automated test results; portable test success does not establish native desktop behavior.
