@@ -168,6 +168,31 @@ documentation and public-contract compatibility details. Link the related issue 
 `task check`, and identify pending manual acceptance. Keep detailed contracts and procedures in
 their existing guides rather than copying them into issue or PR templates.
 
+## Merge requirements
+
+The active GitHub ruleset for `master` requires a PR and passing common validation, all three native
+jobs, and complete native coverage upload. The [ruleset definition](eng/master-branch.ruleset.json)
+records the exact check names and pins their source to the GitHub Actions app. Keep this definition
+and the live ruleset synchronized when renaming jobs or changing policy. The definition is
+configuration for GitHub settings; builds do not apply it automatically.
+
+PR branches must be up to date with `master` before merging. No approving reviews are required, and
+there are no owner, administrator, or app bypass actors. Direct pushes, force pushes, and deletion
+of `master` are blocked. An exceptional recovery requires an explicit administrator change to the
+ruleset. Feature branches retain their existing workflow, and the release/tag publication process
+remains governed by [RELEASING.md](RELEASING.md).
+
+Common validation is required independently because its failure skips the downstream native jobs;
+GitHub can accept skipped required checks. Native jobs include the experimental trimming and AOT
+probes, which remain blocking. Complete coverage upload is required, while Codecov percentage and
+patch checks remain informational.
+
+When changing merge policy, verify GitHub's merge eligibility with a temporary ready-for-review PR:
+a failed common job must block merging even when native jobs are skipped, a failed native job must
+block merging, and all required checks passing on an up-to-date branch must allow merging. Inspect
+eligibility without merging the probe; close it and remove its branch afterward. Record the evidence
+in the tracking issue.
+
 ## Changelog
 
 Record consumer-visible changes under `Unreleased` in [CHANGELOG.md](CHANGELOG.md), grouped as
