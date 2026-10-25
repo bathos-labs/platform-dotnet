@@ -51,6 +51,11 @@ Replace `X.Y.Z` with the actual committed version, including its prerelease suff
 public NuGet publication. Do not move published tags or reuse a package version for different bytes. Re-running a
 partially failed release skips already published packages and continues the remaining packages/symbols. A missing publishing policy or identity must be configured before retrying.
 Check all four package listings and consumer restore after publication; four pushes are not an atomic transaction.
+After a stable release is available, advance `PackageValidationBaselineVersion` in `eng/Bathos.Package.props` and
+regenerate the released consumer lockfile under `eng/api-compatibility/consumer` for that version in a follow-up PR.
+Review the consumer fixture's covered contracts and run the full gate. Prereleases do not replace the stable baseline.
+Keep the previous baseline throughout release validation; do not advance it to an unpublished candidate or suppress
+compatibility diagnostics without an explicitly approved breaking-release plan. See CONTRIBUTING.md for the checks.
 Create a GitHub release using the corresponding changelog entry, marking prerelease tags as prereleases. Attach
 the verified `packages` workflow artifact's `.nupkg` and `.snupkg` files if providing release downloads; do not
 rebuild them locally.

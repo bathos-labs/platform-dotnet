@@ -1,6 +1,9 @@
 <Project>
   <PropertyGroup>
     <IsPackable>true</IsPackable>
+    <EnablePackageValidation>true</EnablePackageValidation>
+    <PackageValidationBaselineVersion>1.0.0</PackageValidationBaselineVersion>
+    <ApiCompatEnableRuleCannotChangeParameterName>true</ApiCompatEnableRuleCannotChangeParameterName>
     <PackageId>$(MSBuildProjectName)</PackageId>
     <PackageLicenseExpression>MIT</PackageLicenseExpression>
     <PackageReadmeFile>README.md</PackageReadmeFile>
