@@ -25,13 +25,25 @@ tasks:
       - dotnet build Bathos.Platform.slnx --configuration Release --no-restore
 
   format:
-    desc: Apply source formatting
+    desc: Apply C# and Markdown formatting
+    cmds:
+      - task: docs:format
+      - task: code:format
+
+  code:format:
+    desc: Apply C# formatting
     cmds:
       - task: restore
       - dotnet format Bathos.Platform.slnx --no-restore
 
   format:check:
-    desc: Verify source formatting without edits
+    desc: Verify C# and Markdown formatting without edits
+    cmds:
+      - task: docs:check
+      - task: code:check
+
+  code:check:
+    desc: Verify C# formatting without edits
     cmds:
       - task: restore
       - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
@@ -45,6 +57,13 @@ tasks:
     desc: Verify Markdown formatting without edits
     cmds:
       - npx --yes prettier@{{.PRETTIER_VERSION}} --check "**/*.md"
+
+  lint:
+    desc: Check whitespace and formatting with locked restore, without tests or packing
+    cmds:
+      - git diff --check
+      - git diff --cached --check
+      - task: format:check
 
   test:
     desc: Build and run native tests on this host
@@ -80,10 +99,7 @@ tasks:
   check:
     desc: Run the complete local validation sequence, including package consumption
     cmds:
-      - git diff --check
-      - task: docs:check
-      - task: restore
-      - dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+      - task: lint
       - dotnet build Bathos.Platform.slnx --configuration Release --no-restore
       - dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages

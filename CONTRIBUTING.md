@@ -7,11 +7,14 @@ docs with contract changes. Preserve stable public API contracts for callers and
 a major version; breaking contract changes require an explicitly planned major release.
 
 Run `task check` from the repository root on Windows, macOS, or Linux. `task --list` lists focused
-build, test, formatting, packaging, and release commands. [Task](https://taskfile.dev/) is optional;
-the equivalent commands are:
+build, test, formatting, packaging, and release commands. Use `task lint` for the fast whitespace
+and formatting gate, or `task format` to apply C# and Markdown formatting. `task check` runs lint
+followed by the build, tests, and package verification. [Task](https://taskfile.dev/) is optional;
+the equivalent full-check commands are:
 
 ```text
 git diff --check
+git diff --cached --check
 npx --yes prettier@3.9.10 --check "**/*.md"
 dotnet restore Bathos.Platform.slnx --locked-mode
 dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
@@ -20,6 +23,16 @@ dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
 dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 ```
+
+`task lint` runs the first five commands above in order and does not build the solution, run tests,
+or pack libraries. Its whitespace checks include both unstaged and staged changes; CI checks the
+commit being validated. Both use the same Markdown configuration, pinned formatter version, locked
+restore, and C# formatting rules. The full check reuses that restore before the Release build.
+
+Use `task code:format` and `task code:check` for C# alone, or `task docs:format` and
+`task docs:check` for Markdown alone. `task format:check` verifies both without edits. Without Task,
+apply Markdown with `npx --yes prettier@3.9.10 --write "**/*.md"`, then restore locked dependencies
+and run `dotnet format Bathos.Platform.slnx --no-restore` for C#.
 
 ## Markdown formatting
 
