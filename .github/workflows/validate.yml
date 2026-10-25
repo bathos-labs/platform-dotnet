@@ -32,6 +32,12 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
       - run: dotnet --info
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Check Markdown formatting
+        # Keep the pin in sync with Taskfile.yml and CONTRIBUTING.md.
+        run: npx --yes prettier@3.9.10 --check "**/*.md"
       - name: Install headless portal test prerequisites
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y dbus-daemon python3-dbus python3-gi
