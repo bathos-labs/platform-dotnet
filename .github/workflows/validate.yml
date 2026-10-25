@@ -18,6 +18,11 @@ jobs:
     name: Common validation
     runs-on: ubuntu-24.04
     timeout-minutes: 10
+    env:
+      # Keep tool pins in sync with Taskfile.yml and CONTRIBUTING.md.
+      REMARK_PACKAGES: >-
+        --package=remark-cli@12.0.1 --package=remark-gfm@4.0.1
+        --package=remark-validate-links@13.1.0 --package=remark-lint-no-undefined-references@5.0.2
     steps:
       - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
         with:
@@ -30,6 +35,12 @@ jobs:
       - name: Check Markdown formatting
         # Keep the pin in sync with Taskfile.yml and CONTRIBUTING.md.
         run: npx --yes prettier@3.9.10 --check "**/*.md"
+      - name: Check local documentation links
+        run: >-
+          npx --yes $REMARK_PACKAGES remark --rc-path .remarkrc.cjs
+          --ignore-path .prettierignore --frail --no-stdout --no-color .
+      - name: Verify documentation link-checking configuration
+        run: npx --yes $REMARK_PACKAGES node eng/CheckDocumentationLinks.test.cjs
       - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
         with:
           global-json-file: global.json

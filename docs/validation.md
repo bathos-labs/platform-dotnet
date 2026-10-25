@@ -7,11 +7,12 @@ requirements; this guide describes validation evidence.
 
 ## Automated evidence boundaries
 
-A common Ubuntu CI job checks whitespace and Markdown formatting, then restores locked dependencies
-and verifies C# formatting. The three native jobs depend on its success; a failure skips the matrix
-and downstream coverage upload. Native jobs each retain their own locked restore, build and analyzer
-checks, tests, coverage verification, packing, and package-consumer checks. Build output and native
-evidence are not shared across operating systems.
+A common Ubuntu CI job checks whitespace, Markdown formatting, local links, and the link-checker
+regression fixtures, then restores locked dependencies and verifies C# formatting. The three native
+jobs depend on its success; a failure skips the matrix and downstream coverage upload. Native jobs
+each retain their own locked restore, build and analyzer checks, tests, coverage verification,
+packing, and package-consumer checks. Build output and native evidence are not shared across
+operating systems.
 
 All tests build and run from this repository alone with `task test` or `task test:coverage`. Every
 test is labeled `Validation=Portable` or `Validation=Native`. After building, use the existing

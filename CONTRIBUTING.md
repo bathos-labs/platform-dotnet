@@ -7,27 +7,30 @@ docs with contract changes. Preserve stable public API contracts for callers and
 a major version; breaking contract changes require an explicitly planned major release.
 
 Run `task check` from the repository root on Windows, macOS, or Linux. `task --list` lists focused
-build, test, formatting, packaging, and release commands. Use `task lint` for the fast whitespace
-and formatting gate, or `task format` to apply C# and Markdown formatting. `task check` runs lint
-followed by the build, tests, and package verification. [Task](https://taskfile.dev/) is optional;
-the equivalent full-check commands are:
+build, test, formatting, packaging, and release commands. Use `task lint` for the fast whitespace,
+formatting, and documentation-link gate, or `task format` to apply C# and Markdown formatting.
+`task check` runs lint followed by the build, tests, and package verification.
+[Task](https://taskfile.dev/) is optional; the equivalent lint and full-check commands are:
 
 ```text
 git diff --check
 git diff --cached --check
 npx --yes prettier@3.9.10 --check "**/*.md"
+npx --yes --package=remark-cli@12.0.1 --package=remark-gfm@4.0.1 --package=remark-validate-links@13.1.0 --package=remark-lint-no-undefined-references@5.0.2 remark --rc-path .remarkrc.cjs --ignore-path .prettierignore --frail --no-stdout --no-color .
 dotnet restore Bathos.Platform.slnx --locked-mode
 dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+npx --yes --package=remark-cli@12.0.1 --package=remark-gfm@4.0.1 --package=remark-validate-links@13.1.0 --package=remark-lint-no-undefined-references@5.0.2 node eng/CheckDocumentationLinks.test.cjs
 dotnet build Bathos.Platform.slnx --configuration Release --no-restore
 dotnet test --solution Bathos.Platform.slnx --configuration Release --no-build
 dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
 dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
 ```
 
-`task lint` runs the first five commands above in order and does not build the solution, run tests,
+`task lint` runs the first six commands above in order and does not build the solution, run tests,
 or pack libraries. Its whitespace checks include both unstaged and staged changes; CI checks the
-commit being validated. Both use the same Markdown configuration, pinned formatter version, locked
-restore, and C# formatting rules. The full check reuses that restore before the Release build.
+commit being validated. Both use the same Markdown/link configuration, pinned tool versions, locked
+restore, and C# formatting rules. The full check also runs disposable link-checker regression
+fixtures and reuses that restore before the Release build.
 
 Use `task code:format` and `task code:check` for C# alone, or `task docs:format` and
 `task docs:check` for Markdown alone. `task format:check` verifies both without edits. Without Task,
@@ -53,6 +56,33 @@ upgrading, update the pins in `Taskfile.yml`, `.github/workflows/validate.yml`, 
 together, then reformat and review the Markdown. Editor integrations should use the same Prettier
 version and repository configuration.
 
+## Documentation links
+
+Run `task docs:links` to validate local file targets, same-file and cross-file heading anchors,
+images, and reference-link definitions. It also runs in `task lint` and the common CI prerequisite
+job, before the native matrix. The command reads Markdown without rewriting it; Prettier continues
+to own formatting. The pinned remark CLI, GFM parser, link validator, and undefined-reference rule
+run through `npx` without a repository package manifest or local installation. Keep their pins in
+`Taskfile.yml`, `.github/workflows/validate.yml`, and the equivalent commands above synchronized.
+
+The checker handles GitHub heading slugs, duplicate headings, encoded paths and fragments, and
+root-relative paths. Fenced code and inline-code examples are not interpreted as links. Markdown
+inputs use `.prettierignore` to exclude generated output and dependency caches. Full GitHub
+`blob/<ref>/...` links into this repository are checked against the local checkout; the ref is not
+fetched. Use relative links or the existing `blob/master/...` references for source documentation,
+and release-page links for historical releases. Slash-containing refs in absolute file URLs are not
+supported by the upstream validator.
+
+The checker makes no HTTP requests to external sites or GitHub. An unavailable website cannot fail
+this gate; installing uncached `npx` tools still requires npm registry access. External availability
+checks are not part of local lint or required CI. Failures identify the source file, line, and
+broken destination; correct the link or target heading and rerun the check.
+
+`task docs:links:test` checks the tool/configuration behavior against disposable fixtures, including
+encoded Unicode anchors, reference links, GFM tables, ignored outputs, missing files/headings, and
+repair. It runs in `task check` and common CI. No native APIs, desktop services, or external
+websites are used.
+
 ## Native development and validation
 
 Linux headless portal tests also require `libdbus-1.so.3`, `/usr/bin/dbus-run-session`, and system
@@ -77,19 +107,20 @@ synchronization. Preserve source/destination bytes on failed exclusive rename; n
 check-then-move or cross-volume copy/delete. Cleanup must delete only files owned by the operation.
 No sensitive, machine-local, generated, or unrelated product content belongs in commits.
 
-CI first runs whitespace, Markdown formatting, and C# formatting checks in a common Ubuntu job. The
-Linux x64, Windows x64, and macOS Arm64 native jobs start only after that job passes. Each native
-job restores locked dependencies, builds with analyzers, runs tests with coverage, and packs and
-verifies packages on its own host. These checks run for PRs and `master`, and before tagged
-publication. An OS-specific failure is not excused by passing on another host. Screen selection is
-manual: invoke the picker in a native host, sample inside/outside the application, cancel with
-Escape, and repeat; verify main-loop cleanup and caller retirement. `task eng:sampler` supplies a
-small native launch harness; `task eng:sampler:smoke` checks its dispatch and shutdown without
-opening the picker. See the [native validation guide](docs/validation.md) for the procedure. Respect
-system privacy controls. Linux support is experimental. Its harness is console-driven; the portal
-owns the native UI loop and has no dispatcher smoke mode. Desktop reveal and editor handoff require
-separate manual validation through `eng/Bathos.Platform.Desktop`; headless fixtures and argument
-probes do not establish visible selection or editor compatibility.
+CI first runs whitespace, Markdown formatting and local-link checks, link-checker regression
+fixtures, and C# formatting checks in a common Ubuntu job. The Linux x64, Windows x64, and macOS
+Arm64 native jobs start only after that job passes. Each native job restores locked dependencies,
+builds with analyzers, runs tests with coverage, and packs and verifies packages on its own host.
+These checks run for PRs and `master`, and before tagged publication. An OS-specific failure is not
+excused by passing on another host. Screen selection is manual: invoke the picker in a native host,
+sample inside/outside the application, cancel with Escape, and repeat; verify main-loop cleanup and
+caller retirement. `task eng:sampler` supplies a small native launch harness;
+`task eng:sampler:smoke` checks its dispatch and shutdown without opening the picker. See the
+[native validation guide](docs/validation.md) for the procedure. Respect system privacy controls.
+Linux support is experimental. Its harness is console-driven; the portal owns the native UI loop and
+has no dispatcher smoke mode. Desktop reveal and editor handoff require separate manual validation
+through `eng/Bathos.Platform.Desktop`; headless fixtures and argument probes do not establish
+visible selection or editor compatibility.
 
 ## Changelog
 
