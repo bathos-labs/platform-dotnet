@@ -1,8 +1,6 @@
 # Changelog
 
-This changelog records changes that affect package consumers: capabilities, API contracts, behavior,
-compatibility, and security. Internal maintenance and development tooling belong in pull requests
-and contributor documentation.
+This changelog records changes that affect package consumers: capabilities, API contracts, behavior, compatibility, and security. Internal maintenance and development tooling belong in pull requests and contributor documentation.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/), and versions follow
 [Semantic Versioning](https://semver.org/spec/v2.0.0.html). All four packages share one version.
