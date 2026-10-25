@@ -4,35 +4,35 @@
     "net10.0": {
       "Bathos.Platform": {
         "type": "Direct",
-        "requested": "[1.0.0, )",
-        "resolved": "1.0.0",
-        "contentHash": "McG4fh2uPAG7G2BHp6laJhbAihS18rcBbOddBntlXer6eBKb1dyW89GpAXf8Q1h5AObCCuFO4+CJEYuSrVPM3g=="
+        "requested": "[1.1.0, )",
+        "resolved": "1.1.0",
+        "contentHash": "AWg/SuMysM6SJvSFhcpQaNxU+tpVO11V6IQFf4gyiC7J7/USgyJluhrGvE3pCtIKAa8zWttTJcp0IvXPr/iixw=="
       },
       "Bathos.Platform.Linux": {
         "type": "Direct",
-        "requested": "[1.0.0, )",
-        "resolved": "1.0.0",
-        "contentHash": "4Bo9528ElwwGt0aYfUQ1UbbjUGdBiL7So/ahWMWZ9eLRSV0/9GeGgmGLuunVZ4jgR/2mNf0BJKgb/uhwtVNJlA==",
+        "requested": "[1.1.0, )",
+        "resolved": "1.1.0",
+        "contentHash": "1vJZZfYS7fihi1gnwwgMbooiSnQLHOc2uFOC2ROkYdVYgt52Ld2N/kbWZtV4hMuxApyWCTIUFrxsTe7kooDZVA==",
         "dependencies": {
-          "Bathos.Platform": "1.0.0"
+          "Bathos.Platform": "1.1.0"
         }
       },
       "Bathos.Platform.MacOS": {
         "type": "Direct",
-        "requested": "[1.0.0, )",
-        "resolved": "1.0.0",
-        "contentHash": "q+sam2F+pjqwi9fNvliTawb2fcHmPEFB8YqH+u32P0TP7GjaFm3lCFzRGs2ES919BvAGUeKiVvYWzG4XWJkHHw==",
+        "requested": "[1.1.0, )",
+        "resolved": "1.1.0",
+        "contentHash": "m652KTv8DY0oHh2zKDAuDjXijUS+pPlpqerw3VL5KKqPWwhNutWBwDselb9+UUjPJCacfMv4osARFFEKqa6ISA==",
         "dependencies": {
-          "Bathos.Platform": "1.0.0"
+          "Bathos.Platform": "1.1.0"
         }
       },
       "Bathos.Platform.Windows": {
         "type": "Direct",
-        "requested": "[1.0.0, )",
-        "resolved": "1.0.0",
-        "contentHash": "Osylb5Yr64vC5U8QVdGOSj/rnoL1BVQtEiUMdtpgy6S8uc37Ops++9HqfZsdz31nTrGKrsMCneu/8hTkXrWPRA==",
+        "requested": "[1.1.0, )",
+        "resolved": "1.1.0",
+        "contentHash": "ukTPXhJQ2WHwoz+1M8w3y7AZUbEnOVGmD3z/Bk1nix7nmkPqOquVNNa6HtQN8m8XADzqz1evd45QMKtkO8vGxw==",
         "dependencies": {
-          "Bathos.Platform": "1.0.0"
+          "Bathos.Platform": "1.1.0"
         }
       }
     }

@@ -14,8 +14,4 @@ for (var index = 0; index < assemblies.Length; index++)
     if (hash != args[index]) throw new InvalidOperationException($"Loaded unexpected bytes for {assemblies[index].GetName().Name}.");
 }
 await ReleasedConsumer.ExerciseAsync();
-var oldProvider = ReleasedConsumer.CreateMinimalProvider();
-if (oldProvider.SnapshotFileRename is not null || oldProvider.FilePaths is not null || oldProvider.Directories is not null ||
-    oldProvider.FileLeases is not null || oldProvider.ColorProfiles is not null)
-    throw new InvalidOperationException("New capabilities must remain absent on the released provider implementation.");
 Console.WriteLine("Unrecompiled released consumer and provider passed against the exact candidate assemblies.");
