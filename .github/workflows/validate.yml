@@ -14,8 +14,34 @@ env:
   DOTNET_CLI_TELEMETRY_OPTOUT: '1'
   DOTNET_NOLOGO: '1'
 jobs:
+  validation:
+    name: Common validation
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@d23441a48e516b6c34aea4fa41551a30e30af803 # v6
+        with:
+          persist-credentials: false
+      - name: Check whitespace
+        run: git show --format= --check HEAD
+      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
+        with:
+          node-version: '24'
+      - name: Check Markdown formatting
+        # Keep the pin in sync with Taskfile.yml and CONTRIBUTING.md.
+        run: npx --yes prettier@3.9.10 --check "**/*.md"
+      - uses: actions/setup-dotnet@26b0ec14cb23fa6904739307f278c14f94c95bf1 # v5
+        with:
+          global-json-file: global.json
+          cache: true
+          cache-dependency-path: '**/packages.lock.json'
+      - run: dotnet restore Bathos.Platform.slnx --locked-mode
+      - name: Check C# formatting
+        run: dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
+
   native:
     name: Native (${{ matrix.os }})
+    needs: validation
     strategy:
       fail-fast: false
       matrix:
@@ -32,18 +58,10 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
       - run: dotnet --info
-      - uses: actions/setup-node@249970729cb0ef3589644e2896645e5dc5ba9c38 # v6
-        with:
-          node-version: '24'
-      - name: Check Markdown formatting
-        # Keep the pin in sync with Taskfile.yml and CONTRIBUTING.md.
-        run: npx --yes prettier@3.9.10 --check "**/*.md"
       - name: Install headless portal test prerequisites
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y dbus-daemon python3-dbus python3-gi
-      - run: git show --format= --check HEAD
       - run: dotnet restore Bathos.Platform.slnx --locked-mode
-      - run: dotnet format Bathos.Platform.slnx --verify-no-changes --no-restore
       - run: dotnet build Bathos.Platform.slnx --configuration Release --no-restore
       - name: Test with line and branch coverage
         run: >-

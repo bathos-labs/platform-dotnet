@@ -30,8 +30,9 @@ width; embedded code formatting is disabled to preserve examples. Generated outp
 through `.prettierignore` and `.gitignore`.
 
 `task docs:check` verifies formatting without edits. It also runs as part of `task check`, and CI
-runs the same pinned Prettier check on all three hosts. Formatting differences fail validation; CI
-does not write changes back. Agents must apply formatting and complete validation before committing.
+runs the same pinned Prettier check once in the common validation job. Formatting differences fail
+validation; CI does not write changes back. Agents must apply formatting and complete validation
+before committing.
 
 Prettier runs through `npx` with an exact version, using npm's cache without a repository package
 manifest, lockfile, or local installation. A cold cache requires npm registry access. When
@@ -63,7 +64,10 @@ synchronization. Preserve source/destination bytes on failed exclusive rename; n
 check-then-move or cross-volume copy/delete. Cleanup must delete only files owned by the operation.
 No sensitive, machine-local, generated, or unrelated product content belongs in commits.
 
-Native CI runs on Linux x64, Windows x64, and macOS Arm64 for PRs and `master`, and before tagged
+CI first runs whitespace, Markdown formatting, and C# formatting checks in a common Ubuntu job. The
+Linux x64, Windows x64, and macOS Arm64 native jobs start only after that job passes. Each native
+job restores locked dependencies, builds with analyzers, runs tests with coverage, and packs and
+verifies packages on its own host. These checks run for PRs and `master`, and before tagged
 publication. An OS-specific failure is not excused by passing on another host. Screen selection is
 manual: invoke the picker in a native host, sample inside/outside the application, cancel with
 Escape, and repeat; verify main-loop cleanup and caller retirement. `task eng:sampler` supplies a
