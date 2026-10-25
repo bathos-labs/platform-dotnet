@@ -10,6 +10,8 @@ a new major version and are called out here. Linux native support remains experi
 
 ## [Unreleased]
 
+## [1.1.0-beta.2] - 2026-10-25
+
 ### Added
 
 - Staging-filename recognition for host-owned accounting and cleanup, without inferring ownership or abandonment.
@@ -83,7 +85,8 @@ Prerelease APIs may change without compatibility shims.
 - Desktop handoff reports native submission, not document readiness or application focus. Interactive Finder,
   Explorer, and editor validation remains pending; see the native validation record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.1.0-beta.1...master
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.1.0-beta.2...master
+[1.1.0-beta.2]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.2
 [1.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.1
 [1.0.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.0.0
 [0.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v0.1.0-beta.1

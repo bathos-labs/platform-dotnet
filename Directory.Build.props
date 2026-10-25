@@ -19,7 +19,7 @@
     <RestoreLockedMode Condition="'$(CI)' == 'true'">true</RestoreLockedMode>
     <NuGetAudit>true</NuGetAudit>
     <NuGetAuditMode>all</NuGetAuditMode>
-    <Version>1.1.0-beta.1</Version>
+    <Version>1.1.0-beta.2</Version>
     <Authors>Bathos Pty Ltd</Authors>
     <Company>Bathos Pty Ltd</Company>
     <Copyright>Copyright © 2026 Bathos Pty Ltd</Copyright>

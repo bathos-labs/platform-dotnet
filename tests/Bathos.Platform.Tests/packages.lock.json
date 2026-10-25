@@ -268,19 +268,19 @@
       "bathos.platform.linux": {
         "type": "Project",
         "dependencies": {
-          "Bathos.Platform": "[1.1.0-beta.1, )"
+          "Bathos.Platform": "[1.1.0-beta.2, )"
         }
       },
       "bathos.platform.macos": {
         "type": "Project",
         "dependencies": {
-          "Bathos.Platform": "[1.1.0-beta.1, )"
+          "Bathos.Platform": "[1.1.0-beta.2, )"
         }
       },
       "bathos.platform.windows": {
         "type": "Project",
         "dependencies": {
-          "Bathos.Platform": "[1.1.0-beta.1, )"
+          "Bathos.Platform": "[1.1.0-beta.2, )"
         }
       }
     }
