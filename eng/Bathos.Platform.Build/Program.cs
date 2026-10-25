@@ -28,7 +28,10 @@ if (args is ["verify-coverage", var results, var output])
     CoverageEvidence.Verify(results, output);
     return;
 }
-if (args is not ["verify-packages", var feedArgument]) throw new ArgumentException("Use verify-packages <feed> or verify-tag <tag>.");
+if (args is not ["verify-packages", ..] || args.Length is < 2 or > 3 ||
+    (args.Length == 3 && args[2] != "--native-aot"))
+    throw new ArgumentException("Use verify-packages <feed> [--native-aot] or verify-tag <tag>.");
+var feedArgument = args[1];
 var feed = Path.GetFullPath(feedArgument);
 string[] names = ["Bathos.Platform", "Bathos.Platform.MacOS", "Bathos.Platform.Windows", "Bathos.Platform.Linux"];
 var readme = File.ReadAllText(Path.Combine(root, "README.md"));
@@ -105,6 +108,7 @@ try
     await Run("restore", "--configfile", "NuGet.Config", "--packages", Path.Combine(scratch.FullName, "cache"),
         $"-p:BathosVersion={version}", $"-p:Provider={provider}");
     await Run("run", "--configuration", "Release", "--no-restore", $"-p:BathosVersion={version}", $"-p:Provider={provider}");
+    await PublishedConsumerEvidence.VerifyAsync(root, candidateFeed, version, provider, nativeAot: args.Length == 3);
 
     // The quick start must compile with exactly its documented dependencies, before guide examples add providers.
     var consumerProject = XDocument.Load(Path.Combine(scratch.FullName, "Consumer.csproj"));

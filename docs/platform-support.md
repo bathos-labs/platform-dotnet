@@ -75,6 +75,46 @@ See the [desktop](usage.md#reveal-and-open-in-an-application),
 [sampling](usage.md#screen-color-selection), and [color-profile](usage.md#installed-color-profiles)
 recipes for configuration and operation semantics.
 
+## Consumer publishing
+
+Package verification publishes and directly executes a console consumer referencing only the core
+and the executing host's provider. The current CI targets are `linux-x64`, `win-x64`, and
+`osx-arm64`; other RIDs need their own evidence. Each mode runs native exclusive publication,
+regular-file inspection, snapshot replacement with a retained reader, and lease contention and
+reacquisition. macOS also enumerates ColorSync profiles and reads a profile, exercising native
+framework loading and managed callbacks without opening a picker.
+
+| Publish mode               | Configuration                                                                                  | Evidence and limits                                                                                                         |
+| -------------------------- | ---------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------- |
+| Self-contained directory   | `--self-contained true`                                                                        | Published executable runs with its included runtime, outside its build directory.                                           |
+| Self-contained single file | `--self-contained true -p:PublishSingleFile=true -p:IncludeNativeLibrariesForSelfExtract=true` | The bundled executable runs without loose managed/runtime DLLs. Runtime native libraries extract into a writable directory. |
+| Trimmed                    | `--self-contained true -p:PublishTrimmed=true -p:TrimMode=full`                                | Experimental: both libraries are rooted for full-library analysis, and the published probe runs.                            |
+| Native AOT                 | `-p:PublishAot=true`                                                                           | Experimental: both libraries are rooted for analysis and native compilation, and the produced executable runs.              |
+
+Pass `--runtime <RID>` and `--configuration Release` to `dotnet publish` in your application
+project, together with the selected mode's configuration. Self-contained publishing includes the
+.NET runtime; it does not bundle OS frameworks, Linux system libraries, or desktop services. The
+single-file check uses native-library extraction; configure a private writable extraction location
+when the runtime's default is unsuitable. See Microsoft's
+[single-file deployment guidance](https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview).
+
+Trimming and Native AOT remain experimental for these packages. Rooting the core and selected
+provider with `TrimmerRootAssembly` ensures the probes analyze all their code, including interop and
+callbacks outside the executed operations. Rooting retains library code, so these probes do not
+establish the behavior of an application with only its used members retained or measure its size
+savings. Analysis warnings fail validation. The shipping libraries do not declare `IsTrimmable` or
+`IsAotCompatible`; a successful probe is narrower evidence than whole-library compatibility.
+
+macOS ColorSync callbacks execute in these modes. The macOS AppKit picker/block callback and Windows
+window procedure are compiled and analyzed but remain untested at runtime in published consumers.
+Linux desktop services, visible handoff, UI dispatchers, permissions, and interactive pickers also
+need separate acceptance in the application's chosen publish mode. An ordinary native test run does
+not supply that published-application evidence. Review Microsoft's
+[library trimming guidance](https://learn.microsoft.com/en-us/dotnet/core/deploying/trimming/prepare-libraries-for-trimming)
+and
+[Native AOT prerequisites and limitations](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/)
+before choosing those modes for a product.
+
 ## Tested environments and support limits
 
 The [native CI workflow](../.github/workflows/validate.yml) is the source of truth for runner
@@ -89,6 +129,5 @@ manual. Windows/macOS screen pickers and visible desktop handoff also require hu
 [validation procedures and evidence boundaries](validation.md) before making deployment claims.
 
 The engineering harnesses and Linux Python/D-Bus test-service dependencies are development tools,
-not consumer package dependencies. Source setup belongs in [Contributing](../CONTRIBUTING.md).
-Publishing modes such as trimming, Native AOT, and single-file applications need their own consumer
-evidence; the ordinary package-consumer checks do not establish those modes.
+not consumer package dependencies. Source setup and publish-check prerequisites belong in
+[Contributing](../CONTRIBUTING.md).

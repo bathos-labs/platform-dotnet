@@ -67,6 +67,27 @@ These gaps are consequences to investigate, not coverage targets. Keep profile-s
 their feature; new capabilities should use these same standalone runner, boundary, ownership, and
 evidence conventions.
 
+## Published-consumer evidence
+
+`task check` and `task packages:check` publish the isolated package consumer as self-contained,
+bundled single-file, and fully trimmed applications. `task packages:aot` adds Native AOT; CI runs
+all four modes on each native host. Each published executable runs directly in a fresh working
+directory, with owned single-file extraction and cleanup. Self-contained runtime configuration,
+single-file output shape, resolved candidate package versions, and absence of sibling providers are
+checked. The AOT consumer also requires dynamic code support to be disabled.
+
+SDK runtime, linker, and AOT compiler packs restore from NuGet.org into an isolated cache. Exact
+source mappings restrict both Bathos packages to the freshly packed candidate-only feed. Each mode
+starts with clean build intermediates; no repository project references or installed Bathos packages
+can satisfy the consumer. Trimming and AOT root both libraries and fail on analysis warnings without
+adding compatibility metadata or suppressions.
+
+The executable asserts exclusive publication, file inspection, retained-reader snapshot replacement,
+lease contention and release/reacquisition. On macOS it additionally exercises real ColorSync
+callbacks and reads an installed profile. Runtime picker callbacks and desktop acceptance remain
+manual; retaining and analyzing those methods is not evidence of their execution. See the
+[deployment modes and limitations](platform-support.md#consumer-publishing).
+
 ## Released API evidence
 
 Packing compares each shipping package with the stable version pinned in `eng/Bathos.Package.props`,

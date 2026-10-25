@@ -122,6 +122,36 @@ has no dispatcher smoke mode. Desktop reveal and editor handoff require separate
 through `eng/Bathos.Platform.Desktop`; headless fixtures and argument probes do not establish
 visible selection or editor compatibility.
 
+## Published package consumers
+
+`task check` and `task packages:check` also publish and execute the isolated consumer in
+self-contained directory, bundled single-file, and rooted trimming modes. This adds three publish
+operations per host and downloads matching SDK runtime/linker packs from NuGet.org into a disposable
+cache. Both Bathos packages are source-mapped exclusively to the freshly packed feed. Native
+operations run only on the executing OS; see the
+[publish evidence](docs/validation.md#published-consumer-evidence) and
+[consumer deployment limits](docs/platform-support.md#consumer-publishing).
+
+Use `task packages:aot` to include the rooted Native AOT publish/run probe. Without Task, pack as
+above, then run:
+
+```text
+dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages --native-aot
+```
+
+AOT is optional for the ordinary local check and required in each native CI job. It adds a fourth
+publish operation and requires a native toolchain: Xcode Command Line Tools on macOS, Visual
+Studio's Desktop development with C++ workload on Windows, or `clang` and `zlib1g-dev` on Ubuntu.
+The macOS and Windows runner images supply their toolchains; CI installs the Linux prerequisites.
+These tools and SDK packs are development requirements, not shipping package dependencies. See
+Microsoft's
+[Native AOT prerequisites](https://learn.microsoft.com/en-us/dotnet/core/deploying/native-aot/).
+
+The shipping libraries are not marked trim/AOT-compatible. Rooted analysis covers their full code,
+but executed noninteractive operations cover a smaller surface. Keep warnings actionable and runtime
+evidence explicit; do not add suppressions or compatibility metadata merely to pass a probe. Publish
+modes use clean intermediates and sequential owned processes, not sleeps or polling.
+
 ## Changelog
 
 Record consumer-visible changes under `Unreleased` in [CHANGELOG.md](CHANGELOG.md), grouped as

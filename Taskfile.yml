@@ -108,10 +108,16 @@ tasks:
       - dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
 
   packages:check:
-    desc: Pack and verify metadata, API documentation, examples, and an isolated consumer
+    desc: Pack and verify metadata, examples, isolated consumption, and publishing
     cmds:
       - task: pack
       - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
+
+  packages:aot:
+    desc: Verify packages and published consumers including Native AOT (requires a native toolchain)
+    cmds:
+      - task: pack
+      - dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages --native-aot
 
   check:
     desc: Run the complete local validation sequence, including package consumption

@@ -69,9 +69,9 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
       - run: dotnet --info
-      - name: Install headless portal test prerequisites
+      - name: Install headless portal and Native AOT prerequisites
         if: runner.os == 'Linux'
-        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y dbus-daemon python3-dbus python3-gi
+        run: sudo apt-get update && sudo apt-get install --no-install-recommends -y dbus-daemon python3-dbus python3-gi clang zlib1g-dev
       - run: dotnet restore Bathos.Platform.slnx --locked-mode
       - run: dotnet build Bathos.Platform.slnx --configuration Release --no-restore
       - name: Test with line and branch coverage
@@ -84,7 +84,8 @@ jobs:
       - name: Require inspectable shipping-code coverage
         run: dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-coverage artifacts/test-results artifacts/coverage/coverage.cobertura.xml
       - run: dotnet pack Bathos.Platform.slnx --configuration Release --no-build --no-restore --output artifacts/packages
-      - run: dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages
+      - name: Verify packages and published consumers, including Native AOT
+        run: dotnet run --project eng/Bathos.Platform.Build --configuration Release --no-build -- verify-packages artifacts/packages --native-aot
       - name: Retain native test evidence
         if: ${{ !cancelled() }}
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7
