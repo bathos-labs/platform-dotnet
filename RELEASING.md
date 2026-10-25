@@ -152,6 +152,12 @@ for successful NuGet publication before announcing the GitHub release. NuGet ind
 push; confirm each exact package version is downloadable and restorable before reporting it
 available.
 
+Package downloads and versionless latest-version discovery can become consistent at different times.
+Use fresh package and HTTP caches for public-feed verification, and confirm that the README's
+versionless commands select the new stable version. If discovery still returns an older release,
+allow its metadata to catch up and repeat the clean check; an exact-version restore alone does not
+establish the default installation path.
+
 To promote an accepted RC, remove the prerelease suffix, refresh lockfiles, and add a dated stable
 changelog entry summarizing the changes since the previous stable release. Preserve prerelease
 history. Update the `Unreleased` comparison to the stable tag and `master`, validate, merge the
