@@ -10,6 +10,8 @@ namespace Bathos.Platform.Files;
 /// </summary>
 public sealed class FilePublication : IAsyncDisposable
 {
+    private const string StagingPrefix = ".bathos-";
+    private const string StagingExtension = ".tmp";
     private readonly INativeFileRename _rename;
     private readonly string _directory;
     private readonly string _temporary;
@@ -41,13 +43,25 @@ public sealed class FilePublication : IAsyncDisposable
         _rename = rename ?? throw new ArgumentNullException(nameof(rename));
         _directory = directory;
         if (createDirectory) Directory.CreateDirectory(directory);
-        _temporary = Path.Combine(directory, ".bathos-" + Guid.NewGuid().ToString("N") + ".tmp");
+        _temporary = Path.Combine(directory, StagingPrefix + Guid.NewGuid().ToString("N") + StagingExtension);
         // If exclusive creation fails, this instance never owns the path and must not clean it up.
         Stream = new FileStream(_temporary, FileMode.CreateNew, FileAccess.ReadWrite, FileShare.None);
     }
 
     /// <summary>Borrowed seekable stream for encoding and fingerprinting. Publication closes it before renaming.</summary>
     public FileStream Stream { get; }
+
+    /// <summary>Recognizes a single filename reserved for publication staging, without accessing the filesystem.</summary>
+    /// <param name="fileName">A filename, not a path; null and malformed names are not staging names.</param>
+    /// <returns>Whether the filename follows this publisher's staging convention.</returns>
+    /// <remarks>
+    /// A matching name does not establish ownership or abandonment. Hosts may use it for accounting or cleanup only
+    /// within directories they own, after excluding active publishers. This method never deletes or opens a file.
+    /// </remarks>
+    public static bool IsStagingFileName(string? fileName) =>
+        fileName is not null && fileName.Length == StagingPrefix.Length + 32 + StagingExtension.Length &&
+        fileName.StartsWith(StagingPrefix, StringComparison.Ordinal) && fileName.EndsWith(StagingExtension, StringComparison.Ordinal) &&
+        Guid.TryParseExact(fileName.AsSpan(StagingPrefix.Length, 32), "N", out _);
 
     /// <summary>Claims the first available candidate at publication, retrying only native destination collisions.</summary>
     /// <returns>The absolute published path.</returns>

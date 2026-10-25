@@ -7,6 +7,34 @@ namespace Bathos.Platform.Tests;
 [Trait("Validation", "Portable")]
 public sealed class PublicationFailureTests
 {
+    [Fact]
+    public async Task StagingRecognitionUsesTheActualPublisherNameWithoutInferringLiveness()
+    {
+        var folder = Directory.CreateTempSubdirectory("bathos-staging-name-");
+        try
+        {
+            string staging;
+            await using (var publication = new FilePublication(folder.FullName, new Rename((_, _, _) => FileRenameStatus.Unavailable)))
+            {
+                staging = publication.Stream.Name;
+                Assert.True(FilePublication.IsStagingFileName(Path.GetFileName(staging)));
+                Assert.False(FilePublication.IsStagingFileName(staging));
+            }
+            Assert.False(File.Exists(staging));
+            Assert.True(FilePublication.IsStagingFileName(Path.GetFileName(staging)));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    [Theory]
+    [InlineData(null)]
+    [InlineData("")]
+    [InlineData("unrelated.tmp")]
+    [InlineData("0123456789abcdef0123456789abcdef.tmp")]
+    [InlineData(".bathos-not-a-guid.tmp")]
+    [InlineData(".bathos-0123456789abcdef0123456789abcdef.txt")]
+    public void StagingRecognitionRejectsUnrelatedNames(string? name) => Assert.False(FilePublication.IsStagingFileName(name));
+
     [Theory]
     [InlineData(FileRenameStatus.CrossVolumeUnsupported)]
     [InlineData(FileRenameStatus.Unavailable)]
