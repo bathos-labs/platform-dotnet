@@ -3,7 +3,8 @@
 The [README](../README.md) covers package selection and a runnable publication example. All packages
 target .NET 10. Use providers directly, select one with `PlatformProviders.SelectCurrent`, or
 register them with your application's composition system. The core does not load or scan provider
-assemblies.
+assemblies. See [platform support and deployment](platform-support.md) for native dependencies and
+tested configurations.
 
 ## Compose only the capabilities you need
 
@@ -61,9 +62,9 @@ For complete document snapshots with retained readers, compose the optional `Sna
 capability. Readers opened with `FileShare.Read | FileShare.Delete` can finish the old snapshot
 while later opens see the new file. Replacement also permits creation when the destination is
 absent. It does not merge destination metadata or coordinate competing writers. Use `FileRename` for
-directory relocation. Windows snapshot publication requires Windows 10 version 1607 or later and
-filesystem support for `FileRenameInfoEx` with POSIX replacement semantics; unsupported operations
-fail explicitly.
+directory relocation. Windows snapshot publication requires the native OS/filesystem support
+described in [platform prerequisites](platform-support.md#filesystem-capabilities); unsupported
+operations fail explicitly.
 
 ```csharp
 using Bathos.Platform;
@@ -104,8 +105,9 @@ rather than publishing a host-selected native filename.
 
 Disposal removes abandoned staging. Once publication succeeds, the file belongs to the caller and
 survives disposal or later cancellation. Windows, macOS, and Linux provide native rename
-capabilities. Linux requires libc renameat2 and filesystem support for RENAME_NOREPLACE; unsupported
-operations fail without a check-then-move or copy fallback.
+capabilities. See [filesystem prerequisites](platform-support.md#filesystem-capabilities) for Linux
+native API and filesystem requirements; unsupported operations fail without a check-then-move or
+copy fallback.
 
 For maintenance of an owned cache directory, use
 `FilePublication.IsStagingFileName(Path.GetFileName(path))` to recognize publication staging without
@@ -221,12 +223,10 @@ are outside this API. Cancellation is honored before handoff; a later cancellati
 reinterpret a successful request or terminate the application. Failures throw, and a failed explicit
 target never falls back to the default application.
 
-Windows reveal uses the Shell selection API on an owned COM worker. macOS uses the system `open -R`
-helper. Experimental Linux reveal uses `org.freedesktop.FileManager1.ShowItems` over system libdbus,
-without a folder-only fallback. Linux desktop-entry lookup/activation requires system GIO, GLib, and
-GObject (`libgio-2.0.so.0`, `libglib-2.0.so.0`, `libgobject-2.0.so.0`); executable invocation does
-not require those libraries. Provider construction does not probe desktop services. Missing services
-and libraries are operation failures.
+Reveal and application handoff use the matching platform's native integration. Provider construction
+does not probe desktop services. See
+[desktop prerequisites](platform-support.md#desktop-capabilities) for native libraries and services;
+missing services and libraries are operation failures.
 
 ## Screen color selection
 
@@ -247,11 +247,11 @@ samples the snapshot taken when selection starts, including across displays, wit
 subsequent screen changes.
 
 Enable experimental Linux sampling with `new LinuxPlatformProvider(enableScreenColorSampler: true)`.
-It requires system `libdbus-1.so.3`, a session bus, and a desktop portal backend implementing
-`org.freedesktop.portal.Screenshot.PickColor`. The portal owns interaction; no host dispatcher is
-needed. Optionally pass `parentWindow` as the host's exported `x11:` or `wayland:` portal window
-identifier; the default empty string requests an unparented picker. Opt-in does not probe the
-services; missing dependencies and failed requests throw when sampling is attempted.
+The [portal prerequisites](platform-support.md#desktop-capabilities) must be available. The portal
+owns interaction; no host dispatcher is needed. Optionally pass `parentWindow` as the host's
+exported `x11:` or `wayland:` portal window identifier; the default empty string requests an
+unparented picker. Opt-in does not probe the services; missing dependencies and failed requests
+throw when sampling is attempted.
 
 A null screen sample means user cancellation. On every platform, retiring a caller does not dismiss
 selection; ignore its late result and await native completion. Native cleanup belongs to the
@@ -299,13 +299,15 @@ time.
 
 ## Prerequisites and troubleshooting
 
+See [platform support](platform-support.md) for deployment prerequisites and tested configurations.
+
 | Symptom                                                | Check                                                                                                                       |
 | ------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------- |
 | Capability is null                                     | Provider selection, supplied dispatcher, and explicit Linux sampler opt-in                                                  |
 | Invalid path or target                                 | Absolute filesystem paths; one filename for exact publication; native registration ID syntax                                |
 | File inspection fails                                  | Missing entry, directory, symbolic link/reparse point, special entry, or access restriction                                 |
 | Publication fails                                      | Destination collision, permissions, filename limits, filesystem rename support, or cross-volume paths                       |
-| Linux native library load fails                        | System libdbus for reveal/sampling; GIO, GLib, and GObject for desktop-entry lookup/handoff; libc statx for inspection      |
+| Linux native library load fails                        | The native libraries for the requested capability in [platform support](platform-support.md)                                |
 | Linux desktop service rejects a request                | Logged-in session bus, FileManager1 service, or portal backend implementing PickColor; headless CI does not establish these |
 | Windows/macOS sampler is busy or rejects thread access | Await the previous operation and invoke on the configured native UI thread                                                  |
 | Picker completes but the host hangs during shutdown    | Keep its native event loop alive through cleanup and result dispatch; await owned work rather than pumping a nested loop    |
@@ -352,15 +354,6 @@ New capabilities follow the same pattern: a focused interface and a default-null
 Existing providers can omit a new optional capability. An exposed capability must fulfill its
 operation contract; a successful no-op or a throwing placeholder does not represent a supported
 operation.
-
-## Validation from source
-
-The engineering-only desktop host supports `reveal`, `open`, and native lookup. The sampler harness
-supports manual interaction and a separate noninteractive dispatcher smoke check on Windows/macOS.
-Neither harness is included in the NuGet packages.
-
-See [native validation](validation.md) for commands, human acceptance procedures, and manual checks.
-Headless Linux tests establish protocol and transport behavior, not graphical desktop support.
 
 ## Installed color profiles
 

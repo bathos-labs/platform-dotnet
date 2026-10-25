@@ -14,6 +14,13 @@ if (args is ["clean-test-results"])
 if (args is ["verify-tag", var tag])
 {
     if (tag != "v" + version) throw new InvalidOperationException($"Release tag must be v{version}.");
+    var changelog = File.ReadAllText(Path.Combine(root, "CHANGELOG.md"));
+    var entry = System.Text.RegularExpressions.Regex.Match(changelog,
+        $@"^## \[{System.Text.RegularExpressions.Regex.Escape(version)}\] - (\d{{4}}-\d{{2}}-\d{{2}})$",
+        System.Text.RegularExpressions.RegexOptions.Multiline);
+    if (!entry.Success || !DateOnly.TryParseExact(entry.Groups[1].Value, "yyyy-MM-dd",
+        System.Globalization.CultureInfo.InvariantCulture, System.Globalization.DateTimeStyles.None, out _))
+        throw new InvalidOperationException($"Prepare a dated CHANGELOG.md entry for {version} before tagging.");
     return;
 }
 if (args is ["verify-coverage", var results, var output])
@@ -23,8 +30,17 @@ if (args is ["verify-coverage", var results, var output])
 }
 if (args is not ["verify-packages", var feedArgument]) throw new ArgumentException("Use verify-packages <feed> or verify-tag <tag>.");
 var feed = Path.GetFullPath(feedArgument);
-await ApiCompatibilityEvidence.VerifyAsync(root, feed, version);
 string[] names = ["Bathos.Platform", "Bathos.Platform.MacOS", "Bathos.Platform.Windows", "Bathos.Platform.Linux"];
+var readme = File.ReadAllText(Path.Combine(root, "README.md"));
+var repository = "https://github.com/bathos-labs/platform-dotnet";
+var expectedReadme = readme.Replace($"{repository}/blob/master/", $"{repository}/blob/v{version}/", StringComparison.Ordinal);
+var installationCommands = readme.Split('\n').Select(line => line.Trim())
+    .Where(line => line.StartsWith("dotnet add package ", StringComparison.Ordinal))
+    .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToArray();
+if (installationCommands.Length == 0 || installationCommands.Any(command =>
+    command.Length != 4 || !names.Contains(command[3], StringComparer.Ordinal)))
+    throw new InvalidOperationException("README installation commands must use versionless stable package names without flags.");
+await ApiCompatibilityEvidence.VerifyAsync(root, feed, version);
 foreach (var name in names)
 {
     using var archive = ZipFile.OpenRead(Path.Combine(feed, $"{name}.{version}.nupkg"));
@@ -36,6 +52,11 @@ foreach (var name in names)
     var assemblyPath = $"lib/net10.0/{name}.dll";
     if (archive.GetEntry(assemblyPath) is null || archive.GetEntry("README.md") is null)
         throw new InvalidOperationException($"{name} must contain its assembly and package README.");
+    using var readmeStream = archive.GetEntry("README.md")?.Open()
+        ?? throw new InvalidOperationException($"{name} must contain its package README.");
+    using var readmeReader = new StreamReader(readmeStream);
+    if (await readmeReader.ReadToEndAsync() != expectedReadme)
+        throw new InvalidOperationException($"{name} must preserve the README and pin documentation links to v{version}.");
     var documentationEntry = archive.GetEntry($"lib/net10.0/{name}.xml")
         ?? throw new InvalidOperationException($"{name} must ship matching XML documentation beside its assembly.");
     using var documentationStream = documentationEntry.Open();
@@ -72,8 +93,12 @@ try
     foreach (var file in Directory.GetFiles(Path.Combine(root, "eng", "package-consumer")))
         File.Copy(file, Path.Combine(scratch.FullName, Path.GetFileName(file)));
     File.Copy(Path.Combine(root, "global.json"), Path.Combine(scratch.FullName, "global.json"));
+    // Only these candidate packages may satisfy the versionless README installation commands.
+    var candidateFeed = Directory.CreateDirectory(Path.Combine(scratch.FullName, "feed")).FullName;
+    foreach (var name in names)
+        File.Copy(Path.Combine(feed, $"{name}.{version}.nupkg"), Path.Combine(candidateFeed, $"{name}.{version}.nupkg"));
     var configuration = new XDocument(new XElement("configuration",
-        new XElement("packageSources", new XElement("clear"), new XElement("add", new XAttribute("key", "local"), new XAttribute("value", feed)))));
+        new XElement("packageSources", new XElement("clear"), new XElement("add", new XAttribute("key", "local"), new XAttribute("value", candidateFeed)))));
     configuration.Save(Path.Combine(scratch.FullName, "NuGet.Config"));
     var provider = OperatingSystem.IsMacOS() ? "MacOS" : OperatingSystem.IsWindows() ? "Windows" : OperatingSystem.IsLinux() ? "Linux"
         : throw new PlatformNotSupportedException();
@@ -82,18 +107,20 @@ try
     await Run("run", "--configuration", "Release", "--no-restore", $"-p:BathosVersion={version}", $"-p:Provider={provider}");
 
     // The quick start must compile with exactly its documented dependencies, before guide examples add providers.
-    var readme = File.ReadAllText(Path.Combine(root, "README.md"));
-    var readmePackages = readme.Split('\n').Select(line => line.Trim())
-        .Where(line => line.StartsWith("dotnet add package ", StringComparison.Ordinal))
-        .Select(line => line["dotnet add package ".Length..].Split(' ', StringSplitOptions.RemoveEmptyEntries)[0])
-        .Distinct(StringComparer.Ordinal).ToArray();
-    if (readmePackages.Length == 0 || readmePackages.Any(name => !names.Contains(name, StringComparer.Ordinal)))
-        throw new InvalidOperationException("README installation commands must name the packages used by its quick start.");
     var consumerProject = XDocument.Load(Path.Combine(scratch.FullName, "Consumer.csproj"));
     consumerProject.Root?.Elements("ItemGroup").Remove();
-    consumerProject.Root?.Add(new XElement("ItemGroup", readmePackages.Select(name =>
-        new XElement("PackageReference", new XAttribute("Include", name), new XAttribute("Version", version)))));
     consumerProject.Save(Path.Combine(scratch.FullName, "Consumer.csproj"));
+    Console.WriteLine("Validating README installation against the isolated candidate feed, not the published NuGet feed.");
+    foreach (var command in installationCommands)
+    {
+        var arguments = command.Skip(1).Concat(["--source", candidateFeed, "--package-directory", Path.Combine(scratch.FullName, "cache")]);
+        // A prerelease development candidate needs opt-in only within this isolated validation.
+        if (version.Contains('-')) arguments = arguments.Append("--prerelease");
+        await Run(arguments.ToArray());
+    }
+    consumerProject = XDocument.Load(Path.Combine(scratch.FullName, "Consumer.csproj"));
+    if (consumerProject.Descendants("PackageReference").Any(reference => (string?)reference.Attribute("Version") != version))
+        throw new InvalidOperationException("README installation must resolve exactly the candidate package versions.");
     var readmeExamples = CSharpExamples(readme).ToArray();
     if (readmeExamples.Length != 1) throw new InvalidOperationException("Expected one executable README quick start.");
     File.WriteAllText(Path.Combine(scratch.FullName, "Program.cs"), readmeExamples[0]);

@@ -88,6 +88,21 @@ into a dated release section.
 
 ## API and developer documentation
 
+Keep the README and consumer guides largely static: use versionless stable installation commands,
+keep release history in the changelog, and update capability or prerequisite facts only when
+behavior changes. The README owns the capability/platform matrix, `docs/usage.md` owns integration
+recipes, and `docs/platform-support.md` owns native deployment requirements and tested
+configurations. `docs/validation.md` owns evidence and manual acceptance procedures. Link to the
+owning page instead of copying its detailed requirements. Do not add generated installation blocks
+or repeated current package-version declarations.
+
+All four packages share a release version and channel. Linux's experimental implementation status
+does not require its package to use a different version or prerelease channel. Keep pending native
+and desktop acceptance explicit. Develop upcoming behavior and its documentation on feature/release
+branches, advancing `Version` when development resumes; prefer small releases so `master` stays
+close to the published state. Source documentation can describe changes awaiting publication; the
+matching tag and shipped XML describe an installed package.
+
 Present built-in OS providers as the normal integration path. Keep application dependencies focused
 on the capability interfaces they use; these and the native dispatcher support host integration,
 substitution, and testing. The provider facade is a composition convenience, and partial providers
@@ -117,10 +132,14 @@ generator is required.
 
 Keep the README quick start runnable and integration examples in `docs/usage.md` self-contained. The
 package verifier compiles every `csharp` fenced block in those files against the freshly packed
-libraries in an isolated consumer. The README contains one executable quick start, compiled with
-only the packages listed by its installation commands; guide snippets declare public example classes
-and are compiled separately with all providers available. On Windows/macOS/Linux, validation runs
-the README twice and verifies the expected bytes and collision-safe publication. The WPF example in
+libraries in an isolated consumer. It executes the README's versionless installation commands
+against a feed containing only the candidate packages and checks the resolved versions. Prerelease
+candidates are opted into only in that isolated feed; this does not establish public package
+availability. The packaged README must preserve the source text while pinning documentation links to
+its release tag. The README contains one executable quick start, compiled with only the packages
+listed by its installation commands; guide snippets declare public example classes and are compiled
+separately with all providers available. On Windows/macOS/Linux, validation runs the README twice
+and verifies the expected bytes and collision-safe publication. The WPF example in
 `docs/examples/wpf-dispatcher.md` is compiled separately on Windows with the WPF framework
 reference. Interactive snippets are compiled only; their acceptance remains manual. Retain the
 separate single-provider consumer check before examples bring in all providers. Keep Markdown fences

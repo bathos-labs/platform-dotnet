@@ -19,6 +19,9 @@
   loops.
 - After Markdown edits, run `task docs:format`, review the changes, and run `task check` before
   committing. CI verifies Markdown formatting without modifying files.
+- Keep consumer documentation static: versionless stable installs, release history in CHANGELOG.md,
+  and detailed deployment requirements in docs/platform-support.md. All providers share a release
+  channel; experimental Linux behavior does not require a separate prerelease package.
 - Screen sampler interaction requires human validation. Do not launch or drive the interactive
   picker with computer-use automation; that path is currently unreliable. Use
   `task eng:sampler:smoke` for noninteractive checks and hand off `task eng:sampler` to the user.

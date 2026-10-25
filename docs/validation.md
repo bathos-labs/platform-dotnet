@@ -2,7 +2,8 @@
 
 Linux support is experimental. CI runs automated native tests on Windows, macOS, and Linux;
 interactive desktop behavior can be checked using the engineering harnesses below. The harnesses are
-not shipped in NuGet packages.
+not shipped in NuGet packages. See [platform support](platform-support.md) for consumer deployment
+requirements; this guide describes validation evidence.
 
 ## Automated evidence boundaries
 
