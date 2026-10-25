@@ -69,6 +69,9 @@ jobs:
           cache: true
           cache-dependency-path: '**/packages.lock.json'
       - run: dotnet --info
+      - name: Intentional Linux failure for merge-rule verification
+        if: runner.os == 'Linux'
+        run: exit 1
       - name: Install headless portal and Native AOT prerequisites
         if: runner.os == 'Linux'
         run: sudo apt-get update && sudo apt-get install --no-install-recommends -y dbus-daemon python3-dbus python3-gi clang zlib1g-dev
