@@ -23,6 +23,7 @@ if (args is ["verify-coverage", var results, var output])
 }
 if (args is not ["verify-packages", var feedArgument]) throw new ArgumentException("Use verify-packages <feed> or verify-tag <tag>.");
 var feed = Path.GetFullPath(feedArgument);
+await ApiCompatibilityEvidence.VerifyAsync(root, feed, version);
 string[] names = ["Bathos.Platform", "Bathos.Platform.MacOS", "Bathos.Platform.Windows", "Bathos.Platform.Linux"];
 foreach (var name in names)
 {

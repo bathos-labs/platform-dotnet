@@ -1,0 +1,40 @@
+{
+  "version": 1,
+  "dependencies": {
+    "net10.0": {
+      "Bathos.Platform": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "McG4fh2uPAG7G2BHp6laJhbAihS18rcBbOddBntlXer6eBKb1dyW89GpAXf8Q1h5AObCCuFO4+CJEYuSrVPM3g=="
+      },
+      "Bathos.Platform.Linux": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "4Bo9528ElwwGt0aYfUQ1UbbjUGdBiL7So/ahWMWZ9eLRSV0/9GeGgmGLuunVZ4jgR/2mNf0BJKgb/uhwtVNJlA==",
+        "dependencies": {
+          "Bathos.Platform": "1.0.0"
+        }
+      },
+      "Bathos.Platform.MacOS": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "q+sam2F+pjqwi9fNvliTawb2fcHmPEFB8YqH+u32P0TP7GjaFm3lCFzRGs2ES919BvAGUeKiVvYWzG4XWJkHHw==",
+        "dependencies": {
+          "Bathos.Platform": "1.0.0"
+        }
+      },
+      "Bathos.Platform.Windows": {
+        "type": "Direct",
+        "requested": "[1.0.0, )",
+        "resolved": "1.0.0",
+        "contentHash": "Osylb5Yr64vC5U8QVdGOSj/rnoL1BVQtEiUMdtpgy6S8uc37Ops++9HqfZsdz31nTrGKrsMCneu/8hTkXrWPRA==",
+        "dependencies": {
+          "Bathos.Platform": "1.0.0"
+        }
+      }
+    }
+  }
+}

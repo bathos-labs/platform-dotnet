@@ -54,6 +54,16 @@ visible as uncovered until there is separate desktop evidence; do not exclude th
 These gaps are consequences to investigate, not coverage targets. Keep profile-specific tests with their feature;
 new capabilities should use these same standalone runner, boundary, ownership, and evidence conventions.
 
+## Released API evidence
+
+Packing compares each shipping package with the stable version pinned in `eng/Bathos.Package.props`, including
+parameter names used by named-argument callers. Package verification additionally builds a locked released consumer
+and provider implementation, rebuilds the same source against the candidate, and executes the original assembly with
+the candidate libraries. Runtime hash checks establish that all four loaded library assemblies came from the candidate
+packages and that the consumer was not rebuilt. Added optional capabilities are checked against the old provider.
+This runs in the same Windows/macOS/Linux matrix as native validation. See CONTRIBUTING.md for baseline maintenance.
+API compatibility and representative consumer execution do not establish every behavioral or native guarantee.
+
 ## macOS and Windows screen sampler
 
 From a logged-in graphical macOS or Windows session, run:

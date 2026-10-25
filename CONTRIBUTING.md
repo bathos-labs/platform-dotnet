@@ -93,6 +93,31 @@ experimental; the stable public API compatibility commitment still applies.
 A documentation build does not establish native acceptance or authorize a release. A hosted DocFX site remains an
 optional long-term enhancement rather than part of this validation workflow.
 
+## Released API compatibility
+
+All four shipping packages enable the SDK's package validation during `dotnet pack`. The stable baseline is pinned
+in `eng/Bathos.Package.props`; removed or incompatible signatures, dropped target frameworks, and changed parameter
+names fail the gate. Compatible additions are allowed. Do not enable strict baseline equality or automatically
+suppress diagnostics: a failure requires a compatibility-preserving design or an explicitly approved breaking release.
+
+The existing `verify-packages` command also exercises `eng/api-compatibility` in isolated temporary projects:
+
+1. Restore the released packages from NuGet.org using the consumer's committed lockfile, then compile its callers,
+   minimal `IPlatformProvider`, and `INativeFileRename` implementation against that release.
+2. Compile the same source against only the freshly packed candidate packages in a separate cache.
+3. Run the original released consumer assembly with the candidate packages, without recompiling it. Verify all four
+   loaded package assembly hashes and the consumer hash; exercise old constructors, named calls, native inspection,
+   publication, and optional capability defaults on the old provider implementation.
+
+The released consumer must use only baseline APIs. The current runner may assert new optional defaults. Keep the
+baseline consumer's source and lockfile together when advancing the stable baseline after a release; regenerate its
+lockfile in an isolated copy with `BathosVersion` set to the new stable version. Never resolve the baseline from the
+local candidate feed or update it automatically to make a failure disappear. Baseline restore requires NuGet.org;
+candidate consumers use only the local feed. No compatibility tooling becomes a shipping runtime dependency.
+
+These checks cover API shape and representative source/binary integration. They do not establish every consumer's
+behavior or replace native ownership, cancellation, filesystem, and manual desktop validation.
+
 ## Standalone coverage and CI setup
 
 `task test:coverage` runs the same standalone suite with Coverlet's Microsoft.Testing.Platform extension and writes
