@@ -11,6 +11,15 @@ using Bathos.Platform.Windows;
 // Engineering-only owned test application: never opens an editor or a desktop window.
 try
 {
+    if (args is ["--association-marker", var pipeName, var document])
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var connection = new NamedPipeClientStream(".", pipeName, PipeDirection.Out, PipeOptions.Asynchronous);
+        await connection.ConnectAsync(timeout.Token);
+        using var output = new StreamWriter(connection) { AutoFlush = true };
+        await output.WriteLineAsync(JsonSerializer.Serialize(new ProbeResult(Environment.ProcessId, args)).AsMemory(), timeout.Token);
+        return 0;
+    }
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))
         ?? throw new InvalidDataException("Missing probe configuration.");
     if (configuration.Mode == "lease-terminal-fixture")
