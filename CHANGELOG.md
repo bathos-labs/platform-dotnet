@@ -14,6 +14,9 @@ native support remains experimental; public API compatibility still applies.
 
 ### Added
 
+- Core application-discovery contracts: `IApplicationDiscovery`, immutable `ApplicationCandidate`,
+  and a default-null `IPlatformProvider.ApplicationDiscovery` capability. Built-in discovery
+  adapters are not yet available; existing lookup utilities remain unchanged.
 - Optional application-icon retrieval for explicit targets, without application lists or launches.
   All providers return owned RGBA bitmaps at the requested size. Linux renders desktop-entry PNG/XPM
   icons through GdkPixbuf and SVG through librsvg/Cairo; callers supply the native libraries in

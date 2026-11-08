@@ -23,6 +23,7 @@ public sealed class PlatformProviderTests
         Assert.Null(selected.FileRevealer);
         Assert.Null(selected.FileInvoker);
         Assert.Null(selected.ApplicationIcons);
+        Assert.Null(selected.ApplicationDiscovery);
     }
 
     [Fact]

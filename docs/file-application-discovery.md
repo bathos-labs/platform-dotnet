@@ -1,9 +1,9 @@
 # File-driven application discovery
 
 Status: agreed contract for [issue #36](https://github.com/bathos-labs/platform-dotnet/issues/36),
-awaiting implementation and acceptance validation. This capability is not yet available in shipping
-API declarations. The contract selects useful applications for an Open in menu, not immutable
-activation commands or task-dispatch registrations.
+with core API declarations implemented and native adapters awaiting implementation and acceptance
+validation. Built-in providers currently leave this capability null. The contract selects useful
+applications for an Open in menu, not immutable activation commands or task-dispatch registrations.
 
 ## Goal and scope
 
