@@ -5,29 +5,39 @@ using Microsoft.Win32;
 
 internal static class AssociationFixture
 {
-    internal static void Run(string receiver)
+    [System.Runtime.Versioning.SupportedOSPlatform("windows")]
+    internal static void Run(string receiver, bool applications = false)
     {
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException();
         if (!File.Exists(receiver)) throw new FileNotFoundException("Owned receiver required.", receiver);
         var id = "BathosProbe" + Guid.NewGuid().ToString("N");
         var extension = "." + id;
         var root = @"Software\Classes\";
+        var registrationId = applications ? @"Applications\" + id + ".exe" : id;
         var folder = Directory.CreateTempSubdirectory("bathos-association-");
         var document = Path.Combine(folder.FullName, "owned space \u03a9" + extension);
         try
         {
             File.WriteAllText(document, "owned fixture");
-            using (var key = Registry.CurrentUser.CreateSubKey(root + extension + @"\OpenWithProgids"))
+            if (applications)
+            {
+                using var types = Registry.CurrentUser.CreateSubKey(root + registrationId + @"\SupportedTypes");
+                types.SetValue(extension, "");
+            }
+            else
+            {
+                using var key = Registry.CurrentUser.CreateSubKey(root + extension + @"\OpenWithProgids");
                 key.SetValue(id, Array.Empty<byte>(), RegistryValueKind.None);
-            using (var key = Registry.CurrentUser.CreateSubKey(root + id)) key.SetValue(null, "Bathos owned fixture");
+            }
+            using (var key = Registry.CurrentUser.CreateSubKey(root + registrationId)) key.SetValue(null, "Bathos owned fixture");
             List<Handler> Read() => Sta(() => Native.Read(extension));
             void Register(string pipe)
             {
-                using var command = Registry.CurrentUser.CreateSubKey(root + id + @"\shell\open\command");
+                using var command = Registry.CurrentUser.CreateSubKey(root + registrationId + @"\shell\open\command");
                 command.SetValue(null, $"\"{receiver}\" --association-marker {pipe} \"%1\"");
             }
             string? previousName = null;
-            for (var iteration = 0; iteration < 2; iteration++)
+            for (var iteration = 0; iteration < (applications ? 3 : 2); iteration++)
             {
                 var pipeName = id + iteration;
                 using var pipe = new NamedPipeServerStream(pipeName, PipeDirection.In, 1, PipeTransmissionMode.Byte, PipeOptions.Asynchronous);
@@ -41,13 +51,24 @@ internal static class AssociationFixture
                 Console.WriteLine(JsonSerializer.Serialize(new { SameNameAfterCommandChange = previousName == name }));
                 previousName = name;
                 var connected = pipe.WaitForConnectionAsync(timeout.Token);
-                Sta(() => Native.Read(extension, name, document, id));
+                Sta(() => Native.Read(extension, name, document, applications ? null : id, iteration == 2 ? () =>
+                {
+                    using var command = Registry.CurrentUser.CreateSubKey(root + registrationId + @"\shell\open\command");
+                    command.SetValue(null, $"\"{receiver}\" --association-marker {pipeName} \"%1.changed\"");
+                }
+                : null));
                 connected.GetAwaiter().GetResult();
                 using var reader = new StreamReader(pipe);
                 var response = reader.ReadLineAsync(timeout.Token).AsTask().GetAwaiter().GetResult() ?? throw new IOException("Missing acknowledgment.");
                 using var json = JsonDocument.Parse(response);
                 var received = json.RootElement.GetProperty("Arguments").EnumerateArray().Select(v => v.GetString()).ToArray();
-                if (!received.SequenceEqual(new[] { "--association-marker", pipeName, document })) throw new IOException("Arguments changed.");
+                if (iteration == 2)
+                {
+                    if (received.Length != 3 || received[0] != "--association-marker" || received[1] != pipeName
+                        || (received[2] != document && received[2] != document + ".changed")) throw new IOException("Unexpected retained-handler arguments.");
+                    Console.WriteLine(JsonSerializer.Serialize(new { RetainedHandlerUsedChangedCommand = received[2] == document + ".changed" }));
+                }
+                else if (!received.SequenceEqual(new[] { "--association-marker", pipeName, document })) throw new IOException("Arguments changed.");
                 try
                 {
                     using var child = Process.GetProcessById(json.RootElement.GetProperty("ProcessId").GetInt32());
@@ -55,6 +76,13 @@ internal static class AssociationFixture
                 }
                 catch (ArgumentException) { /* Receiver already exited after acknowledgment. */ }
                 Console.WriteLine("Native activation preserved marker, pipe, and Unicode document arguments.");
+            }
+            if (applications)
+            {
+                Registry.CurrentUser.DeleteSubKeyTree(root + registrationId);
+                if (Read().Any(h => h.Name == previousName)) throw new IOException("Removed Applications handler remained visible.");
+                Console.WriteLine("Removed Applications registration disappeared from enumeration.");
+                return;
             }
             using (var key = Registry.CurrentUser.CreateSubKey(root + extension + @"\OpenWithProgids"))
                 key.SetValue(id + "Duplicate", Array.Empty<byte>(), RegistryValueKind.None);
@@ -108,6 +136,7 @@ internal static class AssociationFixture
         {
             Registry.CurrentUser.DeleteSubKeyTree(root + extension, false);
             Registry.CurrentUser.DeleteSubKeyTree(root + id, false);
+            if (applications) Registry.CurrentUser.DeleteSubKeyTree(root + registrationId, false);
             Registry.CurrentUser.DeleteSubKeyTree(root + id + "Duplicate", false);
             folder.Delete(true);
         }

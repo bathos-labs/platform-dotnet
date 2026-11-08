@@ -1,117 +1,148 @@
 # File-driven application discovery
 
-Status: proposed architecture for
-[issue #36](https://github.com/bathos-labs/platform-dotnet/issues/36), a candidate for 1.2. The
-file-driven use case is agreed; the result identity and Windows activation mapping require native
-verification before shipping API declarations are added.
+Status: agreed contract for [issue #36](https://github.com/bathos-labs/platform-dotnet/issues/36),
+awaiting implementation and acceptance validation. This capability is not yet available in shipping
+API declarations. The contract selects useful applications for an Open in menu, not immutable
+activation commands or task-dispatch registrations.
 
 ## Goal and scope
 
-Given an existing local regular file, discover the applications the operating system registers as
-candidates to open it. Each result provides display context and a target usable by the platform's
-existing `IFileInvoker` and `IApplicationIconProvider`. Callers need no native type identifiers,
-command templates, or application catalog to populate an Open in menu.
+Given an existing local regular file, discover useful application choices registered with the
+operating system to open it. Each result supplies display context and a target usable by the
+matching built-in `IFileInvoker` and `IApplicationIconProvider`. Callers need no native type
+identifiers, command templates, or application catalog.
 
-Discovery is advisory and read-only. It does not launch applications, change defaults, prove editing
-or round-trip fidelity, or create temporary files. Caller-configured targets remain valid
-independent of registration. Hosts own merging custom entries, preferences, caching, refresh, and
-stale-result rejection. Query the actual file intended for handoff, including an exported copy when
-applicable.
+Discovery is advisory and read-only. It does not launch applications, change defaults, prove format
+support, editing capability, or round-trip fidelity, or create temporary files. General-purpose
+handlers may appear even for unknown file types. The list is neither an exhaustive inventory nor a
+ranking of application suitability. Ordering never implies default status.
 
-Exclude hypothetical-type queries, reverse inventories of supported types, default-handler lookup,
-association mutation, directories, URLs, remote resources, and multi-file selections from this first
-capability. Default lookup can be a later focused capability; ordering never implies default status.
+Hosts own custom entries, preferences, caching, refresh, and stale-result rejection. Query the
+actual file intended for handoff, including an exported copy when applicable. Exclude hypothetical
+type queries, reverse type inventories, default-handler lookup, association mutation, directories,
+URLs, remote resources, and multi-file selections from the first capability.
 
-## Proposed public shape
+## Agreed API contract
 
-Add an optional `IApplicationDiscovery` capability with a default-null `ApplicationDiscovery` facade
-property. Existing platform-specific explicit discovery utilities remain available and unchanged.
-The intended operation is `FindForFileAsync(absolutePath, cancellationToken)`, returning an owned
-read-only list of immutable `ApplicationCandidate` values. Each candidate has:
+Add a focused optional `IApplicationDiscovery` capability with a default-null `ApplicationDiscovery`
+facade property. Existing explicit discovery utilities remain unchanged. The intended operation is
+`FindForFileAsync(absolutePath, cancellationToken)`, returning an owned read-only list of immutable
+`ApplicationCandidate` values:
 
 - `Target`: an `ApplicationTarget` accepted by the matching built-in invocation and icon providers.
-- `DisplayName`: a nonblank display label, never an identity or a command. A native identifier may
-  serve as a documented display fallback when the OS supplies no friendly label.
+- `DisplayName`: a nonblank label, never an invocation identity or command. A native identifier may
+  serve as a documented fallback when no friendly label is available.
 
-These names are a design sketch, not published signatures. The type names do not assert that a
-candidate can edit a document. Candidates contain no COM handles, retained native objects,
-disposable sessions, lazy native getters, or eager bitmap data. Retrieve icons separately at the
-desired size. A missing icon is allowed; replacing an unresolved candidate with a generic executable
-is not.
+These are the agreed API responsibilities; concrete declarations and target representation must be
+implemented with their providers, XML contracts, compatibility fixtures, and examples. Candidates
+contain no COM handles, retained native objects, disposable sessions, lazy native getters, or eager
+bitmap data. Retrieve icons separately at the desired physical pixel size. A missing icon is
+allowed.
 
-An empty list means no registered candidates were found. A null facade means unsupported or
-unconfigured. Invalid arguments, missing/nonregular files, native failure, and cancellation are
-separate outcomes. Do not return a successful partial list after an enumeration/identity error. No
-global completeness promise is made: the list reflects native registrations visible at query time.
+An empty list means no candidates were returned by native discovery after application-level
+coalescing. A null facade means unsupported or unconfigured. Invalid arguments, missing/nonregular
+files, native failures, and cancellation remain distinct. Enumeration failures must not become
+successful partial lists. Absence of optional ProgID/AppUserModelID metadata alone does not make an
+otherwise usable Windows handler invalid.
 
-A discovery result is a snapshot, not a reservation. Invocation revalidates the selected target and
-file. Removal or ambiguous re-resolution must fail explicitly, never select another/default handler.
-A target is not an executable-content security identity and cannot guarantee unchanged installed
-application bytes. Discovery does not lock or read an entire document; native metadata/type queries
-may inspect file data. Exact file stability remains the caller's responsibility.
+## Selection and lifetime
+
+A target means **the selected application's current native registration for the association
+context**. It does not reserve a command, executable contents, installation, or registration
+version. Changes to registered arguments and launch behavior between discovery and invocation are
+accepted. Successful invocation establishes native submission, not successful document parsing or
+readiness.
+
+Invocation revalidates the file and resolves the application within the original association
+context. Missing or unresolved selections fail explicitly. Never substitute the default application,
+guess an executable invocation, or match by display label. After permitted application-level
+coalescing, any remaining ambiguity fails explicitly. Stronger registration identifiers may refine
+lookup, but a ProgID is not a promise to preserve one command when the selected application has
+multiple entries.
+
+Targets are transient values, not durable preference keys, serialized identities, or security
+credentials. Reinstallation at the same path and native metadata changes cannot be excluded. Labels,
+icons, and activation are separate observations and need not form an atomic snapshot. Hosts should
+refresh menus as appropriate; exact file stability and application trust remain their
+responsibility.
+
+## Coalescing application choices
+
+Preserve native coalescing when the OS already returns one choice for multiple registrations.
+Additional entries may be coalesced when they share a native application identity or the same full
+executable path under the provider's native comparison rules. Do not merge merely equal display
+names or executable basenames; distinct applications with the same label remain separate choices.
+Path matching does not promise filesystem-alias or executable-content identity.
+
+Keep a complete native candidate as the winner so its invocation and icon metadata stay together.
+For additional Windows coalescing, prefer a native-recommended candidate, then a candidate with a
+usable stronger registration identifier, then native enumeration order. These are local
+tie-breakers, not a portable recommendation score, default selection, or a stable ordering promise.
+Validate them against owned duplicate fixtures before implementation acceptance. Do not synthesize
+commands or combine the icon of one registration with another registration's activation descriptor.
 
 ## Composition and compatibility
 
 Keep one target model for explicit and discovered applications. macOS bundle paths and Linux desktop
-entry IDs already preserve native activation. A Windows association-backed target is a proposed
-addition, not an executable alias. It must retain whatever association context is needed to select
-the same native handler and retrieve its icon. Native context remains an implementation detail for
-ordinary callers; do not concatenate identifiers into an undocumented public string encoding.
+entry IDs already preserve native activation. Add a Windows association-backed descriptor containing
+association context and native application identity, with optional stronger registration metadata.
+Handlers without ProgIDs are supported through context plus native application name; re-resolution
+uses the same application-level coalescing policy. Labels are never a fallback identity. Native
+context must be structured internally, not concatenated into an undocumented public string encoding.
 
-Do not change the meaning of `ApplicationTarget.Executable`: its existing one-file-argument contract
-remains intact. Do not add required members to existing capability interfaces. New target kinds are
-not automatically supported by third-party invokers: existing unsupported-kind behavior remains
-valid, and documentation must state that discovered targets compose with the matching provider.
-Review enum additions and value equality explicitly. Results are not promised serializable or stable
-across installations; preference persistence needs a separate identity decision.
+Do not change `ApplicationTarget.Executable` or its one-file-argument contract. Add no required
+members to existing interfaces. Third-party invokers may continue rejecting unfamiliar target kinds;
+discovered targets compose with matching built-in providers. Review enum additions and value
+equality explicitly. Descriptor equality must not imply immutable command or installed-application
+identity.
 
-If Windows cannot provide an adequately distinguishable registration descriptor, reconsider the
-result model before implementation. A session retaining native handlers preserves exact activation
-but introduces lifetime/threading obligations and weakens composition with existing targets.
-Returning only executable-compatible handlers is simpler but excludes meaningful native candidates.
-Neither trade-off should be adopted implicitly.
+Retained COM sessions are not required: they add threading and lifetime obligations without freezing
+registration behavior. Each operation owns its native resources and releases them before completion.
 
 ## Native adapters
 
-| Platform | Discovery                                                                                                         | Invocation and icons                                                                                                                                            |
-| -------- | ----------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| macOS    | NSWorkspace applications for the actual file URL; use native content interpretation.                              | Existing bundle target, native bundle handoff, and application-icon provider.                                                                                   |
-| Linux    | Query the file's content type through GIO; enumerate registered recommended/fallback applications.                | Desktop-entry identity, GIO activation, existing icon provider. Validate usable identity; do not manufacture an executable target for an unrepresentable entry. |
-| Windows  | Shell handler enumeration for the file extension; explicitly define extensionless-file behavior during the probe. | Native handler invocation with a Shell data object; handler icon metadata feeds the owned RGBA renderer. Identity/re-resolution remains a design gate.          |
+| Platform | Discovery                                                                 | Invocation and icons                                                                                             |
+| -------- | ------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| macOS    | NSWorkspace applications for the actual file URL.                         | Existing bundle target, native bundle handoff, and icon provider.                                                |
+| Linux    | GIO content-type lookup and registered recommended/fallback applications. | Desktop-entry identity, GIO activation, and icon provider.                                                       |
+| Windows  | Shell handler enumeration for the file extension.                         | Re-resolved application handler, Shell data object activation, and handler icon metadata rendered to owned RGBA. |
 
-Provider internals absorb differences in extension, MIME, and UTType semantics. No public
-content-type normalization layer is needed for this operation. Native matching remains
-platform-specific; equal files need not produce identical candidate lists across hosts. Avoid
-exposing a portable "recommended" score without demonstrated consistent meaning. Deduplicate only
-proven identical native targets, never friendly names or executable basenames.
+Providers absorb native type semantics; no portable type-normalization API is needed. Define and
+validate extensionless-file behavior before implementation acceptance. Operations run on owned
+background work, with Windows COM resources confined to their STA worker. Cancellation joins owned
+native work and cleanup. Bound enumeration and metadata processing and fail explicitly on overflow.
 
-Operations run on owned background work; Windows COM resources remain on their owning worker.
-Cancellation must join owned native work and cleanup before completion. Bound enumeration and
-metadata processing and fail explicitly when bounds are exceeded. Do not infer an availability
-promise from provider construction or a successful earlier lookup.
+## Evidence and remaining acceptance
 
-## Evidence and acceptance
+Windows build 26200 x64 probes established native activation with required marker arguments and a
+space/Unicode file path, changed commands, removed registrations, competing ProgIDs, and rejection
+of a stale ProgID in the stricter experimental matcher. An owned Applications registration
+reproduces handlers with no usable ProgID or AppUserModelID. Retaining an IAssocHandler still
+observes a command changed after enumeration. Packaged handlers expose AppX ProgIDs,
+AppUserModelIDs, and indirect ms-resource icons. These observations support current-registration
+semantics, not durable identity.
 
-Read-only probes established macOS type-based bundle results and independent default lookup, and an
-isolated Linux MIME fixture established multiple desktop-entry candidates and a user-selected
-default. These are preliminary evidence, not validation of the proposed actual-file operation.
-Windows currently has documentation evidence only. The
-[Windows probe and handoff](../eng/Bathos.Platform.AssociationProbe/README.md) define the next gate.
+Read-only macOS probes and an isolated Linux MIME fixture provide preliminary native lookup
+evidence, not acceptance of the actual-file operation. See the
+[Windows engineering probe](../eng/Bathos.Platform.AssociationProbe/README.md) and issue #36 for
+investigation details. The probe's strict ProgID matcher is an experiment, not the final coalescing
+implementation.
 
-Before implementation acceptance, test actual-file lookup, missing/nonregular files, extensionless
-and unknown types, conflicting extension/content metadata, duplicate labels, custom entries, removed
-registrations, cancellation, and native errors. Verify discovery-to-icon-to-invocation composition
-with owned fixtures on all three platforms. A successful handoff is distinct from successful parsing
-by the receiving application. Cover packaged Windows handlers and commands requiring extra
-arguments.
+Before acceptance, validate actual-file lookup, missing/nonregular files, extensionless and unknown
+types, conflicting extension/content metadata, duplicate labels, competing Applications
+registrations, coalescing winners, removal, cancellation, errors, and resource cleanup. Verify
+discovery-to-icon-to- invocation composition on all three platforms, including packaged Windows icon
+rendering and commands requiring additional arguments. No personal application is launched
+automatically for validation.
 
-The public API, XML contracts, integration example, capability matrix, package compatibility
-fixtures, and changelog change together when implemented. No changelog entry claims this proposal is
-available.
+Update public declarations, XML contracts, integration examples, the capability matrix,
+compatibility fixtures, and the changelog together when implemented. This decision does not claim
+feature availability or authorize a release.
 
 ## Native references
 
 - [Windows handler enumeration](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-shassocenumhandlers)
 - [Windows native invocation](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nf-shobjidl_core-iassochandler-invoke)
+- [ProgID access](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-iobjectwithprogid)
 - [NSWorkspace](https://developer.apple.com/documentation/appkit/nsworkspace)
 - [GIO registered handlers](https://docs.gtk.org/gio/type_func.AppInfo.get_all_for_type.html)

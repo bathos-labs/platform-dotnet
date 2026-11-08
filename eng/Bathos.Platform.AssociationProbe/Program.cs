@@ -3,9 +3,9 @@ using System.Text.Json;
 
 // Engineering-only Windows probe; fixture mode launches only the owned receiver.
 if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Run this probe on Windows.");
-if (args is ["--fixture", var receiver])
+if (args is ["--fixture" or "--applications-fixture", var receiver])
 {
-    AssociationFixture.Run(Path.GetFullPath(receiver));
+    AssociationFixture.Run(Path.GetFullPath(receiver), args[0] == "--applications-fixture");
     return;
 }
 if (args.Length != 1 || !Path.IsPathFullyQualified(args[0]) || !File.Exists(args[0]))
@@ -33,7 +33,7 @@ internal sealed record Identity(int QueryResult, int? ReadResult, string? Value)
 
 internal static unsafe partial class Native
 {
-    internal static List<Handler> Read(string extension, string? selectedName = null, string? document = null, string? selectedProgId = null)
+    internal static List<Handler> Read(string extension, string? selectedName = null, string? document = null, string? selectedProgId = null, Action? beforeInvoke = null)
     {
         var initialized = Initialize(0, 2); // COINIT_APARTMENTTHREADED; keep all COM ownership on this thread.
         Marshal.ThrowExceptionForHR(initialized);
@@ -79,6 +79,7 @@ internal static unsafe partial class Native
             if (selectedName is not null)
             {
                 if (selected == 0) throw new IOException("Selected handler no longer exists.");
+                beforeInvoke?.Invoke();
                 Invoke(selected, document ?? throw new ArgumentNullException(nameof(document)));
             }
             return results;

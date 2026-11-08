@@ -96,6 +96,15 @@ have different native meanings; the host supplies those keys and chooses among r
 No product names, installation-directory scans, document entities, or UI belong in discovery.
 Missing registrations are explicit empty results; native lookup failures throw.
 
+The agreed [file-driven discovery contract](file-application-discovery.md), awaiting implementation,
+adds advisory application choices for an Open in menu. Targets select an application's current
+native registration, not an immutable command. Inert descriptors include association context;
+Windows handlers without ProgIDs remain eligible. Coalescing uses native application identity or
+full executable path, never display labels alone. Native invocation preserves registered arguments;
+unresolved selections fail without default substitution. Results are transient, not security or
+persistent-preference identities. Retained COM sessions do not freeze registration behavior and are
+not part of this design.
+
 Application icon retrieval is a separate optional `IApplicationIconProvider` capability. It accepts
 an explicit `ApplicationTarget` and physical pixel size; it never launches or discovers products.
 The core owns a square RGBA bitmap with non-null dimensions and no renderer dependencies. Public
