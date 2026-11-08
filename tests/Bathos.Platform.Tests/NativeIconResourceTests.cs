@@ -51,6 +51,8 @@ public sealed class NativeIconResourceTests
                 target = ApplicationTarget.Executable(path); provider = new WindowsApplicationIconProvider();
             }
             var icon = Assert.IsType<ApplicationIcon>(await provider.GetIconAsync(target, 32, TestContext.Current.CancellationToken));
+            Assert.Equal(32, icon.PixelWidth); Assert.Equal(32, icon.PixelHeight);
+            Assert.Equal(32 * 32 * 4, icon.Data.Length);
             var data = icon.Data.ToArray();
             Pixel(8, 8, [255, 0, 0, 255]); Pixel(8, 24, [0, 0, 255, 255]);
             if (OperatingSystem.IsWindows())

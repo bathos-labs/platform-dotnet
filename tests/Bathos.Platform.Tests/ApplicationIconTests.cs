@@ -42,10 +42,15 @@ public sealed class ApplicationIconTests
         var target = OperatingSystem.IsMacOS()
             ? MacOSApplicationDiscovery.FindByBundleIdentifier("com.apple.finder")[0]
             : ApplicationTarget.Executable(Environment.ProcessPath ?? throw new InvalidOperationException("No process executable."));
-        var icon = Assert.IsType<ApplicationIcon>(await icons.GetIconAsync(target, 32, token));
-        Assert.Equal(32, icon.PixelWidth); Assert.Equal(32, icon.PixelHeight);
-        Assert.Equal(32 * 32 * 4, icon.Data.Length);
-        Assert.Contains(icon.Data.ToArray().Where((_, index) => index % 4 == 3), alpha => alpha > 0);
+        // Arbitrary executables, including the test runner, need not contain an icon resource.
+        // Successful Windows extraction is verified using the owned ICO fixture in NativeIconResourceTests.
+        if (OperatingSystem.IsMacOS())
+        {
+            var icon = Assert.IsType<ApplicationIcon>(await icons.GetIconAsync(target, 32, token));
+            Assert.Equal(32, icon.PixelWidth); Assert.Equal(32, icon.PixelHeight);
+            Assert.Equal(32 * 32 * 4, icon.Data.Length);
+            Assert.Contains(icon.Data.ToArray().Where((_, index) => index % 4 == 3), alpha => alpha > 0);
+        }
         using var canceled = CancellationTokenSource.CreateLinkedTokenSource(token); canceled.Cancel();
         await Assert.ThrowsAnyAsync<OperationCanceledException>(() => icons.GetIconAsync(target, 32, canceled.Token));
         await Assert.ThrowsAsync<ArgumentOutOfRangeException>(() => icons.GetIconAsync(target, 0, token));
