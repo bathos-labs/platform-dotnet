@@ -150,6 +150,15 @@ feature availability or authorize a release.
 
 ## Handover to macOS and Linux
 
+The Windows implementation is ready for platform handover, with no known Windows blocker for the
+agreed convenience contract. Final Windows validation passed `task check` (203 passed, 47 skipped)
+and `task packages:aot`, including discovery and association-icon retrieval in self-contained,
+single-file, trimmed, and Native AOT consumers. SDK 10.0.403 with runtime/compiler 10.0.14 resolved
+the previous AOT security-audit blocker without suppressing diagnostics. Install the SDK required by
+`global.json` on the receiving host before validation; the local Windows SDK installation is not
+part of the branch. [Issue #36](https://github.com/bathos-labs/platform-dotnet/issues/36) tracks the
+remaining platform work and validation evidence.
+
 The Windows facade now exposes discovery, with association targets accepted by its invoker and icon
 provider. Existing executable behavior is unchanged. Production Windows tests cover owned
 Applications registrations without IDs, competing registrations for one executable, removal,
@@ -158,12 +167,16 @@ extension/content, invalid files, and a pipe-acknowledged discovery/icon/invocat
 uses changed registration arguments. Metadata is bounded to 32768 characters and enumeration to 4096
 handlers. Regular-file validation uses the native file-entry probe.
 
+Portable policy tests cover case-insensitive native-name coalescing, recommendation and ProgID
+priority, complete winner retention, and stable ties. Handler ownership storage is allocated before
+COM initialization; recording acquired references does not allocate. An injected consumer allocation
+failure exercises exception recovery and subsequent enumeration on the same worker.
+
 Installed packaged-handler icon checks establish nonempty correctly sized RGBA through the Shell
 cache; they do not establish visual fidelity or absence of generic Shell fallback. No personal
-applications are launched. Native fault injection for malformed COM outputs, allocation failures,
-mid-operation cancellation, and additional duplicate-label/ranking cases remains useful Windows
-follow-up. Symlink acceptance evidence depends on host privileges. These limits are not hidden by
-passing portable tests.
+applications are launched. Native fault injection for malformed COM outputs, exact reference-count
+cleanup, and mid-operation cancellation remains useful Windows follow-up. Symlink acceptance
+evidence depends on host privileges. These limits are not hidden by passing portable tests.
 
 Continue on `feature/file-application-discovery`:
 

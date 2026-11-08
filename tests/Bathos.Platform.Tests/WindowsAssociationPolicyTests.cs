@@ -35,6 +35,21 @@ public sealed class WindowsAssociationPolicyTests
     }
 
     [Fact]
+    public async Task EnumerationUnwindsAfterConsumerAllocationFailure()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Windows Shell required."); return; }
+        var failure = new InsufficientMemoryException("Injected consumer allocation failure.");
+        await WindowsAssociationHandlers.Run(() =>
+        {
+            var error = Assert.Throws<InsufficientMemoryException>(() =>
+                WindowsAssociationHandlers.WithHandlers<int>(".txt", _ => throw failure, CancellationToken.None));
+            Assert.Same(failure, error);
+            // Exercise another enumeration on the same apartment after exception cleanup.
+            return WindowsAssociationHandlers.WithHandlers(".txt", entries => entries.Count, CancellationToken.None);
+        });
+    }
+
+    [Fact]
     public async Task PreCanceledDiscoveryDoesNotInspectMissingFileSynchronously()
     {
         if (!OperatingSystem.IsWindows()) { Assert.Skip("Windows worker required."); return; }

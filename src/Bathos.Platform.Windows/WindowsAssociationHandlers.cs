@@ -27,9 +27,13 @@ internal static unsafe partial class WindowsAssociationHandlers
     internal static T WithHandlers<T>(string extension, Func<IReadOnlyList<Entry>, T> action, CancellationToken token)
     {
         token.ThrowIfCancellationRequested();
+        const int maximumHandlers = 4096;
+        // Allocate before COM initialization. Include the extra entry needed to detect a limit violation;
+        // recording each returned reference must not allocate or fail before cleanup owns it.
+        var owned = new nint[maximumHandlers + 1];
+        var ownedCount = 0;
         Marshal.ThrowExceptionForHR(Initialize(0, 6));
         nint enumerator = 0;
-        var owned = new List<nint>();
         try
         {
             Marshal.ThrowExceptionForHR(Enumerate(extension, 0, out enumerator));
@@ -41,11 +45,11 @@ internal static unsafe partial class WindowsAssociationHandlers
                 nint handler = 0;
                 uint fetched = 0;
                 var status = ((delegate* unmanaged[Stdcall]<nint, uint, nint*, uint*, int>)(*(nint**)enumerator)[3])(enumerator, 1, &handler, &fetched);
-                if (handler != 0) owned.Add(handler);
+                if (handler != 0) owned[ownedCount++] = handler;
                 Marshal.ThrowExceptionForHR(status);
                 if (status == 1 && fetched == 0 && handler == 0) break;
                 if (status != 0 || fetched != 1 || handler == 0) throw new IOException("Invalid Shell enumeration result.");
-                if (count >= 4096) throw new IOException("Shell handler enumeration exceeded its limit.");
+                if (count >= maximumHandlers) throw new IOException("Shell handler enumeration exceeded its limit.");
                 var name = Text(handler, 3);
                 if (string.IsNullOrWhiteSpace(name)) throw new IOException("Shell handler has no usable native name.");
                 var label = Text(handler, 4);
@@ -59,7 +63,7 @@ internal static unsafe partial class WindowsAssociationHandlers
         }
         finally
         {
-            foreach (var handler in owned) Release(handler);
+            for (var index = 0; index < ownedCount; index++) Release(owned[index]);
             Release(enumerator);
             Uninitialize();
         }
