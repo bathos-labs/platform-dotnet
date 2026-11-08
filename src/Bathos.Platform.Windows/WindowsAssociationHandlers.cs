@@ -93,7 +93,7 @@ internal static unsafe partial class WindowsAssociationHandlers
         {
             if (optional && status == unchecked((int)0x80004005)) return null;
             Marshal.ThrowExceptionForHR(status);
-            return value == 0 ? null : Marshal.PtrToStringUni(value);
+            return ReadText(value);
         }
         finally { Marshal.FreeCoTaskMem(value); }
     }
@@ -114,6 +114,28 @@ internal static unsafe partial class WindowsAssociationHandlers
             Marshal.ThrowExceptionForHR(((delegate* unmanaged[Stdcall]<nint, nint, int>)(*(nint**)handler)[8])(handler, data));
         }
         finally { Release(data); Release(item); }
+    }
+
+    internal static (string? Location, int Index) IconLocation(nint handler)
+    {
+        nint location = 0;
+        int index = 0;
+        var status = ((delegate* unmanaged[Stdcall]<nint, nint*, int*, int>)(*(nint**)handler)[5])(handler, &location, &index);
+        try
+        {
+            Marshal.ThrowExceptionForHR(status);
+            return (ReadText(location), index);
+        }
+        finally { Marshal.FreeCoTaskMem(location); }
+    }
+
+    private static string? ReadText(nint value)
+    {
+        if (value == 0) return null;
+        var characters = (char*)value;
+        for (var length = 0; length < 32768; length++)
+            if (characters[length] == '\0') return new string(characters, 0, length);
+        throw new IOException("Shell metadata exceeded the character limit.");
     }
 
     private static void Release(nint value)

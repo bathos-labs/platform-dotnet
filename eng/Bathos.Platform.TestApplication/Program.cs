@@ -11,13 +11,18 @@ using Bathos.Platform.Windows;
 // Engineering-only owned test application: never opens an editor or a desktop window.
 try
 {
-    if (args is ["--association-marker", var pipeName, var document])
+    if (args is ["--association-marker" or "--association-held-marker", var pipeName, var document])
     {
         using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
-        using var connection = new NamedPipeClientStream(".", pipeName, PipeDirection.Out, PipeOptions.Asynchronous);
+        using var connection = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
         await connection.ConnectAsync(timeout.Token);
         using var output = new StreamWriter(connection) { AutoFlush = true };
         await output.WriteLineAsync(JsonSerializer.Serialize(new ProbeResult(Environment.ProcessId, args)).AsMemory(), timeout.Token);
+        if (args[0] == "--association-held-marker")
+        {
+            using var input = new StreamReader(connection, leaveOpen: true);
+            if (await input.ReadLineAsync(timeout.Token) != "finish") throw new IOException("Missing completion signal.");
+        }
         return 0;
     }
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))

@@ -1,9 +1,10 @@
 # File-driven application discovery
 
 Status: agreed contract for [issue #36](https://github.com/bathos-labs/platform-dotnet/issues/36),
-with core API declarations implemented and native adapters awaiting implementation and acceptance
-validation. Built-in providers currently leave this capability null. The contract selects useful
-applications for an Open in menu, not immutable activation commands or task-dispatch registrations.
+with core API declarations and the Windows adapter implemented; macOS/Linux adapters and broader
+acceptance validation remain pending. Windows exposes the capability; other built-in providers leave
+it null. The contract selects useful applications for an Open in menu, not immutable activation
+commands or task-dispatch registrations.
 
 ## Goal and scope
 
@@ -131,7 +132,7 @@ implementation.
 Before acceptance, validate actual-file lookup, missing/nonregular files, extensionless and unknown
 types, conflicting extension/content metadata, duplicate labels, competing Applications
 registrations, coalescing winners, removal, cancellation, errors, and resource cleanup. Verify
-discovery-to-icon-to- invocation composition on all three platforms, including packaged Windows icon
+discovery-to-icon-to-invocation composition on all three platforms, including packaged Windows icon
 rendering and commands requiring additional arguments. No personal application is launched
 automatically for validation.
 
@@ -146,3 +147,34 @@ feature availability or authorize a release.
 - [ProgID access](https://learn.microsoft.com/en-us/windows/win32/api/shobjidl_core/nn-shobjidl_core-iobjectwithprogid)
 - [NSWorkspace](https://developer.apple.com/documentation/appkit/nsworkspace)
 - [GIO registered handlers](https://docs.gtk.org/gio/type_func.AppInfo.get_all_for_type.html)
+
+## Handover to macOS and Linux
+
+The Windows facade now exposes discovery, with association targets accepted by its invoker and icon
+provider. Existing executable behavior is unchanged. Production Windows tests cover owned
+Applications registrations without IDs, competing registrations for one executable, removal,
+pre-cancellation across discovery/invocation/icons, extensionless and unknown types, conflicting
+extension/content, invalid files, and a pipe-acknowledged discovery/icon/invocation sequence that
+uses changed registration arguments. Metadata is bounded to 32768 characters and enumeration to 4096
+handlers. Regular-file validation uses the native file-entry probe.
+
+Installed packaged-handler icon checks establish nonempty correctly sized RGBA through the Shell
+cache; they do not establish visual fidelity or absence of generic Shell fallback. No personal
+applications are launched. Native fault injection for malformed COM outputs, allocation failures,
+mid-operation cancellation, and additional duplicate-label/ranking cases remains useful Windows
+follow-up. Symlink acceptance evidence depends on host privileges. These limits are not hidden by
+passing portable tests.
+
+Continue on `feature/file-application-discovery`:
+
+1. Implement macOS `IApplicationDiscovery` using actual-file NSWorkspace lookup, returning existing
+   bundle targets. Preserve bundle invocation/icon composition and native ownership. Validate on
+   macOS with owned applications; compilation on Windows is not native evidence.
+2. Implement Linux actual-file GIO content-type and application lookup, returning desktop-entry
+   targets. Use isolated XDG/MIME fixtures, preserve activation arguments, and validate icons and
+   cleanup on Linux. A macOS run does not substitute for Linux execution.
+3. Keep the agreed convenience contract: current registrations, transient targets, complete native
+   winners, no label-only coalescing or default substitution. Providers remain null until supported.
+4. Update capability tables, XML, examples, package consumers, and tests for each adapter. Run
+   `task check` and native AOT on each executing host; keep platform skips and manual acceptance
+   explicit. Do not release or tag as part of this handover.

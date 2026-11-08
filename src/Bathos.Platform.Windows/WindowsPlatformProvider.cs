@@ -42,4 +42,6 @@ public sealed class WindowsPlatformProvider : IPlatformProvider
     public IFileInvoker FileInvoker { get; } = new WindowsFileInvoker();
     /// <summary>Gets native icon-resource extraction for explicit executable files.</summary>
     public IApplicationIconProvider ApplicationIcons { get; } = new WindowsApplicationIconProvider();
+    /// <summary>Gets advisory application choices using current Windows Shell registrations.</summary>
+    public IApplicationDiscovery ApplicationDiscovery { get; } = new WindowsFileApplicationDiscovery();
 }

@@ -19,19 +19,20 @@ commitment, and the Linux package follows the same stable/prerelease channel as 
 
 ## Capabilities
 
-| Capability                                                  | Windows                | macOS                   | Linux                           |
-| ----------------------------------------------------------- | ---------------------- | ----------------------- | ------------------------------- |
-| [Atomic file publication and rename][publication]           | Available              | Available               | Available                       |
-| [Snapshot replacement with retained readers][publication]   | Available              | Available               | Available                       |
-| [Regular-file inspection][publication]                      | Available              | Available               | Available                       |
-| [Native paths and file URIs][paths]                         | Available              | Available               | Available                       |
-| [Standard directories and application scoping][directories] | Available              | Available               | Available                       |
-| [Cooperative shared/exclusive file leases][leases]          | Available              | Available               | Available                       |
-| [File-manager reveal][desktop]                              | Explorer               | Finder                  | FileManager1 service            |
-| [Application handoff and native lookup][desktop]            | Executable / App Paths | Executable / app bundle | Executable / desktop entry      |
-| [Application icons][icons]                                  | Native RGBA            | Native RGBA             | RGBA; native libraries required |
-| [Screen color sampling][sampling]                           | Host dispatcher        | Host dispatcher         | Portal opt-in                   |
-| [Installed color profiles][profiles]                        | Available              | Available               | Unavailable                     |
+| Capability                                                              | Windows                | macOS                   | Linux                           |
+| ----------------------------------------------------------------------- | ---------------------- | ----------------------- | ------------------------------- |
+| [Atomic file publication and rename][publication]                       | Available              | Available               | Available                       |
+| [Snapshot replacement with retained readers][publication]               | Available              | Available               | Available                       |
+| [Regular-file inspection][publication]                                  | Available              | Available               | Available                       |
+| [Native paths and file URIs][paths]                                     | Available              | Available               | Available                       |
+| [Standard directories and application scoping][directories]             | Available              | Available               | Available                       |
+| [Cooperative shared/exclusive file leases][leases]                      | Available              | Available               | Available                       |
+| [File-manager reveal][desktop]                                          | Explorer               | Finder                  | FileManager1 service            |
+| [Application handoff and native lookup][desktop]                        | Executable / App Paths | Executable / app bundle | Executable / desktop entry      |
+| [Application icons][icons]                                              | Native RGBA            | Native RGBA             | RGBA; native libraries required |
+| [File-driven application discovery](docs/file-application-discovery.md) | Shell registrations    | Unavailable             | Unavailable                     |
+| [Screen color sampling][sampling]                                       | Host dispatcher        | Host dispatcher         | Portal opt-in                   |
+| [Installed color profiles][profiles]                                    | Available              | Available               | Unavailable                     |
 
 Availability describes the built-in implementations. Native operations require the matching OS and
 may require filesystem support, desktop services, or permissions. A null capability means

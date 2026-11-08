@@ -231,9 +231,9 @@ missing services and libraries are operation failures.
 ## Application icons
 
 Use the optional `ApplicationIcons` capability to retrieve display iconography for an explicit
-target. Windows supports executable resource files, macOS supports bundles or executable files, and
-Linux supports desktop-entry IDs. Icon retrieval never launches the application or changes
-associations.
+target. Windows supports executable resource files and discovered association targets, macOS
+supports bundles or executable files, and Linux supports desktop-entry IDs. Icon retrieval never
+launches the application or changes associations.
 
 ```csharp
 using Bathos.Platform;
@@ -601,3 +601,17 @@ Modes describe lock compatibility, not application data-access permissions. `Exc
 default enum value; every acquisition requires an explicit mode argument. There is no upgrade
 operation: a held lease cannot change modes. Hierarchy and logical resource identity remain
 application policy.
+
+## File-driven application choices
+
+Windows exposes `IPlatformProvider.ApplicationDiscovery`; macOS/Linux currently leave it null. Call
+`FindForFileAsync` with the absolute path of an existing regular file and present the returned
+candidate labels. Pass the selected candidate's `Target` to the same provider's `ApplicationIcons`
+and `FileInvoker`. Never resolve selections by display label or convert association targets into
+executable targets: native registrations may require additional arguments or packaged activation.
+
+These are transient, advisory choices using current registrations. Refresh as needed; ordering is
+not default selection and format support is not guaranteed. Windows association icons use the Shell
+image cache, including indirect packaged resources; cached images may be scaled or generic. Missing
+registrations fail rather than selecting the default application. See the
+[discovery contract](file-application-discovery.md) for coalescing and identity limitations.

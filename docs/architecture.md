@@ -96,7 +96,7 @@ have different native meanings; the host supplies those keys and chooses among r
 No product names, installation-directory scans, document entities, or UI belong in discovery.
 Missing registrations are explicit empty results; native lookup failures throw.
 
-The agreed [file-driven discovery contract](file-application-discovery.md), awaiting implementation,
+The agreed [file-driven discovery contract](file-application-discovery.md), implemented on Windows,
 adds advisory application choices for an Open in menu. Targets select an application's current
 native registration, not an immutable command. Inert descriptors include association context;
 Windows handlers without ProgIDs remain eligible. Coalescing uses native application identity or

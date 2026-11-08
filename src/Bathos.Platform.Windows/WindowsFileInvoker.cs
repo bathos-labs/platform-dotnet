@@ -16,7 +16,7 @@ public sealed class WindowsFileInvoker : IFileInvoker
                 application.AssociationExtension ?? throw new ArgumentException("Missing association context.", nameof(application)),
                 entries =>
                 {
-                    DesktopPaths.RequireFile(path);
+                    new WindowsFileEntryProbe().RequireRegularFile(path);
                     WindowsAssociationHandlers.Invoke(WindowsAssociationHandlers.Resolve(entries, application).Handle, path, cancellationToken);
                     return true;
                 }, cancellationToken));

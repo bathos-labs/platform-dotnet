@@ -25,8 +25,13 @@ public sealed class WindowsFileApplicationDiscovery : IApplicationDiscovery
     {
         DesktopPaths.RequireFile(absolutePath);
         var extension = Path.GetExtension(absolutePath);
-        return WindowsAssociationHandlers.Run(() => WindowsAssociationHandlers.WithHandlers(extension,
+        return WindowsAssociationHandlers.Run(() =>
+        {
+            cancellationToken.ThrowIfCancellationRequested();
+            new WindowsFileEntryProbe().RequireRegularFile(absolutePath);
+            return WindowsAssociationHandlers.WithHandlers(extension,
             entries => (IReadOnlyList<ApplicationCandidate>)Array.AsReadOnly(entries.Select(entry =>
-                new ApplicationCandidate(ApplicationTarget.WindowsAssociation(entry.Name, extension), entry.Label)).ToArray()), cancellationToken));
+                new ApplicationCandidate(ApplicationTarget.WindowsAssociation(entry.Name, extension), entry.Label)).ToArray()), cancellationToken);
+        });
     }
 }
