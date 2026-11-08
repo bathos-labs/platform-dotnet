@@ -228,6 +228,55 @@ does not probe desktop services. See
 [desktop prerequisites](platform-support.md#desktop-capabilities) for native libraries and services;
 missing services and libraries are operation failures.
 
+## Application icons
+
+Use the optional `ApplicationIcons` capability to retrieve display iconography for an explicit
+target. Windows supports executable resource files, macOS supports bundles or executable files, and
+Linux supports desktop-entry IDs. Icon retrieval never launches the application or changes
+associations.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Desktop;
+
+public static class ApplicationIconExample
+{
+    public static async Task<ApplicationIcon?> ReadAsync(
+        IPlatformProvider platform, ApplicationTarget application, int physicalPixelSize,
+        CancellationToken token)
+    {
+        var icons = platform.ApplicationIcons
+            ?? throw new PlatformNotSupportedException("Application icons are unavailable.");
+        return await icons.GetIconAsync(application, physicalPixelSize, token);
+    }
+}
+```
+
+Request physical pixels after applying the host's display scale, from 1 through 1024. A null result
+means an existing target has no resolvable icon; a missing target or operational failure throws.
+Calls need no UI dispatcher and can run concurrently. Cancellation joins synchronous native work and
+resource cleanup before completion. The returned data is independently owned and survives provider
+retirement, application removal, and later lookups. Providers do not cache icons.
+
+`ApplicationIcon.Data` is a read-only view of owned, top-down, tightly packed eight-bit sRGB RGBA
+pixels with straight alpha. `PixelWidth` and `PixelHeight` equal the requested size. Accessing the
+memory does not copy it. The public factory copies caller data; built-in providers transfer their
+completed buffers without an additional copy. No native handles or disposal obligations escape.
+Native icon decoration is retained; the result is not a lossless copy of authored artwork.
+
+Linux requires system rendering libraries: GdkPixbuf for PNG/XPM and librsvg/Cairo for SVG. A
+missing or incompatible rendering library raises `PlatformNotSupportedException`, with the native
+loading failure retained as its inner exception. Callers may catch this to show a placeholder; it is
+not a null icon result. Provider construction and unrelated capabilities do not load renderers.
+Hosts own packaging, caching, stale-result rejection, refresh, and placeholders.
+
+Linux's built-in facade uses the standard `hicolor` theme. A host that knows its active theme can
+compose `new LinuxApplicationIconProvider("Adwaita")` or another explicit theme directly. Lookup
+uses XDG icon roots, bounded `index.theme` inheritance, size/scale matching, hicolor, and unthemed
+resources. Portable Linux executables without desktop entries have no standard application-icon
+identity and are unsupported by this capability. See
+[native prerequisites](platform-support.md#desktop-capabilities).
+
 ## Screen color selection
 
 Samples are opaque eight-bit RGB for ordinary color selection. Values depend on the platform's

@@ -1,9 +1,12 @@
 # Platform architecture
 
-The core defines capability contracts and shared mechanics. Each OS-specific assembly references
-only the core and .NET runtime; the core never references providers. Provider constructors perform
-no native work. The host supplies provider instances to selection and a native dispatcher for
-capabilities that require one.
+The core defines capability contracts and shared mechanics and remains free of rendering
+dependencies. Providers may use implementation-scoped rendering dependencies to fulfill the
+application-icon bitmap contract, without exposing renderer types in the core API. Keep these
+dependencies Linux-local until another provider demonstrates a shared need; UI toolkits, DI, and
+product dependencies remain excluded. The core never references providers. Provider constructors
+perform no native work. The host supplies provider instances to selection and a native dispatcher
+for capabilities that require one.
 
 Applications normally use the built-in Windows, macOS, and Linux providers. The provider facade
 groups capabilities for application composition without requiring a DI container. Selection uses
@@ -90,8 +93,25 @@ template.
 Discovery is a set of native-specific lookup utilities, not an application-selection policy or
 inventory service. App Paths executable names, LaunchServices bundle IDs, and XDG desktop-entry IDs
 have different native meanings; the host supplies those keys and chooses among returned candidates.
-No product names, installation-directory scans, document entities, icons, or UI belong here. Missing
-registrations are explicit empty results; native lookup failures throw.
+No product names, installation-directory scans, document entities, or UI belong in discovery.
+Missing registrations are explicit empty results; native lookup failures throw.
+
+Application icon retrieval is a separate optional `IApplicationIconProvider` capability. It accepts
+an explicit `ApplicationTarget` and physical pixel size; it never launches or discovers products.
+The core owns a square RGBA bitmap with non-null dimensions and no renderer dependencies. Public
+construction copies caller data; internal provider construction transfers exclusive buffer
+ownership. macOS uses NSWorkspace/CoreGraphics and Windows uses GDI. Linux resolves GIO
+desktop-entry metadata and freedesktop themes, then renders PNG/XPM through GdkPixbuf and SVG
+through librsvg/Cairo. SVG loads from bounded memory without a base URI, so external references are
+omitted; embedded data remains supported. The native renderer's default parser limits remain
+enabled. Input byte and output pixel limits do not promise bounded decoder CPU or temporary memory.
+
+Rendering dependencies load only on the relevant operation. Missing libraries or entry points become
+`PlatformNotSupportedException` with the native failure preserved. Malformed resources fail with
+`IOException`; absence and cancellation remain distinct. The host supplies Linux native
+dependencies, not the NuGet package. Each operation joins synchronous native work and releases
+resources before completion. Hosts own display scale, caching, refresh, and placeholders. No native
+icon handles cross the package boundary.
 
 Cancellation is checked before irreversible handoff, including immediately before submission after
 preparation. After submission, await any owned helper/connection cleanup and report the native

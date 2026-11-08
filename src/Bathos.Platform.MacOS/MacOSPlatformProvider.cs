@@ -39,4 +39,6 @@ public sealed class MacOSPlatformProvider : IPlatformProvider
     public IFileRevealer FileRevealer { get; } = new MacOSFileRevealer();
     /// <summary>Gets macOS explicit application handoff. Completion means native submission, not document readiness.</summary>
     public IFileInvoker FileInvoker { get; } = new MacOSFileInvoker();
+    /// <summary>Gets native icon retrieval for explicit application bundles or executable files.</summary>
+    public IApplicationIconProvider ApplicationIcons { get; } = new MacOSApplicationIconProvider();
 }

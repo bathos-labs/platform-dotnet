@@ -52,6 +52,7 @@ See [publication](usage.md#file-publication-and-inspection),
 | Reveal an entry                   | Windows Shell selection APIs                                     | Finder through `/usr/bin/open -R`                                             | `libdbus-1.so.3`, a session bus, and `org.freedesktop.FileManager1.ShowItems`                                                     |
 | Open an executable                | An installed executable accepting a file argument                | An installed executable accepting a file argument                             | An installed executable accepting a file argument                                                                                 |
 | Native application lookup/handoff | App Paths registrations for lookup                               | LaunchServices for lookup and `/usr/bin/open` for app bundles                 | GIO, GLib, and GObject for desktop-entry lookup and activation                                                                    |
+| Application icons                 | Shell icon-resource extraction and GDI                           | NSWorkspace/AppKit and CoreGraphics                                           | GIO/GLib/GObject and icon themes; GdkPixbuf for PNG/XPM; librsvg/Cairo for SVG                                                    |
 | Screen color sampling             | GDI desktop access and a host-supplied native dispatcher/UI loop | AppKit picker availability and a host-supplied main-thread dispatcher/UI loop | Explicit opt-in, `libdbus-1.so.3`, a session bus, and a portal backend implementing `org.freedesktop.portal.Screenshot.PickColor` |
 | Installed color profiles          | Windows ICC/WCS inventory and native read access                 | ColorSync inventory and native read access                                    | Unavailable                                                                                                                       |
 
@@ -131,3 +132,27 @@ manual. Windows/macOS screen pickers and visible desktop handoff also require hu
 The engineering harnesses and Linux Python/D-Bus test-service dependencies are development tools,
 not consumer package dependencies. Source setup and publish-check prerequisites belong in
 [Contributing](../CONTRIBUTING.md).
+
+## Linux application-icon rendering dependencies
+
+Applications own installation or bundling of native rendering dependencies. On Ubuntu 24.04, install
+`libgdk-pixbuf-2.0-0` for PNG/XPM and `librsvg2-2` plus `libcairo2` for SVG, in addition to the GIO
+lookup prerequisites. The package manager resolves transitive dependencies. The GdkPixbuf SVG plugin
+(`librsvg2-common`) is not required: SVG uses librsvg directly. No display server is required.
+
+Native library names are `libgdk_pixbuf-2.0.so.0`, `librsvg-2.so.2`, and `libcairo.so.2`; SVG
+rendering requires `rsvg_handle_render_document` (librsvg 2.46 or newer). Missing libraries,
+incompatible binary formats, or missing entry points raise `PlatformNotSupportedException` with the
+loading exception preserved. Construction does not probe renderers; PNG/XPM does not load librsvg.
+Callers may catch the exception and provide their own placeholder. Missing dependencies are not
+reported as icon absence.
+
+NuGet packages do not bundle these libraries. Self-contained .NET publishing does not collect system
+P/Invoke libraries. Declare dependencies in Linux installer/package metadata or bundle a compatible
+native dependency closure for each supported Linux architecture. Windows/macOS distributions do not
+need these Linux libraries. Packaging and native security updates remain the application's concern.
+
+SVG loads without a base URI: external references are omitted, while embedded data remains allowed.
+Input resources are limited to 16 MiB and output dimensions to 1024 pixels. These are not bounds on
+native decoding CPU or temporary memory. Default native parser limits remain enabled. Pixels use an
+sRGB interpretation; embedded source color profiles are not normalized by the Linux renderer.

@@ -9,9 +9,9 @@ leases, desktop integration, screen color sampling, installed color profiles, na
 standard directories.
 
 Choose the providers your application needs, compose them explicitly, and pass focused capability
-interfaces to the components that use them. The libraries have no UI toolkit, dependency injection
-container, or image-processing dependencies. Your application owns its UI loop, application targets,
-and storage policy.
+interfaces to the components that use them. The libraries have no UI toolkit or dependency injection
+container dependencies. Linux icon rendering uses system imaging libraries. Your application owns
+its UI loop, application targets, and storage policy.
 
 **.NET 10 · [MIT license][license].** All four packages share a version and follow Semantic
 Versioning. Linux implementations remain experimental; their public APIs have the same compatibility
@@ -19,18 +19,19 @@ commitment, and the Linux package follows the same stable/prerelease channel as 
 
 ## Capabilities
 
-| Capability                                                  | Windows                | macOS                   | Linux                      |
-| ----------------------------------------------------------- | ---------------------- | ----------------------- | -------------------------- |
-| [Atomic file publication and rename][publication]           | Available              | Available               | Available                  |
-| [Snapshot replacement with retained readers][publication]   | Available              | Available               | Available                  |
-| [Regular-file inspection][publication]                      | Available              | Available               | Available                  |
-| [Native paths and file URIs][paths]                         | Available              | Available               | Available                  |
-| [Standard directories and application scoping][directories] | Available              | Available               | Available                  |
-| [Cooperative shared/exclusive file leases][leases]          | Available              | Available               | Available                  |
-| [File-manager reveal][desktop]                              | Explorer               | Finder                  | FileManager1 service       |
-| [Application handoff and native lookup][desktop]            | Executable / App Paths | Executable / app bundle | Executable / desktop entry |
-| [Screen color sampling][sampling]                           | Host dispatcher        | Host dispatcher         | Portal opt-in              |
-| [Installed color profiles][profiles]                        | Available              | Available               | Unavailable                |
+| Capability                                                  | Windows                | macOS                   | Linux                           |
+| ----------------------------------------------------------- | ---------------------- | ----------------------- | ------------------------------- |
+| [Atomic file publication and rename][publication]           | Available              | Available               | Available                       |
+| [Snapshot replacement with retained readers][publication]   | Available              | Available               | Available                       |
+| [Regular-file inspection][publication]                      | Available              | Available               | Available                       |
+| [Native paths and file URIs][paths]                         | Available              | Available               | Available                       |
+| [Standard directories and application scoping][directories] | Available              | Available               | Available                       |
+| [Cooperative shared/exclusive file leases][leases]          | Available              | Available               | Available                       |
+| [File-manager reveal][desktop]                              | Explorer               | Finder                  | FileManager1 service            |
+| [Application handoff and native lookup][desktop]            | Executable / App Paths | Executable / app bundle | Executable / desktop entry      |
+| [Application icons][icons]                                  | Native RGBA            | Native RGBA             | RGBA; native libraries required |
+| [Screen color sampling][sampling]                           | Host dispatcher        | Host dispatcher         | Portal opt-in                   |
+| [Installed color profiles][profiles]                        | Available              | Available               | Unavailable                     |
 
 Availability describes the built-in implementations. Native operations require the matching OS and
 may require filesystem support, desktop services, or permissions. A null capability means
@@ -130,6 +131,7 @@ Copyright © 2026 Bathos Pty Ltd.
   https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#cooperative-file-leases
 [desktop]:
   https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#reveal-and-open-in-an-application
+[icons]: https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#application-icons
 [sampling]:
   https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#screen-color-selection
 [profiles]:
