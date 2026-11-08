@@ -40,4 +40,6 @@ public sealed class WindowsPlatformProvider : IPlatformProvider
     public IFileRevealer FileRevealer { get; } = new WindowsFileRevealer();
     /// <summary>Gets Windows explicit application handoff. Completion means native submission, not document readiness.</summary>
     public IFileInvoker FileInvoker { get; } = new WindowsFileInvoker();
+    /// <summary>Gets native icon-resource extraction for explicit executable files.</summary>
+    public IApplicationIconProvider ApplicationIcons { get; } = new WindowsApplicationIconProvider();
 }

@@ -29,6 +29,7 @@ commitment, and the Linux package follows the same stable/prerelease channel as 
 | [Cooperative shared/exclusive file leases][leases]          | Available              | Available               | Available                  |
 | [File-manager reveal][desktop]                              | Explorer               | Finder                  | FileManager1 service       |
 | [Application handoff and native lookup][desktop]            | Executable / App Paths | Executable / app bundle | Executable / desktop entry |
+| [Application icons][icons]                                  | Native RGBA            | Native RGBA             | PNG / SVG / XPM resources  |
 | [Screen color sampling][sampling]                           | Host dispatcher        | Host dispatcher         | Portal opt-in              |
 | [Installed color profiles][profiles]                        | Available              | Available               | Unavailable                |
 
@@ -130,6 +131,7 @@ Copyright © 2026 Bathos Pty Ltd.
   https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#cooperative-file-leases
 [desktop]:
   https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#reveal-and-open-in-an-application
+[icons]: https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#application-icons
 [sampling]:
   https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#screen-color-selection
 [profiles]:

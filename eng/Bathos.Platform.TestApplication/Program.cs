@@ -1,6 +1,7 @@
 using System.IO.Pipes;
 using System.Text.Json;
 using Bathos.Platform;
+using Bathos.Platform.Desktop;
 using Bathos.Platform.Files;
 using Bathos.Platform.Linux;
 using Bathos.Platform.MacOS;
@@ -99,6 +100,13 @@ try
         var path = configuration.Document ?? throw new InvalidDataException("Missing document.");
         var target = LinuxApplicationDiscovery.FindByDesktopId(id).Single();
         await new LinuxFileInvoker().OpenAsync(path, target);
+        return 0;
+    }
+    if (configuration.Mode == "application-icon")
+    {
+        var icon = await new LinuxApplicationIconProvider().GetIconAsync(
+            ApplicationTarget.LinuxDesktopEntry(configuration.DesktopId ?? throw new InvalidDataException("Missing desktop ID.")), 32);
+        Console.WriteLine(JsonSerializer.Serialize(new { icon?.Format, Data = icon is null ? null : Convert.ToBase64String(icon.Data.Span) }));
         return 0;
     }
     using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));

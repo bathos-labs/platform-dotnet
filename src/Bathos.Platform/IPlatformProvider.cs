@@ -61,6 +61,8 @@ public interface IPlatformProvider
     IFileRevealer? FileRevealer => null;
     /// <summary>Gets explicit application handoff, or null when unsupported. Success means submission, not document readiness.</summary>
     IFileInvoker? FileInvoker => null;
+    /// <summary>Gets explicit application-icon retrieval, or null when unsupported or unconfigured. Icon absence is a separate null result.</summary>
+    IApplicationIconProvider? ApplicationIcons => null;
     /// <summary>Gets installed color-profile discovery/readback, or null when unsupported. It does not provide ICC interpretation.</summary>
     IColorProfileProvider? ColorProfiles => null;
 }

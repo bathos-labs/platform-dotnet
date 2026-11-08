@@ -228,6 +228,57 @@ does not probe desktop services. See
 [desktop prerequisites](platform-support.md#desktop-capabilities) for native libraries and services;
 missing services and libraries are operation failures.
 
+## Application icons
+
+Use the optional `ApplicationIcons` capability to retrieve display iconography for an explicit
+target. Windows supports executable resource files, macOS supports bundles or executable files, and
+Linux supports desktop-entry IDs. Icon retrieval never launches the application or changes
+associations.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Desktop;
+
+public static class ApplicationIconExample
+{
+    public static async Task<ApplicationIcon?> ReadAsync(
+        IPlatformProvider platform, ApplicationTarget application, int physicalPixelSize,
+        CancellationToken token)
+    {
+        var icons = platform.ApplicationIcons
+            ?? throw new PlatformNotSupportedException("Application icons are unavailable.");
+        return await icons.GetIconAsync(application, physicalPixelSize, token);
+    }
+}
+```
+
+Request physical pixels after applying the host's display scale, from 1 through 1024. A null result
+means an existing target has no resolvable icon; a missing target or operational failure throws.
+Calls need no UI dispatcher and can run concurrently. Cancellation joins synchronous native work and
+resource cleanup before completion. The returned data is independently owned and survives provider
+retirement, application removal, and later lookups. Providers do not cache icons.
+
+Inspect `ApplicationIcon.Format` before consuming `Data`:
+
+- `Rgba32`: top-down, tightly packed eight-bit sRGB RGBA with straight alpha. `PixelWidth` and
+  `PixelHeight` describe the raster. macOS and Windows produce this representation.
+- `Png`, `Svg`, or `Xpm`: encoded resources returned by Linux. Their dimensions remain null until
+  the host decodes them. The declared format does not establish valid or safe contents; the host
+  owns decoder admission, limits, external-resource policy, and rasterization.
+
+Encoded resources are limited to 16 MiB and are not resized. Native icons can include OS decoration
+or generic artwork; this API does not promise a lossless copy of the application's authored icon,
+exact dimensions, or current branding. Keep icon loading out of layout and input handling. Hosts own
+bounded caches, stale-result rejection, refresh, and placeholders; an unavailable icon should not
+prevent using the application target.
+
+Linux's built-in facade uses the standard `hicolor` theme. A host that knows its active theme can
+compose `new LinuxApplicationIconProvider("Adwaita")` or another explicit theme directly. Lookup
+uses XDG icon roots, bounded `index.theme` inheritance, size/scale matching, hicolor, and unthemed
+resources. Portable Linux executables without desktop entries have no standard application-icon
+identity and are unsupported by this capability. See
+[native prerequisites](platform-support.md#desktop-capabilities).
+
 ## Screen color selection
 
 Samples are opaque eight-bit RGB for ordinary color selection. Values depend on the platform's

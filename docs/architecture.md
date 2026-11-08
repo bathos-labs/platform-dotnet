@@ -90,8 +90,25 @@ template.
 Discovery is a set of native-specific lookup utilities, not an application-selection policy or
 inventory service. App Paths executable names, LaunchServices bundle IDs, and XDG desktop-entry IDs
 have different native meanings; the host supplies those keys and chooses among returned candidates.
-No product names, installation-directory scans, document entities, icons, or UI belong here. Missing
-registrations are explicit empty results; native lookup failures throw.
+No product names, installation-directory scans, document entities, or UI belong in discovery.
+Missing registrations are explicit empty results; native lookup failures throw.
+
+Application icon retrieval is a separate optional `IApplicationIconProvider` capability. It accepts
+an explicit `ApplicationTarget` and physical pixel size; it never launches or discovers products.
+The core owns copied icon data and representation/size bounds, without an image-processing
+dependency. macOS uses NSWorkspace and CoreGraphics to copy sRGB RGBA pixels. Windows extracts the
+first native icon resource and uses two GDI composites to recover straight-alpha RGBA, including
+legacy masks. Each call owns its native resources and joins background work and cleanup before
+completion.
+
+Linux uses GIO's desktop-entry icon metadata and freedesktop theme lookup, including inheritance,
+size/scale selection, standard hicolor lookup, and unthemed resources. The provider accepts an
+explicit theme; it does not discover a toolkit's active theme. It returns encoded PNG/SVG/XPM bytes,
+not rasterized pixels, and requires no GTK, image decoder, display server, or session bus for icon
+lookup. Theme traversal, metadata, output dimensions, and resource reads have explicit bounds.
+Native OS decoration and generic icons are retained. Hosts own safe decoding, scaling, caching,
+refresh policy, and generic placeholders; icon absence, missing targets, cancellation, and native
+operation failures remain distinct. No native icon handles cross the package boundary.
 
 Cancellation is checked before irreversible handoff, including immediately before submission after
 preparation. After submission, await any owned helper/connection cleanup and report the native
