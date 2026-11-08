@@ -15,6 +15,7 @@ internal static unsafe partial class WindowsAssociationHandlers
         {
             try { completion.SetResult(action()); }
             catch (OperationCanceledException error) { completion.SetCanceled(error.CancellationToken); }
+            catch (COMException error) { completion.SetException(new IOException($"Windows Shell operation failed (HRESULT 0x{error.HResult:X8}).", error)); }
             catch (Exception error) { completion.SetException(error); }
         })
         { IsBackground = true, Name = "Bathos application associations" };
@@ -51,7 +52,7 @@ internal static unsafe partial class WindowsAssociationHandlers
                 var recommendation = ((delegate* unmanaged[Stdcall]<nint, int>)(*(nint**)handler)[6])(handler);
                 Marshal.ThrowExceptionForHR(recommendation);
                 var entry = new Entry(name, string.IsNullOrWhiteSpace(label) ? name : label, recommendation == 0, HasProgId(handler), handler);
-                if (!winners.TryGetValue(name, out var previous) || Rank(entry) > Rank(previous)) winners[name] = entry;
+                AddCandidate(winners, name, entry);
             }
             token.ThrowIfCancellationRequested();
             return action(winners.Values.ToArray());
@@ -64,6 +65,10 @@ internal static unsafe partial class WindowsAssociationHandlers
         }
     }
 
+    internal static void AddCandidate(Dictionary<string, Entry> winners, string name, Entry entry)
+    {
+        if (!winners.TryGetValue(name, out var previous) || Rank(entry) > Rank(previous)) winners[name] = entry;
+    }
     private static int Rank(Entry entry) => (entry.Recommended ? 2 : 0) + (entry.HasProgId ? 1 : 0);
 
     internal static Entry Resolve(IReadOnlyList<Entry> entries, ApplicationTarget target) =>

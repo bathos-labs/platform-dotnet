@@ -26,6 +26,26 @@ try
         file = await publication.PublishExactAsync("sample.txt", CancellationToken.None);
     }
     (provider.FileEntries ?? throw new InvalidOperationException("No file inspection capability.")).RequireRegularFile(file);
+#if Windows
+    if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows consumer requires Windows.");
+    var registration = @"Software\Classes\Applications\BathosConsumer" + Guid.NewGuid().ToString("N") + ".exe";
+    try
+    {
+        var executable = Environment.ProcessPath ?? throw new InvalidOperationException("Missing consumer executable.");
+        using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(registration + @"\shell\open\command"))
+            key.SetValue(null, $"\"{executable}\" \"%1\"");
+        using (var key = Microsoft.Win32.Registry.CurrentUser.CreateSubKey(registration + @"\SupportedTypes")) key.SetValue(".txt", "");
+        var discovery = provider.ApplicationDiscovery ?? throw new InvalidOperationException("No application discovery capability.");
+        var candidates = await discovery.FindForFileAsync(file);
+        var selected = candidates.Single(c => string.Equals(c.Target.Value, executable, StringComparison.OrdinalIgnoreCase));
+        var icons = provider.ApplicationIcons ?? throw new InvalidOperationException("No application icons.");
+        var icon = await icons.GetIconAsync(selected.Target, 32) ?? throw new InvalidOperationException("Missing consumer icon.");
+        if (icon.PixelWidth != 32 || icon.PixelHeight != 32 || icon.Data.Length != 32 * 32 * 4)
+            throw new InvalidOperationException("Invalid association icon dimensions.");
+        Console.WriteLine("Published discovery and association-icon probe passed without activation.");
+    }
+    finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(registration, false); }
+#endif
     using (var reader = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
     {
         var snapshot = provider.SnapshotFileRename ?? throw new InvalidOperationException("No snapshot capability.");

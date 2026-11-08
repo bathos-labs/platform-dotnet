@@ -64,8 +64,8 @@ public sealed class WindowsFileApplicationDiscoveryTests
             File.WriteAllText(file, "owned fixture");
             using (var key = Registry.CurrentUser.CreateSubKey(keyPath + @"\shell\open\command")) key.SetValue(null, $"\"{executable}\" \"%1\"");
             using (var key = Registry.CurrentUser.CreateSubKey(keyPath + @"\SupportedTypes")) key.SetValue("." + id, "");
-            using (var key = Registry.CurrentUser.CreateSubKey(keyPath + "Duplicate" + @"\shell\open\command")) key.SetValue(null, $"\"{executable}\" --alternate \"%1\"");
-            using (var key = Registry.CurrentUser.CreateSubKey(keyPath + "Duplicate" + @"\SupportedTypes")) key.SetValue("." + id, "");
+            using (var key = Registry.CurrentUser.CreateSubKey(keyPath + "Duplicate.exe" + @"\shell\open\command")) key.SetValue(null, $"\"{executable}\" --alternate \"%1\"");
+            using (var key = Registry.CurrentUser.CreateSubKey(keyPath + "Duplicate.exe" + @"\SupportedTypes")) key.SetValue("." + id, "");
             var discovery = new WindowsFileApplicationDiscovery();
             var results = await discovery.FindForFileAsync(file, TestContext.Current.CancellationToken);
             var candidate = Assert.Single(results, c => string.Equals(c.Target.Value, executable, StringComparison.OrdinalIgnoreCase));
@@ -80,7 +80,7 @@ public sealed class WindowsFileApplicationDiscoveryTests
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new WindowsFileInvoker().OpenAsync(file, candidate.Target, canceled.Token));
             await Assert.ThrowsAnyAsync<OperationCanceledException>(() => new WindowsApplicationIconProvider().GetIconAsync(candidate.Target, 32, canceled.Token));
             Registry.CurrentUser.DeleteSubKeyTree(keyPath);
-            Registry.CurrentUser.DeleteSubKeyTree(keyPath + "Duplicate");
+            Registry.CurrentUser.DeleteSubKeyTree(keyPath + "Duplicate.exe");
             Assert.DoesNotContain(await discovery.FindForFileAsync(file, TestContext.Current.CancellationToken), c => c.Target.Value == executable);
             await Assert.ThrowsAsync<FileNotFoundException>(() => new WindowsFileInvoker().OpenAsync(file, candidate.Target, TestContext.Current.CancellationToken));
             await Assert.ThrowsAsync<FileNotFoundException>(() => new WindowsApplicationIconProvider().GetIconAsync(candidate.Target, 32, TestContext.Current.CancellationToken));
@@ -88,7 +88,7 @@ public sealed class WindowsFileApplicationDiscoveryTests
         finally
         {
             Registry.CurrentUser.DeleteSubKeyTree(keyPath, false);
-            Registry.CurrentUser.DeleteSubKeyTree(keyPath + "Duplicate", false);
+            Registry.CurrentUser.DeleteSubKeyTree(keyPath + "Duplicate.exe", false);
             folder.Delete(true);
         }
     }

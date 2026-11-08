@@ -23,7 +23,7 @@ public sealed class WindowsFileApplicationDiscovery : IApplicationDiscovery
     /// <exception cref="OperationCanceledException">Cancellation was requested before completion.</exception>
     public Task<IReadOnlyList<ApplicationCandidate>> FindForFileAsync(string absolutePath, CancellationToken cancellationToken = default)
     {
-        DesktopPaths.RequireFile(absolutePath);
+        DesktopPaths.RequireAbsolute(absolutePath, nameof(absolutePath));
         var extension = Path.GetExtension(absolutePath);
         return WindowsAssociationHandlers.Run(() =>
         {
