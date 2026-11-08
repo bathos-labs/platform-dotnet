@@ -258,19 +258,17 @@ Calls need no UI dispatcher and can run concurrently. Cancellation joins synchro
 resource cleanup before completion. The returned data is independently owned and survives provider
 retirement, application removal, and later lookups. Providers do not cache icons.
 
-Inspect `ApplicationIcon.Format` before consuming `Data`:
+`ApplicationIcon.Data` is a read-only view of owned, top-down, tightly packed eight-bit sRGB RGBA
+pixels with straight alpha. `PixelWidth` and `PixelHeight` equal the requested size. Accessing the
+memory does not copy it. The public factory copies caller data; built-in providers transfer their
+completed buffers without an additional copy. No native handles or disposal obligations escape.
+Native icon decoration is retained; the result is not a lossless copy of authored artwork.
 
-- `Rgba32`: top-down, tightly packed eight-bit sRGB RGBA with straight alpha. `PixelWidth` and
-  `PixelHeight` describe the raster. macOS and Windows produce this representation.
-- `Png`, `Svg`, or `Xpm`: encoded resources returned by Linux. Their dimensions remain null until
-  the host decodes them. The declared format does not establish valid or safe contents; the host
-  owns decoder admission, limits, external-resource policy, and rasterization.
-
-Encoded resources are limited to 16 MiB and are not resized. Native icons can include OS decoration
-or generic artwork; this API does not promise a lossless copy of the application's authored icon,
-exact dimensions, or current branding. Keep icon loading out of layout and input handling. Hosts own
-bounded caches, stale-result rejection, refresh, and placeholders; an unavailable icon should not
-prevent using the application target.
+Linux requires system rendering libraries: GdkPixbuf for PNG/XPM and librsvg/Cairo for SVG. A
+missing or incompatible rendering library raises `PlatformNotSupportedException`, with the native
+loading failure retained as its inner exception. Callers may catch this to show a placeholder; it is
+not a null icon result. Provider construction and unrelated capabilities do not load renderers.
+Hosts own packaging, caching, stale-result rejection, refresh, and placeholders.
 
 Linux's built-in facade uses the standard `hicolor` theme. A host that knows its active theme can
 compose `new LinuxApplicationIconProvider("Adwaita")` or another explicit theme directly. Lookup

@@ -27,7 +27,7 @@ public sealed partial class WindowsApplicationIconProvider : IApplicationIconPro
         if (icon.IsInvalid) throw new IOException("Native extraction returned no icon handle.");
         var black = Render(icon.DangerousGetHandle(), size, 0); var white = Render(icon.DangerousGetHandle(), size, 255);
         token.ThrowIfCancellationRequested();
-        return ApplicationIcon.FromRgba32(size, size, CompositeToRgba(black, white));
+        return ApplicationIcon.TakeOwnership(size, size, CompositeToRgba(black, white));
     }
 
     // Rendering on two opaque backgrounds also recovers transparency for legacy masked icons whose alpha is absent.

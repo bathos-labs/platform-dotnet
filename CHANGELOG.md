@@ -15,9 +15,11 @@ native support remains experimental; public API compatibility still applies.
 ### Added
 
 - Optional application-icon retrieval for explicit targets, without application lists or launches.
-  macOS and Windows return owned RGBA pixels; Linux resolves desktop-entry file/themed icons to
-  owned PNG, SVG, or XPM bytes without adding a UI toolkit or image decoder. Existing provider
-  implementations inherit a null capability. Hosts retain decoding, caching, and placeholders.
+  All providers return owned RGBA bitmaps at the requested size. Linux renders desktop-entry PNG/XPM
+  icons through GdkPixbuf and SVG through librsvg/Cairo; callers supply the native libraries in
+  their Linux distribution. Missing or incompatible rendering libraries raise descriptive
+  `PlatformNotSupportedException` errors. Existing provider implementations inherit a null
+  capability. Hosts retain caching and placeholders.
 
 ## [1.1.0] - 2026-10-25
 

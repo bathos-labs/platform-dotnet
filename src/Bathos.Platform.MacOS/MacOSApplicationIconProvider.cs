@@ -61,7 +61,7 @@ public sealed partial class MacOSApplicationIconProvider : IApplicationIconProvi
                 for (var channel = 0; channel < 3; channel++)
                     pixels[index + channel] = pixels[index + 3] == 0 ? (byte)0 : (byte)Math.Min(255, (pixels[index + channel] * 255 + pixels[index + 3] / 2) / pixels[index + 3]);
             token.ThrowIfCancellationRequested();
-            return ApplicationIcon.FromRgba32(size, size, pixels);
+            return ApplicationIcon.TakeOwnership(size, size, pixels);
         }
         finally
         {

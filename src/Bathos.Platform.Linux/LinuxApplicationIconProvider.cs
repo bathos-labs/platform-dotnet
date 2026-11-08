@@ -3,7 +3,7 @@ using Bathos.Platform.Desktop;
 
 namespace Bathos.Platform.Linux;
 
-/// <summary>Resolves desktop-entry icons through GIO and an explicitly selected freedesktop theme, without a UI toolkit or renderer.</summary>
+/// <summary>Resolves desktop-entry icons through GIO and an explicitly selected freedesktop theme, without a UI toolkit.</summary>
 public sealed partial class LinuxApplicationIconProvider : IApplicationIconProvider
 {
     private readonly string _theme;
@@ -24,7 +24,14 @@ public sealed partial class LinuxApplicationIconProvider : IApplicationIconProvi
         ArgumentNullException.ThrowIfNull(application); ApplicationIcon.ValidatePixelSize(pixelSize);
         if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException("Linux application icons require Linux.");
         if (application.Kind != ApplicationTargetKind.LinuxDesktopEntry) throw new NotSupportedException("Linux icons require a desktop-entry target.");
-        return Task.Run(() => Read(application.Value, pixelSize, cancellationToken), cancellationToken);
+        return Task.Run(() =>
+        {
+            try { return Read(application.Value, pixelSize, cancellationToken); }
+            catch (Exception error) when (error is DllNotFoundException or EntryPointNotFoundException or BadImageFormatException)
+            {
+                throw new PlatformNotSupportedException($"Linux application-icon lookup requires compatible libgio-2.0.so.0, libgobject-2.0.so.0, and libglib-2.0.so.0. Native loading failure: {error.Message}", error);
+            }
+        }, cancellationToken);
     }
 
     private ApplicationIcon? Read(string id, int size, CancellationToken token)
@@ -61,7 +68,7 @@ public sealed partial class LinuxApplicationIconProvider : IApplicationIconProvi
             token.ThrowIfCancellationRequested();
             if (path is null) return null;
             DesktopPaths.RequireAbsolute(path, nameof(path));
-            var result = LinuxIconTheme.ReadIcon(path);
+            var result = LinuxIconRenderer.Read(path, size);
             token.ThrowIfCancellationRequested();
             return result;
         }

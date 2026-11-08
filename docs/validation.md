@@ -60,10 +60,14 @@ scale selection, path-component admission, and straight-alpha recovery from nati
 composites. On macOS and Windows, deterministic generated ICNS/ICO fixtures exercise native resource
 loading and top-down channel orientation; Windows additionally checks exact transparency. macOS may
 apply native icon plates, so its displayed alpha need not match the source artwork. Linux runs an
-isolated GIO child with private desktop entries and icon roots, checking themed and absolute SVG
-resources without launching an application or requiring a desktop. Native tests establish only the
-executing host; allocation-failure cleanup, large real-world themes, and appearance across desktop
-versions still need targeted evidence. No generated icons or screenshots are committed.
+isolated GIO child with private desktop entries and icon roots, checking rendered themed and
+absolute SVG resources without launching an application or requiring a desktop. Native tests
+establish only the executing host; allocation-failure cleanup, large real-world themes, and
+appearance across desktop versions still need targeted evidence. Linux renderer fixtures also check
+RGBA alpha, padding, owned lifetime, RGB row padding, external SVG references, and malformed
+SVG/XPM. Isolated child processes inject missing renderer libraries and entry points, verify
+descriptive exceptions, and confirm raster icons work without librsvg. No generated icons or
+screenshots are committed.
 
 Windows preparation tests call the same native adapter as production for COM initialization, PIDL
 parsing/freeing, and COM shutdown. They record native apartment state before/after the operation,

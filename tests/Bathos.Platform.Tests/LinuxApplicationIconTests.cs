@@ -41,7 +41,9 @@ public sealed class LinuxApplicationIconTests
             const string content = "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"32\" height=\"32\"/>";
             await File.WriteAllTextAsync(resource, content, token);
             await File.WriteAllTextAsync(Path.Combine(theme.FullName, "index.theme"), "[Icon Theme]\nName=Owned fixture\nDirectories=32x32/apps\n[32x32/apps]\nSize=32\nType=Fixed\n", token);
-            foreach (var iconValue in new[] { "owned", resource })
+            var rasterResource = Path.Combine(icons.FullName, "owned.xpm");
+            await File.WriteAllTextAsync(rasterResource, "/* XPM */\nstatic char *x[]={\"1 1 1 1\",\". c None\",\".\"};", token);
+            foreach (var (iconValue, blocked) in new (string, string?)[] { ("owned", null), (resource, null), (resource, "library"), (resource, "entry"), (rasterResource, "raster"), (rasterResource, "unused-svg") })
             {
                 const string id = "org.bathos.IconProbe.desktop";
                 await File.WriteAllTextAsync(Path.Combine(apps.FullName, id), $"[Desktop Entry]\nType=Application\nName=Owned icon probe\nExec=/bin/false\nIcon={iconValue}\n", token);
@@ -51,15 +53,21 @@ public sealed class LinuxApplicationIconTests
                 { UseShellExecute = false, RedirectStandardOutput = true, RedirectStandardError = true };
                 start.ArgumentList.Add(config); start.Environment["XDG_DATA_HOME"] = folder.FullName; start.Environment["XDG_DATA_DIRS"] = folder.FullName;
                 start.Environment["HOME"] = folder.FullName;
+                if (blocked is not null) start.Environment["BATHOS_TEST_ICON_DEPENDENCY"] = blocked;
                 using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start the owned GIO probe.");
                 var output = process.StandardOutput.ReadToEndAsync(token); var errors = process.StandardError.ReadToEndAsync(token);
                 try
                 {
                     await process.WaitForExitAsync(token);
                     Assert.True(process.ExitCode == 0, await errors);
+                    if (blocked is not null and not "unused-svg")
+                    {
+                        Assert.Equal("dependency-unavailable", (await output).Trim());
+                        continue;
+                    }
                     using var json = JsonDocument.Parse(await output);
-                    Assert.Equal((int)ApplicationIconFormat.Svg, json.RootElement.GetProperty("Format").GetInt32());
-                    Assert.Equal(System.Text.Encoding.UTF8.GetBytes(content), Convert.FromBase64String(json.RootElement.GetProperty("Data").GetString() ?? throw new InvalidDataException()));
+                    Assert.Equal(32, json.RootElement.GetProperty("PixelWidth").GetInt32());
+                    Assert.Equal(new byte[32 * 32 * 4], Convert.FromBase64String(json.RootElement.GetProperty("Data").GetString() ?? throw new InvalidDataException()));
                 }
                 finally
                 {

@@ -1,4 +1,5 @@
 using System.IO.Pipes;
+using System.Runtime.InteropServices;
 using System.Text.Json;
 using Bathos.Platform;
 using Bathos.Platform.Desktop;
@@ -104,9 +105,31 @@ try
     }
     if (configuration.Mode == "application-icon")
     {
-        var icon = await new LinuxApplicationIconProvider().GetIconAsync(
-            ApplicationTarget.LinuxDesktopEntry(configuration.DesktopId ?? throw new InvalidDataException("Missing desktop ID.")), 32);
-        Console.WriteLine(JsonSerializer.Serialize(new { icon?.Format, Data = icon is null ? null : Convert.ToBase64String(icon.Data.Span) }));
+        var blocked = Environment.GetEnvironmentVariable("BATHOS_TEST_ICON_DEPENDENCY");
+        if (blocked is not null)
+            NativeLibrary.SetDllImportResolver(typeof(LinuxApplicationIconProvider).Assembly, (name, assembly, search) =>
+            {
+                if (name == (blocked == "raster" ? "libgdk_pixbuf-2.0.so.0" : "librsvg-2.so.2"))
+                {
+                    if (blocked == "entry") throw new EntryPointNotFoundException("Injected missing librsvg entry point.");
+                    throw new DllNotFoundException($"Injected missing {name}.");
+                }
+                return 0;
+            });
+        var provider = new LinuxPlatformProvider();
+        provider.FileEntries?.RequireRegularFile(args.Single());
+        try
+        {
+            var icon = await new LinuxApplicationIconProvider().GetIconAsync(
+                ApplicationTarget.LinuxDesktopEntry(configuration.DesktopId ?? throw new InvalidDataException("Missing desktop ID.")), 32);
+            if (blocked is not null and not "unused-svg") throw new InvalidOperationException("Expected a dependency failure.");
+            Console.WriteLine(JsonSerializer.Serialize(new { icon?.PixelWidth, icon?.PixelHeight, Data = icon is null ? null : Convert.ToBase64String(icon.Data.Span) }));
+        }
+        catch (PlatformNotSupportedException error) when (blocked is not null and not "unused-svg")
+        {
+            if (error.InnerException is not (DllNotFoundException or EntryPointNotFoundException) || !error.Message.Contains(blocked == "raster" ? "libgdk_pixbuf-2.0.so.0" : "librsvg-2.so.2", StringComparison.Ordinal)) throw;
+            Console.WriteLine("dependency-unavailable");
+        }
         return 0;
     }
     using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(15));

@@ -1,10 +1,9 @@
 using System.Globalization;
 using System.Text;
-using Bathos.Platform.Desktop;
 
 namespace Bathos.Platform.Linux;
 
-// Resolves resources only. Parsing/rasterization and the choice of desktop theme stay with the host.
+// Resolves resources; rendering is isolated in LinuxIconRenderer.
 internal static class LinuxIconTheme
 {
     private static readonly string[] Extensions = [".png", ".svg", ".xpm"];
@@ -78,19 +77,7 @@ internal static class LinuxIconTheme
         return Extensions.Select(extension => Path.Combine(directory, name + extension)).FirstOrDefault(File.Exists);
     }
 
-    internal static ApplicationIcon ReadIcon(string path)
-    {
-        var format = Path.GetExtension(path).ToLowerInvariant() switch
-        {
-            ".png" => ApplicationIconFormat.Png,
-            ".svg" => ApplicationIconFormat.Svg,
-            ".xpm" => ApplicationIconFormat.Xpm,
-            _ => throw new NotSupportedException("The application icon is not PNG, SVG, or XPM."),
-        };
-        return ApplicationIcon.FromEncoded(format, ReadBounded(path, ApplicationIcon.MaximumResourceBytes));
-    }
-
-    private static byte[] ReadBounded(string path, int maximum)
+    internal static byte[] ReadBounded(string path, int maximum)
     {
         using var stream = File.OpenRead(path);
         if (stream.Length <= 0 || stream.Length > maximum) throw new IOException("The icon resource exceeds its byte bounds.");

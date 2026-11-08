@@ -14,18 +14,11 @@ public sealed class ApplicationIconTests
     {
         byte[] pixels = [255, 0, 0, 128];
         var raster = ApplicationIcon.FromRgba32(1, 1, pixels); pixels[0] = 0;
-        Assert.Equal(ApplicationIconFormat.Rgba32, raster.Format);
         Assert.Equal(1, raster.PixelWidth); Assert.Equal(1, raster.PixelHeight);
         Assert.Equal([255, 0, 0, 128], raster.Data.ToArray());
-        byte[] svg = "<svg/>"u8.ToArray();
-        var resource = ApplicationIcon.FromEncoded(ApplicationIconFormat.Svg, svg); svg[0] = 0;
-        Assert.Equal("<svg/>"u8.ToArray(), resource.Data.ToArray());
-        Assert.Null(resource.PixelWidth); Assert.Null(resource.PixelHeight);
         Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationIcon.FromRgba32(0, 1, []));
         Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationIcon.FromRgba32(1025, 1, []));
         Assert.Throws<ArgumentException>(() => ApplicationIcon.FromRgba32(1, 1, [0]));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationIcon.FromEncoded(ApplicationIconFormat.Rgba32, pixels));
-        Assert.Throws<ArgumentOutOfRangeException>(() => ApplicationIcon.FromEncoded(ApplicationIconFormat.Png, []));
     }
 
     [Fact]
@@ -50,7 +43,6 @@ public sealed class ApplicationIconTests
             ? MacOSApplicationDiscovery.FindByBundleIdentifier("com.apple.finder")[0]
             : ApplicationTarget.Executable(Environment.ProcessPath ?? throw new InvalidOperationException("No process executable."));
         var icon = Assert.IsType<ApplicationIcon>(await icons.GetIconAsync(target, 32, token));
-        Assert.Equal(ApplicationIconFormat.Rgba32, icon.Format);
         Assert.Equal(32, icon.PixelWidth); Assert.Equal(32, icon.PixelHeight);
         Assert.Equal(32 * 32 * 4, icon.Data.Length);
         Assert.Contains(icon.Data.ToArray().Where((_, index) => index % 4 == 3), alpha => alpha > 0);

@@ -1,4 +1,3 @@
-using Bathos.Platform.Desktop;
 using Bathos.Platform.Linux;
 using Xunit;
 
@@ -8,7 +7,7 @@ public sealed class LinuxIconThemeTests
 {
     [Fact]
     [Trait("Validation", "Portable")]
-    public void ThemeLookupSelectsSizeThenInheritanceAndReturnsUndecodedOwnedResources()
+    public void ThemeLookupSelectsSizeThenInheritance()
     {
         var folder = Directory.CreateTempSubdirectory("bathos-icons-");
         var token = TestContext.Current.CancellationToken;
@@ -24,14 +23,10 @@ public sealed class LinuxIconThemeTests
             Write(root, "hicolor/32x32/apps/standard.xpm", "/* XPM */");
             var selected = LinuxIconTheme.Find(["editor"], "Custom", 30, [root], token);
             Assert.Equal(Path.GetFullPath(Path.Combine(root, "Custom/32x32/apps/editor.svg")), Path.GetFullPath(Assert.IsType<string>(selected)));
-            var icon = LinuxIconTheme.ReadIcon(Assert.IsType<string>(selected));
-            Assert.Equal(ApplicationIconFormat.Svg, icon.Format);
-            Assert.Equal("<svg>large</svg>"u8.ToArray(), icon.Data.ToArray());
             Assert.Equal(Path.GetFullPath(Path.Combine(root, "Parent/scalable/apps/other.svg")), Path.GetFullPath(Assert.IsType<string>(LinuxIconTheme.Find(["other"], "Custom", 64, [root], token))));
             Assert.Equal(Path.GetFullPath(Path.Combine(root, "hicolor/32x32/apps/standard.xpm")), Path.GetFullPath(Assert.IsType<string>(LinuxIconTheme.Find(["standard"], "Custom", 64, [root], token))));
             Assert.Null(LinuxIconTheme.Find(["missing"], "Custom", 32, [root], token));
             folder.Delete(true);
-            Assert.Equal("<svg>large</svg>"u8.ToArray(), icon.Data.ToArray());
         }
         finally { if (folder.Exists) folder.Delete(true); }
     }
@@ -48,8 +43,8 @@ public sealed class LinuxIconThemeTests
             Assert.Throws<IOException>(() => LinuxIconTheme.Find(["editor"], "Unsafe", 32, [root], token));
             Assert.Throws<IOException>(() => LinuxIconTheme.Find(["../editor"], "hicolor", 32, [root], token));
             var path = Path.Combine(root, "large.png");
-            using (var stream = File.Create(path)) stream.SetLength(ApplicationIcon.MaximumResourceBytes + 1L);
-            Assert.Throws<IOException>(() => LinuxIconTheme.ReadIcon(path));
+            using (var stream = File.Create(path)) stream.SetLength(LinuxIconRenderer.MaximumResourceBytes + 1L);
+            Assert.Throws<IOException>(() => LinuxIconRenderer.Read(path, 32));
             using var canceled = new CancellationTokenSource(); canceled.Cancel();
             Assert.ThrowsAny<OperationCanceledException>(() => LinuxIconTheme.Find(["editor"], "hicolor", 32, [root], canceled.Token));
             Assert.Throws<ArgumentException>(() => new LinuxApplicationIconProvider("../theme"));
