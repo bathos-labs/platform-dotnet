@@ -7,7 +7,19 @@ if (args.Length != 1 || !Path.IsPathFullyQualified(args[0]) || !File.Exists(args
     throw new ArgumentException("Supply one existing absolute file path.");
 var extension = Path.GetExtension(args[0]);
 if (string.IsNullOrEmpty(extension)) throw new ArgumentException("This Windows probe requires a file extension.");
-Console.WriteLine(JsonSerializer.Serialize(new { Extension = extension, First = Native.Read(extension), Second = Native.Read(extension) }, new JsonSerializerOptions { WriteIndented = true }));
+Exception? failure = null;
+var worker = new Thread(() =>
+{
+    try
+    {
+        Console.WriteLine(JsonSerializer.Serialize(new { Extension = extension, First = Native.Read(extension), Second = Native.Read(extension) }, new JsonSerializerOptions { WriteIndented = true }));
+    }
+    catch (Exception exception) { failure = exception; }
+});
+worker.SetApartmentState(ApartmentState.STA);
+worker.Start();
+worker.Join();
+if (failure is not null) System.Runtime.ExceptionServices.ExceptionDispatchInfo.Capture(failure).Throw();
 
 internal sealed record Handler(string? Name, int NameResult, string? DisplayName, int DisplayNameResult,
     string? IconLocation, int IconIndex, int IconResult, int RecommendedResult);
