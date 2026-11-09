@@ -205,6 +205,7 @@ Use the engineering console host:
 
 ```text
 dotnet run --project eng/Bathos.Platform.Desktop -- reveal <absolute-file-or-directory>
+dotnet run --project eng/Bathos.Platform.Desktop -- open-default <absolute-file>
 dotnet run --project eng/Bathos.Platform.Desktop -- find <native-identifier>
 dotnet run --project eng/Bathos.Platform.Desktop -- open <absolute-file> <executable|bundle|desktop-entry> <target>
 ```
@@ -314,3 +315,22 @@ handoff test now discovers the target from the document and retrieves its icon b
 Both adapters also exercise missing/nonregular files, unknown and extensionless types, and
 pre-cancellation. Published consumers execute actual-file discovery without activation in every
 validated publish mode. Installed-app counts and ordering are not assertions.
+
+## System-default file opening
+
+The built-in adapters have non-launching tests for invalid paths, missing files, directories,
+symbolic links on Unix, and pre-cancellation. A minimal provider verifies the additive default-null
+contract. Published consumers also verify pre-cancellation without activation. These tests do not
+establish successful default-app document delivery. Linux also has an isolated XDG default-handler
+fixture with an acknowledged owned application; it checks exact file delivery and independent
+application lifetime. A separate isolated fixture verifies missing-handler failure and preserves the
+file bytes. The Windows fixture uses a unique temporary extension and ProgID to verify default
+activation without changing existing associations. It requires Windows execution before acceptance:
+run `dotnet test --solution Bathos.Platform.slnx --configuration Release`, followed by
+`task packages:aot`. macOS and Linux results do not establish Windows native behavior.
+
+Before accepting native delivery, manually open an owned disposable document with the system-default
+application. Include spaces, Unicode, and shell metacharacters in its path; confirm that exactly
+that file reaches the application and its bytes and OS associations remain unchanged. Exercise an
+unregistered type and submission failure without choosing an alternate application in library code.
+Do not automate launches of personal applications or change personal defaults for this check.

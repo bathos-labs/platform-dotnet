@@ -25,6 +25,17 @@ try
         await publication.Stream.WriteAsync("native package consumer"u8.ToArray());
         file = await publication.PublishExactAsync("sample.txt", CancellationToken.None);
     }
+    var defaultOpener = provider.DefaultFileOpener ?? throw new InvalidOperationException("No default-file opener.");
+    using (var canceled = new CancellationTokenSource())
+    {
+        canceled.Cancel();
+        try
+        {
+            await defaultOpener.OpenAsync(file, canceled.Token);
+            throw new InvalidOperationException("Default opening ignored pre-cancellation.");
+        }
+        catch (OperationCanceledException) when (canceled.IsCancellationRequested) { }
+    }
     (provider.FileEntries ?? throw new InvalidOperationException("No file inspection capability.")).RequireRegularFile(file);
 #if Windows
     if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows consumer requires Windows.");

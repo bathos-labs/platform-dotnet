@@ -4,7 +4,7 @@ using Bathos.Platform.Linux;
 using Bathos.Platform.MacOS;
 using Bathos.Platform.Windows;
 
-// Manual desktop validation only. No command chooses an application on the user's behalf.
+// Manual desktop validation only. Default selection is delegated to the OS only when requested.
 try
 {
     var platform = PlatformProviders.SelectCurrent(new MacOSPlatformProvider(), new WindowsPlatformProvider(), new LinuxPlatformProvider());
@@ -12,6 +12,11 @@ try
     {
         await (platform.FileRevealer ?? throw new PlatformNotSupportedException()).RevealAsync(path);
         Console.WriteLine("Reveal request submitted. Visually confirm the selected item in its containing folder.");
+    }
+    else if (args is ["open-default", var defaultFile])
+    {
+        await (platform.DefaultFileOpener ?? throw new PlatformNotSupportedException("System-default file opening is unavailable.")).OpenAsync(defaultFile);
+        Console.WriteLine("Default handoff submitted. Confirm the document opens in the OS-selected application.");
     }
     else if (args is ["open", var file, var kind, var value])
     {
@@ -37,7 +42,7 @@ try
     }
     else
     {
-        Console.Error.WriteLine("Use reveal <absolute-path>, open <absolute-file> <executable|bundle|desktop-entry> <target>, or find <native-identifier>.");
+        Console.Error.WriteLine("Use reveal <absolute-path>, open-default <absolute-file>, open <absolute-file> <executable|bundle|desktop-entry> <target>, or find <native-identifier>.");
         return 2;
     }
     return 0;

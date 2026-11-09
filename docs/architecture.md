@@ -71,8 +71,8 @@ compatibility and capability availability do not imply permission or successful 
 requests, connections, subscriptions, graphics resources, and selection windows belong to their
 operation and must be released before its task completes.
 
-Desktop handoff has two focused capabilities: reveal an existing entry in its containing folder, and
-open an existing file in a host-selected application. Both require absolute paths and keep file
+Desktop handoff separates revealing an existing entry, opening a file in a host-selected
+application, and opening a file with the system default. All require absolute paths and keep file
 ownership with the caller. An immutable ApplicationTarget distinguishes executable paths, macOS
 application bundles, and Linux desktop-entry IDs. Targets are syntax-checked values, not promises of
 installation or file-format support. Providers reject unsupported target kinds instead of changing
@@ -215,3 +215,16 @@ Shared owners coexist and exclude exclusive owners over the same artifact and pr
 `FileLeaseMode.Exclusive` is the zero enum value, and every acquisition specifies its mode. The
 facade exposes one optional `FileLeases` capability. There are no lock upgrades, hierarchy rules, or
 waiting policies in Platform; these belong to consumers.
+
+## Default application handoff
+
+`IDefaultFileOpener` is separate from explicit `IFileInvoker` selection and file-driven discovery.
+The optional facade property defaults to null for existing implementers. It accepts one existing
+regular file and delegates current default selection to the OS; discovery ordering is never used.
+The macOS adapter reuses the owned system-open helper. Windows uses the runtime's Shell open
+support, including its joined STA worker; a successful activation need not return a process handle.
+Linux uses GIO asynchronous default activation on a private, operation-owned GLib context so D-Bus
+submission completes before cleanup (see
+[GIO's asynchronous activation contract](https://docs.gtk.org/gio/type_func.AppInfo.launch_default_for_uri_async.html)).
+This context does not drive the host's UI loop. No provider waits for the document application to
+exit. Hosts own UI, preference policy, and any decision to offer a custom application instead.

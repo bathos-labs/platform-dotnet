@@ -40,6 +40,8 @@ public sealed class MacOSPlatformProvider : IPlatformProvider
     public IScreenColorSampler? ScreenColorSampler { get; }
     /// <summary>Gets macOS file-manager selection. Service availability is checked at invocation.</summary>
     public IFileRevealer FileRevealer { get; } = new MacOSFileRevealer();
+    /// <summary>Gets handoff to the current system-default application. Completion means submission, not document readiness.</summary>
+    public IDefaultFileOpener DefaultFileOpener { get; } = new MacOSDefaultFileOpener();
     /// <summary>Gets macOS explicit application handoff. Completion means native submission, not document readiness.</summary>
     public IFileInvoker FileInvoker { get; } = new MacOSFileInvoker();
     /// <summary>Gets native icon retrieval for explicit application bundles or executable files.</summary>

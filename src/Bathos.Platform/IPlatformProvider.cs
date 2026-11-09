@@ -59,6 +59,8 @@ public interface IPlatformProvider
     IScreenColorSampler? ScreenColorSampler => null;
     /// <summary>Gets native file-manager selection, or null when unsupported. Availability does not establish that a file manager is running.</summary>
     IFileRevealer? FileRevealer => null;
+    /// <summary>Gets handoff to the current system-default application, or null when unsupported or unconfigured.</summary>
+    IDefaultFileOpener? DefaultFileOpener => null;
     /// <summary>Gets explicit application handoff, or null when unsupported. Success means submission, not document readiness.</summary>
     IFileInvoker? FileInvoker => null;
     /// <summary>Gets explicit application-icon retrieval, or null when unsupported or unconfigured. Icon absence is a separate null result.</summary>

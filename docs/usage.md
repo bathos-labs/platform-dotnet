@@ -646,3 +646,26 @@ handlers; extension and file content may influence native lookup differently on 
 document is launched during discovery. Missing or malformed native identity metadata fails the
 operation rather than returning a partial list. Linux lookup requires GIO and the installed MIME and
 desktop-entry databases, not a graphical desktop session.
+
+## Open with the system default
+
+Check `DefaultFileOpener` separately from explicit application invocation. All three built-in
+providers supply this capability. Pass an actual existing regular file, not a directory or URL. The
+operation neither changes associations nor derives a default from discovery results. Completion
+means submission with joined helper cleanup, not document readiness. Cancellation is honored before
+handoff; once submission begins, late cancellation does not relabel success as failure. The OS or
+selected application may show native UI.
+
+```csharp
+using Bathos.Platform;
+
+public static class DefaultFileOpening
+{
+    public static Task OpenAsync(IPlatformProvider platform, string absoluteFilePath, CancellationToken token)
+    {
+        var opener = platform.DefaultFileOpener
+            ?? throw new PlatformNotSupportedException("System-default file opening is unavailable.");
+        return opener.OpenAsync(absoluteFilePath, token);
+    }
+}
+```
