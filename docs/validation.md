@@ -205,13 +205,15 @@ Use the engineering console host:
 
 ```text
 dotnet run --project eng/Bathos.Platform.Desktop -- reveal <absolute-file-or-directory>
+dotnet run --project eng/Bathos.Platform.Desktop -- open-default <absolute-file>
 dotnet run --project eng/Bathos.Platform.Desktop -- find <native-identifier>
 dotnet run --project eng/Bathos.Platform.Desktop -- open <absolute-file> <executable|bundle|desktop-entry> <target>
 ```
 
 Replace placeholders with host-selected values, quoting paths in the terminal as needed. Discovery
 keys are an executable filename on Windows, a bundle identifier on macOS, or a desktop-entry ID on
-Linux. Opening always requires an explicit target; lookup results are never selected automatically.
+Linux. The `open` command requires an explicit target; lookup results are never selected
+automatically. The `open-default` command delegates application selection to the operating system.
 
 1. Reveal both a file and a directory. Confirm the requested entry is selected in its parent,
    including names with spaces, Unicode, `#`, and `%`. Merely opening the containing directory is
@@ -314,3 +316,47 @@ handoff test now discovers the target from the document and retrieves its icon b
 Both adapters also exercise missing/nonregular files, unknown and extensionless types, and
 pre-cancellation. Published consumers execute actual-file discovery without activation in every
 validated publish mode. Installed-app counts and ordering are not assertions.
+
+## System-default file opening
+
+The built-in adapters have non-launching tests for invalid paths, missing files, directories,
+symbolic links on Unix, and pre-cancellation. A minimal provider verifies the additive default-null
+contract. Published consumers also verify pre-cancellation without activation. These tests do not
+establish successful default-app document delivery. Linux also has an isolated XDG default-handler
+fixture with an acknowledged owned application; it checks exact file delivery and independent
+application lifetime. A separate isolated fixture verifies missing-handler failure and preserves the
+file bytes. The Windows fixture uses a unique temporary extension and ProgID to verify default
+activation without changing existing associations.
+
+Windows x64 validation on November 9, 2026 used SDK 10.0.403 and runtime 10.0.14. The owned
+default-opening fixture passed, including exact Unicode/metacharacter argument delivery, completion
+while the acknowledged application remained alive, and application exit after release. Post-run
+inspection found no remaining probe processes or temporary extension/ProgID registrations. The
+broken-registration fixture passed with an `IOException` preserving its native cause and the
+document bytes. An exploratory unique unregistered-extension probe returned successful Shell
+submission; absence of a registered handler therefore did not establish a synchronous failure on
+this host. The library must preserve that native outcome rather than reject a null process result.
+Windows file-symlink rejection cases are now explicit tests but skipped on this host because symlink
+creation privileges were unavailable. These skips do not establish reparse-point acceptance. The
+package verifier passed self-contained, single-file, trimmed, and NativeAOT publish/run probes,
+released API compatibility, package isolation, and documentation example compilation on Windows x64.
+
+The initial full suite exposed cross-fixture Shell icon metadata: the discovery fixture received an
+icon path inside the concurrently running activation fixture's temporary directory. Unique registry
+keys did not isolate that cache. Registry-mutating desktop, discovery, and activation tests now
+share a nonparallel xUnit collection so fixture cleanup cannot overlap another fixture's native
+work. Five consecutive full native suite runs passed after this change, each with 208 passed and 54
+skipped. No production fallback, timing delay, or retry was added. MXC execution failed at the
+test-runner named-pipe connection before tests ran; this native evidence comes from host execution
+outside that sandbox. Source review of the .NET 10.0.7 `Process.Win32.cs` implementation confirms a
+joined Shell STA worker, the DDE-wait flag, native error propagation, and successful submission
+without a process handle. This is source evidence, not native evidence of existing-process
+activation, and is not an exact-source audit of the installed 10.0.14 runtime. Existing-process
+document delivery and real macOS document delivery remain manual acceptance checks. macOS and Linux
+results do not establish Windows native behavior.
+
+Before accepting native delivery, manually open an owned disposable document with the system-default
+application. Include spaces, Unicode, and shell metacharacters in its path; confirm that exactly
+that file reaches the application and its bytes and OS associations remain unchanged. Exercise an
+unregistered type and submission failure without choosing an alternate application in library code.
+Do not automate launches of personal applications or change personal defaults for this check.

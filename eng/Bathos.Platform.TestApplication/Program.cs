@@ -108,6 +108,17 @@ try
         catch (IOException) { return 0; }
         throw new InvalidOperationException("Inspection accepted a link or special entry.");
     }
+    if (configuration.Mode == "default-open-missing")
+    {
+        try { await new LinuxDefaultFileOpener().OpenAsync(configuration.Document ?? throw new InvalidDataException("Missing document.")); }
+        catch (IOException) { return 0; }
+        throw new InvalidOperationException("Opening without a registered handler unexpectedly succeeded.");
+    }
+    if (configuration.Mode == "default-open")
+    {
+        await new LinuxDefaultFileOpener().OpenAsync(configuration.Document ?? throw new InvalidDataException("Missing document."));
+        return 0;
+    }
     if (configuration.Mode == "desktop")
     {
         if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException();

@@ -14,6 +14,12 @@ native support remains experimental; public API compatibility still applies.
 
 ### Added
 
+- Optional `IDefaultFileOpener` and default-null `IPlatformProvider.DefaultFileOpener` for opening
+  an existing regular file with the OS-selected default application. Windows uses the Shell open
+  verb, macOS uses LaunchServices through the system open helper, and Linux uses GIO default
+  activation. Completion establishes submission only; existing explicit application invocation is
+  unchanged.
+
 - Core application-discovery contracts: `IApplicationDiscovery`, immutable `ApplicationCandidate`,
   and a default-null `IPlatformProvider.ApplicationDiscovery` capability. Windows supplies native
   file-driven discovery, association targets, native invocation, and Shell-cache icon rendering.

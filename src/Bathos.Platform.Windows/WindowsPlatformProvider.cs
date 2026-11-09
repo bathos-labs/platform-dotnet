@@ -9,6 +9,9 @@ namespace Bathos.Platform.Windows;
 /// <summary>Windows capabilities. A dispatcher enables screen sampling; construction does not invoke native APIs.</summary>
 public sealed class WindowsPlatformProvider : IPlatformProvider
 {
+    /// <summary>Gets system-default regular-file opening.</summary>
+    public IDefaultFileOpener DefaultFileOpener { get; } = new WindowsDefaultFileOpener();
+
     /// <summary>Gets snapshot publication without a weaker fallback; invoke on a supported Windows filesystem.</summary>
     public ISnapshotFileRename SnapshotFileRename { get; } = new WindowsSnapshotFileRename();
     /// <summary>Composes Windows capabilities without loading native services.</summary>

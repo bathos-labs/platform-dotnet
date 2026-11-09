@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Bathos.Platform.Tests;
 
+[Collection("Windows Shell registrations")]
 public sealed class DesktopIntegrationTests
 {
     private static IPlatformProvider Current() => PlatformProviders.SelectCurrent(
@@ -18,6 +19,37 @@ public sealed class DesktopIntegrationTests
 
     private static string TestApplication => Path.Combine(AppContext.BaseDirectory, "TestApplication",
         "Bathos.Platform.TestApplication" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+
+    [Fact]
+    [Trait("Validation", "Native")]
+    public async Task WindowsDefaultOpeningReportsBrokenOwnedRegistration()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Windows Shell activation required."); return; }
+        var folder = Directory.CreateTempSubdirectory("bathos-default-error-");
+        var extension = ".bathos" + Guid.NewGuid().ToString("N");
+        var progId = "Bathos.DefaultProbe" + Guid.NewGuid().ToString("N");
+        try
+        {
+            var document = Path.Combine(folder.FullName, "document" + extension);
+            File.WriteAllText(document, "preserve");
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + extension)) key.SetValue(null, progId);
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId + @"\shell\open\command"))
+                key.SetValue(null, $"\"{Path.Combine(folder.FullName, "missing.exe")}\" \"%1\"");
+            var error = await Assert.ThrowsAsync<IOException>(() => new WindowsDefaultFileOpener().OpenAsync(document, TestContext.Current.CancellationToken));
+            Assert.IsType<Win32Exception>(error.InnerException);
+            Assert.Equal("preserve", File.ReadAllText(document));
+        }
+        finally
+        {
+            Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + extension, false);
+            Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + progId, false);
+            folder.Delete(true);
+        }
+        using var remainingExtension = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + extension);
+        using var remainingProgId = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + progId);
+        Assert.Null(remainingExtension);
+        Assert.Null(remainingProgId);
+    }
 
     [Fact]
     [Trait("Validation", "Portable")]
@@ -96,7 +128,54 @@ public sealed class DesktopIntegrationTests
         await RunProbeAsync(desktopEntry: true);
     }
 
-    private static async Task RunProbeAsync(bool desktopEntry)
+    [Fact]
+    [Trait("Validation", "Native")]
+    public async Task LinuxDefaultOpeningPreservesTheFileArgument()
+    {
+        if (!OperatingSystem.IsLinux()) Assert.Skip("Native GIO activation requires Linux.");
+        await RunProbeAsync(desktopEntry: true, defaultOpen: true);
+    }
+
+    [Fact]
+    [Trait("Validation", "Native")]
+    public async Task WindowsDefaultOpeningUsesOwnedRegistrationAndPreservesTheFileArgument()
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Native Windows Shell activation required.");
+        await RunProbeAsync(desktopEntry: false, defaultOpen: true);
+    }
+
+    [Fact]
+    [Trait("Validation", "Native")]
+    public async Task LinuxDefaultOpeningReportsMissingHandler()
+    {
+        if (!OperatingSystem.IsLinux()) Assert.Skip("Native GIO activation requires Linux.");
+        var folder = Directory.CreateTempSubdirectory("bathos-default-missing-");
+        using var deadline = new CancellationTokenSource(TimeSpan.FromSeconds(25));
+        try
+        {
+            var document = Path.Combine(folder.FullName, "document.bathos" + Guid.NewGuid().ToString("N"));
+            await File.WriteAllBytesAsync(document, [0, 1, 2, 3], deadline.Token);
+            var configuration = Path.Combine(folder.FullName, "launch.json");
+            await File.WriteAllTextAsync(configuration, JsonSerializer.Serialize(new { Mode = "default-open-missing", Document = document }), deadline.Token);
+            var start = new ProcessStartInfo(TestApplication) { UseShellExecute = false, RedirectStandardError = true };
+            start.ArgumentList.Add(configuration);
+            foreach (var name in new[] { "XDG_DATA_HOME", "XDG_DATA_DIRS", "XDG_CONFIG_HOME", "XDG_CONFIG_DIRS" })
+                start.Environment[name] = folder.FullName;
+            using var process = Process.Start(start) ?? throw new InvalidOperationException("Could not start default opening probe.");
+            var errors = process.StandardError.ReadToEndAsync(CancellationToken.None);
+            try { await process.WaitForExitAsync(deadline.Token); }
+            finally
+            {
+                if (!process.HasExited) process.Kill(entireProcessTree: true);
+                await process.WaitForExitAsync(CancellationToken.None);
+            }
+            Assert.True(process.ExitCode == 0, await errors);
+            Assert.Equal(new byte[] { 0, 1, 2, 3 }, await File.ReadAllBytesAsync(document, deadline.Token));
+        }
+        finally { folder.Delete(true); }
+    }
+
+    private static async Task RunProbeAsync(bool desktopEntry, bool defaultOpen = false)
     {
         var folder = Directory.CreateTempSubdirectory("bathos-handoff-");
         var pipeName = "bathos_" + Guid.NewGuid().ToString("N");
@@ -106,9 +185,13 @@ public sealed class DesktopIntegrationTests
         Process? owner = null, child = null;
         StreamWriter? writer = null;
         Task? connected = null;
+        Task? submission = null;
+        var extension = ".bathos" + Guid.NewGuid().ToString("N");
+        var progId = "Bathos.DefaultProbe" + Guid.NewGuid().ToString("N");
+        var registered = false;
         try
         {
-            var document = Path.Combine(folder.FullName, "-drawing # 100% & café.json");
+            var document = Path.Combine(folder.FullName, "-drawing # 100% & café" + (defaultOpen && OperatingSystem.IsWindows() ? extension : ".json"));
             File.WriteAllText(document, JsonSerializer.Serialize(new { Mode = "echo", PipeName = pipeName }));
             connected = pipe.WaitForConnectionAsync(deadline.Token);
             var invoke = Assert.IsAssignableFrom<IFileInvoker>(Current().FileInvoker);
@@ -122,16 +205,32 @@ public sealed class DesktopIntegrationTests
                 File.WriteAllText(iconPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"16\" height=\"16\" fill=\"red\"/></svg>");
                 File.AppendAllText(Path.Combine(applications.FullName, id), $"MimeType=application/json;text/plain;\nIcon={iconPath}\n");
                 File.WriteAllText(Path.Combine(applications.FullName, "mimeinfo.cache"), $"[MIME Cache]\napplication/json={id};\ntext/plain={id};\n");
+                if (defaultOpen)
+                    File.WriteAllText(Path.Combine(folder.FullName, "mimeapps.list"), $"[Default Applications]\napplication/json={id};\ntext/plain={id};\n");
                 var configuration = Path.Combine(folder.FullName, "launch.json");
-                File.WriteAllText(configuration, JsonSerializer.Serialize(new { Mode = "desktop", PipeName = pipeName, Document = document, DesktopId = id }));
+                File.WriteAllText(configuration, JsonSerializer.Serialize(new { Mode = defaultOpen ? "default-open" : "desktop", PipeName = pipeName, Document = document, DesktopId = id }));
                 var start = new ProcessStartInfo(TestApplication) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };
                 start.ArgumentList.Add(configuration);
                 start.Environment["XDG_DATA_HOME"] = folder.FullName; // Isolated child: never change the test process's cached XDG directories.
+                start.Environment["XDG_CONFIG_HOME"] = folder.FullName;
                 owner = Process.Start(start) ?? throw new InvalidOperationException("Could not start the GIO probe.");
                 await owner.WaitForExitAsync(deadline.Token);
                 if (owner.ExitCode != 0) Assert.Fail(await owner.StandardError.ReadToEndAsync(deadline.Token));
             }
-            else await invoke.OpenAsync(document, ApplicationTarget.Executable(TestApplication), cancellation.Token).WaitAsync(deadline.Token);
+            else if (defaultOpen && OperatingSystem.IsWindows())
+            {
+                registered = true;
+                using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + extension)) key.SetValue(null, progId);
+                using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId + @"\shell\open\command"))
+                    key.SetValue(null, $"\"{TestApplication}\" \"%1\"");
+                submission = new WindowsDefaultFileOpener().OpenAsync(document, cancellation.Token);
+                await submission.WaitAsync(deadline.Token);
+            }
+            else
+            {
+                submission = invoke.OpenAsync(document, ApplicationTarget.Executable(TestApplication), cancellation.Token);
+                await submission.WaitAsync(deadline.Token);
+            }
             // The application is still waiting for this connection/release, so successful handoff did not wait for exit.
             await connected;
             using var reader = new StreamReader(pipe, leaveOpen: true);
@@ -149,6 +248,10 @@ public sealed class DesktopIntegrationTests
         }
         finally
         {
+            await cancellation.CancelAsync();
+            // WaitAsync only bounds the assertion's wait, not native submission ownership.
+            // Preserve its original failure while joining submission before deleting its inputs.
+            if (submission is not null) await submission.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             await deadline.CancelAsync();
             if (connected is not null)
             {
@@ -166,6 +269,11 @@ public sealed class DesktopIntegrationTests
                 if (!owner.HasExited) owner.Kill(entireProcessTree: true);
                 await owner.WaitForExitAsync(CancellationToken.None);
                 owner.Dispose();
+            }
+            if (registered && OperatingSystem.IsWindows())
+            {
+                Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + extension, false);
+                Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + progId, false);
             }
             if (writer is not null) await writer.DisposeAsync();
             folder.Delete(true);

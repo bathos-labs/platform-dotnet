@@ -1,4 +1,25 @@
 <contracts>
+  <OpenDefaultFileAsync>
+    <summary>Submits an existing regular file to the operating system's current default application.</summary>
+    <param name="path">Absolute local regular-file path. Directories, symbolic links, special entries, and remote URLs are not supported.</param>
+    <param name="cancellationToken">Cancellation observed before native handoff. Once submission starts, owned work and cleanup are joined without reporting late cancellation as failure.</param>
+    <returns>A task completing after native submission and helper cleanup, not document parsing, foreground activation, or application exit.</returns>
+    <remarks>
+      The operating system resolves current associations at invocation. No default is inferred from discovery ordering,
+      no alternate application is selected on failure, and no associations are changed. Native UI may be presented by the
+      operating system or selected application. File validation is advisory and does not reserve the file against changes.
+      Successful submission does not prove that a handler opened the document. An unavailable handler causes an exception
+      only when the operating system reports submission failure; it may instead accept the request and present native UI.
+      Call only on the provider's OS. Native loading and OS-specific submission failures propagate; diagnostic details vary by platform.
+    </remarks>
+    <exception cref="System.ArgumentNullException">The path is null.</exception>
+    <exception cref="System.ArgumentException">The path is blank, contains a null character, or is not absolute.</exception>
+    <exception cref="System.IO.IOException">The file is missing or not regular, or the operating system reports native submission failure.</exception>
+    <exception cref="System.UnauthorizedAccessException">Access to the file or native service is denied.</exception>
+    <exception cref="System.ComponentModel.Win32Exception">The native submission helper could not be started.</exception>
+    <exception cref="System.PlatformNotSupportedException">The implementation is unavailable on the executing host.</exception>
+    <exception cref="System.OperationCanceledException">Cancellation was requested before handoff began.</exception>
+  </OpenDefaultFileAsync>
   <FindApplicationsForFileAsync>
 <summary>Finds useful registered application choices for one existing local regular file.</summary>
 <param name="absolutePath">Absolute path to the actual file intended for handoff; directories and remote URLs are not supported.</param>
