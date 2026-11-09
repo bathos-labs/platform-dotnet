@@ -12,7 +12,7 @@ native support remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
 
-## [1.2.0-rc.1] - 2026-11-09
+## [1.2.0-beta.1] - 2026-11-09
 
 ### Added
 
@@ -174,8 +174,8 @@ experimental. Prerelease APIs may change without compatibility shims.
   Interactive Finder, Explorer, and editor validation remains pending; see the native validation
   record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.2.0-rc.1...release/1.2
-[1.2.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.2.0-rc.1
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.2.0-beta.1...release/1.2
+[1.2.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.2.0-beta.1
 [1.1.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0
 [1.1.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-rc.1
 [1.1.0-beta.2]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.2
