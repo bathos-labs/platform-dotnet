@@ -47,6 +47,10 @@ string[] names = ["Bathos.Platform", "Bathos.Platform.MacOS", "Bathos.Platform.W
 var readme = File.ReadAllText(Path.Combine(root, "README.md"));
 var repository = "https://github.com/bathos-labs/platform-dotnet";
 var expectedReadme = readme.Replace($"{repository}/blob/master/", $"{repository}/blob/v{version}/", StringComparison.Ordinal);
+// These capability links must survive NuGet rendering and resolve to the packaged release.
+foreach (var target in new[] { "docs/usage.md#open-with-the-system-default", "docs/file-application-discovery.md" })
+    if (!expectedReadme.Contains($"{repository}/blob/v{version}/{target}", StringComparison.Ordinal))
+        throw new InvalidOperationException($"README capability link must be pinned to the package tag: {target}.");
 var installationCommands = readme.Split('\n').Select(line => line.Trim())
     .Where(line => line.StartsWith("dotnet add package ", StringComparison.Ordinal))
     .Select(line => line.Split(' ', StringSplitOptions.RemoveEmptyEntries)).ToArray();

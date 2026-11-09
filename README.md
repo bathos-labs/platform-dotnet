@@ -19,21 +19,21 @@ commitment, and the Linux package follows the same stable/prerelease channel as 
 
 ## Capabilities
 
-| Capability                                                                | Windows                | macOS                   | Linux                           |
-| ------------------------------------------------------------------------- | ---------------------- | ----------------------- | ------------------------------- |
-| [Atomic file publication and rename][publication]                         | Available              | Available               | Available                       |
-| [Snapshot replacement with retained readers][publication]                 | Available              | Available               | Available                       |
-| [Regular-file inspection][publication]                                    | Available              | Available               | Available                       |
-| [Native paths and file URIs][paths]                                       | Available              | Available               | Available                       |
-| [Standard directories and application scoping][directories]               | Available              | Available               | Available                       |
-| [Cooperative shared/exclusive file leases][leases]                        | Available              | Available               | Available                       |
-| [File-manager reveal][desktop]                                            | Explorer               | Finder                  | FileManager1 service            |
-| [Application handoff and native lookup][desktop]                          | Executable / App Paths | Executable / app bundle | Executable / desktop entry      |
-| [System-default file opening](docs/usage.md#open-with-the-system-default) | Shell open             | LaunchServices          | GIO default activation          |
-| [Application icons][icons]                                                | Native RGBA            | Native RGBA             | RGBA; native libraries required |
-| [File-driven application discovery](docs/file-application-discovery.md)   | Shell registrations    | NSWorkspace file lookup | GIO content-type registrations  |
-| [Screen color sampling][sampling]                                         | Host dispatcher        | Host dispatcher         | Portal opt-in                   |
-| [Installed color profiles][profiles]                                      | Available              | Available               | Unavailable                     |
+| Capability                                                  | Windows                | macOS                   | Linux                           |
+| ----------------------------------------------------------- | ---------------------- | ----------------------- | ------------------------------- |
+| [Atomic file publication and rename][publication]           | Available              | Available               | Available                       |
+| [Snapshot replacement with retained readers][publication]   | Available              | Available               | Available                       |
+| [Regular-file inspection][publication]                      | Available              | Available               | Available                       |
+| [Native paths and file URIs][paths]                         | Available              | Available               | Available                       |
+| [Standard directories and application scoping][directories] | Available              | Available               | Available                       |
+| [Cooperative shared/exclusive file leases][leases]          | Available              | Available               | Available                       |
+| [File-manager reveal][desktop]                              | Explorer               | Finder                  | FileManager1 service            |
+| [Application handoff and native lookup][desktop]            | Executable / App Paths | Executable / app bundle | Executable / desktop entry      |
+| [System-default file opening][default-opening]              | Shell open             | LaunchServices          | GIO default activation          |
+| [Application icons][icons]                                  | Native RGBA            | Native RGBA             | RGBA; native libraries required |
+| [File-driven application discovery][file-discovery]         | Shell registrations    | NSWorkspace file lookup | GIO content-type registrations  |
+| [Screen color sampling][sampling]                           | Host dispatcher        | Host dispatcher         | Portal opt-in                   |
+| [Installed color profiles][profiles]                        | Available              | Available               | Unavailable                     |
 
 Availability describes the built-in implementations. Native operations require the matching OS and
 may require filesystem support, desktop services, or permissions. A null capability means
@@ -143,3 +143,7 @@ Copyright © 2026 Bathos Pty Ltd.
 [architecture]: https://github.com/bathos-labs/platform-dotnet/blob/master/docs/architecture.md
 [contributing]: https://github.com/bathos-labs/platform-dotnet/blob/master/CONTRIBUTING.md
 [releasing]: https://github.com/bathos-labs/platform-dotnet/blob/master/RELEASING.md
+[default-opening]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/usage.md#open-with-the-system-default
+[file-discovery]:
+  https://github.com/bathos-labs/platform-dotnet/blob/master/docs/file-application-discovery.md
