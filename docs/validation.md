@@ -356,14 +356,16 @@ test-runner named-pipe connection before tests ran; this native evidence comes f
 outside that sandbox. Source review of the .NET 10.0.7 `Process.Win32.cs` implementation confirms a
 joined Shell STA worker, the DDE-wait flag, native error propagation, and successful submission
 without a process handle. This is source evidence, not native evidence of existing-process
-activation, and is not an exact-source audit of the installed 10.0.14 runtime. Windows downstream
-document delivery, including already-running application behavior, remains an acceptance check.
-macOS and Linux results do not establish Windows native behavior.
+activation, and is not an exact-source audit of the installed 10.0.14 runtime. macOS and Linux
+results do not establish Windows native behavior.
 
 On November 9, 2026, the maintainer reported successful macOS downstream integration with no issues,
-including complex paths, cold starts, and reopening files. This is user-reported downstream
-evidence, separate from the automated fixtures. The receiving application and publish mode were not
-recorded, so this result does not extend acceptance to other applications or publish modes.
+including complex paths, cold starts, and reopening files. The maintainer subsequently reported
+successful Windows downstream validation and signed off the release candidate on the same date.
+These are user-reported downstream results, separate from the automated fixtures. The receiving
+application and publish mode were not recorded, so these results do not extend acceptance to other
+applications or publish modes. Windows symbolic-link and Linux graphical desktop acceptance remain
+explicitly deferred as documented above.
 
 Before accepting native delivery, manually open an owned disposable document with the system-default
 application. Include spaces, Unicode, and shell metacharacters in its path; confirm that exactly

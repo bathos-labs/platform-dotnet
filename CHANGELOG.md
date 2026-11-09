@@ -12,6 +12,13 @@ native support remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
 
+## [1.2.0-rc.1] - 2026-11-09
+
+Release candidate following successful macOS and Windows downstream integration. The feature set and
+library behavior are unchanged from [1.2.0-beta.1]. Windows symbolic-link and Linux graphical
+desktop acceptance remain explicitly deferred; see
+[platform support](docs/platform-support.md#tested-environments-and-support-limits).
+
 ## [1.2.0-beta.1] - 2026-11-09
 
 ### Added
@@ -174,7 +181,7 @@ experimental. Prerelease APIs may change without compatibility shims.
   Interactive Finder, Explorer, and editor validation remains pending; see the native validation
   record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.2.0-beta.1...release/1.2
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.2.0-rc.1...release/1.2
 [1.2.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.2.0-beta.1
 [1.1.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0
 [1.1.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-rc.1
@@ -182,3 +189,4 @@ experimental. Prerelease APIs may change without compatibility shims.
 [1.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-beta.1
 [1.0.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.0.0
 [0.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v0.1.0-beta.1
+[1.2.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.2.0-rc.1
