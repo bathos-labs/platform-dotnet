@@ -17,7 +17,8 @@ public static class ReleasedConsumer
         if (minimal.FileRename is not null || minimal.FileEntries is not null || minimal.ScreenColorSampler is not null ||
             minimal.FileRevealer is not null || minimal.FileInvoker is not null || minimal.SnapshotFileRename is not null ||
             minimal.FilePaths is not null || minimal.Directories is not null || minimal.FileLeases is not null ||
-            minimal.ColorProfiles is not null)
+            minimal.ColorProfiles is not null || minimal.ApplicationIcons is not null ||
+            minimal.ApplicationDiscovery is not null || minimal.DefaultFileOpener is not null)
             throw new InvalidOperationException("Released provider defaults changed.");
         if (!ReferenceEquals(minimal, PlatformProviders.Select(host: PlatformHost.Current, providers: [minimal])))
             throw new InvalidOperationException("Released provider selection changed.");
