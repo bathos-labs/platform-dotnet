@@ -24,6 +24,25 @@ File operations can be used without a desktop session. The desktop capabilities 
 additional requirements. Installing all providers does not make foreign-platform native operations
 usable.
 
+## Linux process architectures
+
+"Linux" identifies the OS provider, not a promise of support for every Linux CPU, distribution,
+libc, or desktop environment. The process architecture determines the native ABI; a 64-bit kernel
+does not make a 32-bit process use 64-bit interop conventions.
+
+| Process architecture | Validation status                                                                                                                                   | Deployment guidance                                                                                                            |
+| -------------------- | --------------------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ |
+| x64                  | Continuous native CI and published-consumer validation.                                                                                             | Primary continuously validated Linux target (`linux-x64`); capability prerequisites still apply.                               |
+| Arm64                | Additional local container validation of the native suite and published consumers, including Native AOT; corrected lease symlink behavior verified. | Not yet a continuous CI target. Validate the application on its intended Arm64 distribution and filesystem.                    |
+| 32-bit ARM and x86   | Lease open-flag mappings are defined from native ABI headers; native execution is unverified.                                                       | These mappings are not a package-wide support claim. Require a supported .NET runtime and native validation before deployment. |
+| Other architectures  | No established native acceptance.                                                                                                                   | Do not assume support. File leases explicitly reject process architectures without a verified flag mapping.                    |
+
+Native libraries must match the application's process ABI. An architecture match alone does not
+establish compatibility with a different libc or distribution, or availability of desktop services.
+The [native CI workflow](../.github/workflows/validate.yml) identifies continuously tested runner
+images. Local Arm64 evidence supplements that matrix; it does not extend every capability's support
+to every Arm64 Linux environment.
+
 ## Filesystem capabilities
 
 | Capability                     | Deployment requirement                                                                                                                                                |
@@ -35,12 +54,10 @@ usable.
 | Cooperative file leases        | A local filesystem supporting the native locking protocol, a preexisting parent directory, and an unchanged lock artifact and containing directory tree while leased. |
 | Paths and standard directories | Native syntax and available host/account configuration. Directory discovery does not create locations or establish access.                                            |
 
-Linux file leases have explicit native open-flag mappings for x86, x64, ARM, and Arm64 process ABIs.
-Other process architectures throw `PlatformNotSupportedException` before opening the lock path; they
-never fall back to another architecture's flag values. These mappings follow the Linux UAPI headers;
-they do not establish native acceptance for every mapped architecture. Linux x64 is covered by CI;
-the symlink and dangling-symlink regressions also passed locally in a Linux Arm64 container. 32-bit
-x86 and ARM execution remain unverified.
+Linux file leases select open flags using the process ABI described in
+[Linux process architectures](#linux-process-architectures). Unmapped architectures throw
+`PlatformNotSupportedException` before opening the lock path; there is no fallback to another
+architecture's flag values.
 
 Filesystem guarantees are scoped to the documented native operations. Network filesystems, aliases,
 unusual mount policies, denied access, and cross-volume arrangements need their own evidence. Atomic
@@ -126,10 +143,11 @@ before choosing those modes for a product.
 ## Tested environments and support limits
 
 The [native CI workflow](../.github/workflows/validate.yml) is the source of truth for runner
-images. It executes the suite on Linux x64, Windows x64, and macOS Arm64. These are the tested
-combinations; other architectures, Linux distributions/libc variants, OS versions, and filesystems
-require their own validation. CI success on one host does not establish another host's native
-behavior.
+images. It executes the suite on Linux x64, Windows x64, and macOS Arm64. These are the continuously
+tested combinations. Additional local Linux Arm64 evidence is scoped in
+[Linux process architectures](#linux-process-architectures). Other architectures, Linux
+distributions/libc variants, OS versions, and filesystems require their own validation. CI success
+on one host does not establish another host's native behavior.
 
 Linux implementations remain experimental. Private D-Bus and GIO fixtures establish native transport
 and protocol behavior; real portal, file-manager, compositor, and permission acceptance remains
