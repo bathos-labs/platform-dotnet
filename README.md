@@ -30,7 +30,7 @@ commitment, and the Linux package follows the same stable/prerelease channel as 
 | [File-manager reveal][desktop]                                          | Explorer               | Finder                  | FileManager1 service            |
 | [Application handoff and native lookup][desktop]                        | Executable / App Paths | Executable / app bundle | Executable / desktop entry      |
 | [Application icons][icons]                                              | Native RGBA            | Native RGBA             | RGBA; native libraries required |
-| [File-driven application discovery](docs/file-application-discovery.md) | Shell registrations    | Unavailable             | Unavailable                     |
+| [File-driven application discovery](docs/file-application-discovery.md) | Shell registrations    | NSWorkspace file lookup | GIO content-type registrations  |
 | [Screen color sampling][sampling]                                       | Host dispatcher        | Host dispatcher         | Portal opt-in                   |
 | [Installed color profiles][profiles]                                    | Available              | Available               | Unavailable                     |
 

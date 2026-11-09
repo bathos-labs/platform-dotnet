@@ -113,7 +113,11 @@ try
         if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException();
         var id = configuration.DesktopId ?? throw new InvalidDataException("Missing desktop ID.");
         var path = configuration.Document ?? throw new InvalidDataException("Missing document.");
-        var target = LinuxApplicationDiscovery.FindByDesktopId(id).Single();
+        var candidates = await new LinuxFileApplicationDiscovery().FindForFileAsync(path);
+        var selected = candidates.Single(candidate => candidate.Target.Value == id);
+        var icon = await new LinuxApplicationIconProvider().GetIconAsync(selected.Target, 16);
+        if (icon is null || icon.Data.Length != 16 * 16 * 4) throw new InvalidDataException("Missing discovered application icon.");
+        var target = selected.Target;
         await new LinuxFileInvoker().OpenAsync(path, target);
         return 0;
     }

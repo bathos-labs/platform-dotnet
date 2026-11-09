@@ -302,3 +302,15 @@ cannot mask a missing close-on-exec flag. Windows uses the runtime launcher. Win
 implicit unlock after signaling process exit. Abrupt-exit tests await a cancellable native lock
 completion before asserting reacquisition, without sleeping or polling. A retained lock still fails
 the bounded wait.
+
+## Unix file-driven application discovery
+
+The macOS fixture creates two uniquely identified owned bundles in a disposable user-directory
+location, registers them, queries an owned document, retrieves their icons, and removes a selected
+bundle to verify invocation fails explicitly. Registration uses LSRegisterURL; cleanup unregisters
+only fixture-owned bundles and removes their files. It does not launch personal applications. Linux
+uses isolated child-process XDG registration data and an owned desktop entry; the acknowledged
+handoff test now discovers the target from the document and retrieves its icon before invocation.
+Both adapters also exercise missing/nonregular files, unknown and extensionless types, and
+pre-cancellation. Published consumers execute actual-file discovery without activation in every
+validated publish mode. Installed-app counts and ordering are not assertions.

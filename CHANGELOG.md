@@ -17,7 +17,9 @@ native support remains experimental; public API compatibility still applies.
 - Core application-discovery contracts: `IApplicationDiscovery`, immutable `ApplicationCandidate`,
   and a default-null `IPlatformProvider.ApplicationDiscovery` capability. Windows supplies native
   file-driven discovery, association targets, native invocation, and Shell-cache icon rendering.
-  macOS/Linux adapters remain unavailable; existing lookup utilities remain unchanged.
+  macOS uses NSWorkspace file lookup and Linux uses GIO content-type registrations. Discovered
+  targets compose with the matching invocation and icon providers; existing lookup utilities remain
+  unchanged.
 - Optional application-icon retrieval for explicit targets, without application lists or launches.
   All providers return owned RGBA bitmaps at the requested size. Linux renders desktop-entry PNG/XPM
   icons through GdkPixbuf and SVG through librsvg/Cairo; callers supply the native libraries in

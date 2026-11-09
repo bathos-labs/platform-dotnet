@@ -1,10 +1,9 @@
 # File-driven application discovery
 
 Status: agreed contract for [issue #36](https://github.com/bathos-labs/platform-dotnet/issues/36),
-with core API declarations and the Windows adapter implemented; macOS/Linux adapters and broader
-acceptance validation remain pending. Windows exposes the capability; other built-in providers leave
-it null. The contract selects useful applications for an Open in menu, not immutable activation
-commands or task-dispatch registrations.
+with core API declarations and adapters on all three platforms. Broader native acceptance remains
+host-specific. All built-in providers expose the capability. The contract selects useful
+applications for an Open in menu, not immutable activation commands or task-dispatch registrations.
 
 ## Goal and scope
 
@@ -178,16 +177,15 @@ applications are launched. Native fault injection for malformed COM outputs, exa
 cleanup, and mid-operation cancellation remains useful Windows follow-up. Symlink acceptance
 evidence depends on host privileges. These limits are not hidden by passing portable tests.
 
-Continue on `feature/file-application-discovery`:
+The macOS and Linux adapters now return existing bundle and desktop-entry targets respectively.
+macOS owns an autorelease pool for each lookup and copies bounded path/label metadata. Linux queries
+the actual file content type, copies bounded metadata, and releases all GIO list entries and objects
+before completion. Both validate regular files, return read-only snapshots, and observe cancellation
+without abandoning native work. These synchronous native requests cannot be interrupted mid-call.
 
-1. Implement macOS `IApplicationDiscovery` using actual-file NSWorkspace lookup, returning existing
-   bundle targets. Preserve bundle invocation/icon composition and native ownership. Validate on
-   macOS with owned applications; compilation on Windows is not native evidence.
-2. Implement Linux actual-file GIO content-type and application lookup, returning desktop-entry
-   targets. Use isolated XDG/MIME fixtures, preserve activation arguments, and validate icons and
-   cleanup on Linux. A macOS run does not substitute for Linux execution.
-3. Keep the agreed convenience contract: current registrations, transient targets, complete native
-   winners, no label-only coalescing or default substitution. Providers remain null until supported.
-4. Update capability tables, XML, examples, package consumers, and tests for each adapter. Run
-   `task check` and native AOT on each executing host; keep platform skips and manual acceptance
-   explicit. Do not release or tag as part of this handover.
+Owned macOS bundle fixtures validate discovery, distinct identities, icon retrieval, and explicit
+failure when a selected bundle is removed. Linux's isolated desktop-entry fixture validates the
+file-driven discovery/icon/invocation sequence with an acknowledged owned process. Existing tests
+cover invalid files, unknown/extensionless types, pre-cancellation, and native icon rendering. macOS
+document-event delivery to a GUI application and desktop behavior still require manual acceptance;
+no personal application is launched by these tests.

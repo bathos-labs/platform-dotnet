@@ -45,6 +45,19 @@ try
         Console.WriteLine("Published discovery and association-icon probe passed without activation.");
     }
     finally { Microsoft.Win32.Registry.CurrentUser.DeleteSubKeyTree(registration, false); }
+#else
+    var discovery = provider.ApplicationDiscovery ?? throw new InvalidOperationException("No application discovery capability.");
+    var candidates = await discovery.FindForFileAsync(file);
+    foreach (var candidate in candidates)
+    {
+        if (string.IsNullOrWhiteSpace(candidate.DisplayName)) throw new InvalidOperationException("Missing application label.");
+#if MacOS
+        if (candidate.Target.Kind != Bathos.Platform.Desktop.ApplicationTargetKind.MacOSBundle) throw new InvalidOperationException("Invalid bundle target.");
+#else
+        if (candidate.Target.Kind != Bathos.Platform.Desktop.ApplicationTargetKind.LinuxDesktopEntry) throw new InvalidOperationException("Invalid desktop-entry target.");
+#endif
+    }
+    Console.WriteLine("Published native file-driven discovery passed without activation.");
 #endif
     using (var reader = new FileStream(file, FileMode.Open, FileAccess.Read, FileShare.ReadWrite | FileShare.Delete))
     {
