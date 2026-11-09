@@ -212,7 +212,8 @@ dotnet run --project eng/Bathos.Platform.Desktop -- open <absolute-file> <execut
 
 Replace placeholders with host-selected values, quoting paths in the terminal as needed. Discovery
 keys are an executable filename on Windows, a bundle identifier on macOS, or a desktop-entry ID on
-Linux. Opening always requires an explicit target; lookup results are never selected automatically.
+Linux. The `open` command requires an explicit target; lookup results are never selected
+automatically. The `open-default` command delegates application selection to the operating system.
 
 1. Reveal both a file and a directory. Confirm the requested entry is selected in its parent,
    including names with spaces, Unicode, `#`, and `%`. Merely opening the containing directory is

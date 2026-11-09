@@ -8,11 +8,13 @@
       The operating system resolves current associations at invocation. No default is inferred from discovery ordering,
       no alternate application is selected on failure, and no associations are changed. Native UI may be presented by the
       operating system or selected application. File validation is advisory and does not reserve the file against changes.
+      Successful submission does not prove that a handler opened the document. An unavailable handler causes an exception
+      only when the operating system reports submission failure; it may instead accept the request and present native UI.
       Call only on the provider's OS. Native loading and OS-specific submission failures propagate; diagnostic details vary by platform.
     </remarks>
     <exception cref="System.ArgumentNullException">The path is null.</exception>
     <exception cref="System.ArgumentException">The path is blank, contains a null character, or is not absolute.</exception>
-    <exception cref="System.IO.IOException">The file is missing or not regular, or native submission fails, including an unavailable default handler.</exception>
+    <exception cref="System.IO.IOException">The file is missing or not regular, or the operating system reports native submission failure.</exception>
     <exception cref="System.UnauthorizedAccessException">Access to the file or native service is denied.</exception>
     <exception cref="System.ComponentModel.Win32Exception">The native submission helper could not be started.</exception>
     <exception cref="System.PlatformNotSupportedException">The implementation is unavailable on the executing host.</exception>

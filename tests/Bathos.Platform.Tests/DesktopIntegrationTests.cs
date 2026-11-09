@@ -185,6 +185,7 @@ public sealed class DesktopIntegrationTests
         Process? owner = null, child = null;
         StreamWriter? writer = null;
         Task? connected = null;
+        Task? submission = null;
         var extension = ".bathos" + Guid.NewGuid().ToString("N");
         var progId = "Bathos.DefaultProbe" + Guid.NewGuid().ToString("N");
         var registered = false;
@@ -222,9 +223,14 @@ public sealed class DesktopIntegrationTests
                 using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + extension)) key.SetValue(null, progId);
                 using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId + @"\shell\open\command"))
                     key.SetValue(null, $"\"{TestApplication}\" \"%1\"");
-                await new WindowsDefaultFileOpener().OpenAsync(document, cancellation.Token).WaitAsync(deadline.Token);
+                submission = new WindowsDefaultFileOpener().OpenAsync(document, cancellation.Token);
+                await submission.WaitAsync(deadline.Token);
             }
-            else await invoke.OpenAsync(document, ApplicationTarget.Executable(TestApplication), cancellation.Token).WaitAsync(deadline.Token);
+            else
+            {
+                submission = invoke.OpenAsync(document, ApplicationTarget.Executable(TestApplication), cancellation.Token);
+                await submission.WaitAsync(deadline.Token);
+            }
             // The application is still waiting for this connection/release, so successful handoff did not wait for exit.
             await connected;
             using var reader = new StreamReader(pipe, leaveOpen: true);
@@ -242,6 +248,10 @@ public sealed class DesktopIntegrationTests
         }
         finally
         {
+            await cancellation.CancelAsync();
+            // WaitAsync only bounds the assertion's wait, not native submission ownership.
+            // Preserve its original failure while joining submission before deleting its inputs.
+            if (submission is not null) await submission.ConfigureAwait(ConfigureAwaitOptions.SuppressThrowing);
             await deadline.CancelAsync();
             if (connected is not null)
             {
