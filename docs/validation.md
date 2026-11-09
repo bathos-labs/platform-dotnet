@@ -341,6 +341,11 @@ creation privileges were unavailable. These skips do not establish reparse-point
 package verifier passed self-contained, single-file, trimmed, and NativeAOT publish/run probes,
 released API compatibility, package isolation, and documentation example compilation on Windows x64.
 
+Windows file-symlink acceptance and real Linux graphical desktop acceptance are explicitly deferred
+for 1.2 as [known untested scenarios](platform-support.md#tested-environments-and-support-limits).
+Retain the privilege-dependent tests and their skip reasons. This deferral does not change the
+regular-file rejection contract or negate the Linux headless and isolated activation evidence above.
+
 The initial full suite exposed cross-fixture Shell icon metadata: the discovery fixture received an
 icon path inside the concurrently running activation fixture's temporary directory. Unique registry
 keys did not isolate that cache. Registry-mutating desktop, discovery, and activation tests now

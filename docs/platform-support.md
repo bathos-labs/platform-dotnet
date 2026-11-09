@@ -151,6 +151,16 @@ tested combinations. Additional local Linux Arm64 evidence is scoped in
 distributions/libc variants, OS versions, and filesystems require their own validation. CI success
 on one host does not establish another host's native behavior.
 
+Known untested scenarios for the 1.2 release are explicitly deferred:
+
+- **Windows symbolic-link rejection:** regular and dangling file-symlink cases remain unverified
+  where fixture creation requires unavailable privileges. The rejection contract and tests remain in
+  place; skipped tests do not establish native acceptance or broader reparse-point coverage.
+- **Linux graphical desktop integration:** real desktop discovery, icon presentation, application
+  invocation, and default-opening behavior have not been accepted in a graphical session. Headless
+  native tests and isolated activation fixtures have passed, but do not establish compatibility with
+  a particular desktop environment. Linux desktop behavior remains experimental.
+
 Linux implementations remain experimental. Private D-Bus and GIO fixtures establish native transport
 and protocol behavior; real portal, file-manager, compositor, and permission acceptance remains
 manual. Windows/macOS screen pickers and visible desktop handoff also require human validation. See
