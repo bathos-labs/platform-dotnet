@@ -22,6 +22,9 @@ public sealed class PlatformProviderTests
         Assert.Null(selected.ScreenColorSampler);
         Assert.Null(selected.FileRevealer);
         Assert.Null(selected.FileInvoker);
+        Assert.Null(selected.ApplicationIcons);
+        Assert.Null(selected.ApplicationDiscovery);
+        Assert.Null(selected.DefaultFileOpener);
     }
 
     [Fact]
@@ -96,6 +99,7 @@ public sealed class PlatformProviderTests
             Assert.Null(provider.ScreenColorSampler);
             Assert.NotNull(provider.FileRevealer);
             Assert.NotNull(provider.FileInvoker);
+            Assert.NotNull(provider.ApplicationIcons);
         }
         Assert.NotNull(providers[0].FileRename);
         Assert.NotNull(providers[1].FileRename);

@@ -1,4 +1,59 @@
 <contracts>
+  <OpenDefaultFileAsync>
+    <summary>Submits an existing regular file to the operating system's current default application.</summary>
+    <param name="path">Absolute local regular-file path. Directories, symbolic links, special entries, and remote URLs are not supported.</param>
+    <param name="cancellationToken">Cancellation observed before native handoff. Once submission starts, owned work and cleanup are joined without reporting late cancellation as failure.</param>
+    <returns>A task completing after native submission and helper cleanup, not document parsing, foreground activation, or application exit.</returns>
+    <remarks>
+      The operating system resolves current associations at invocation. No default is inferred from discovery ordering,
+      no alternate application is selected on failure, and no associations are changed. Native UI may be presented by the
+      operating system or selected application. File validation is advisory and does not reserve the file against changes.
+      Successful submission does not prove that a handler opened the document. An unavailable handler causes an exception
+      only when the operating system reports submission failure; it may instead accept the request and present native UI.
+      Call only on the provider's OS. Native loading and OS-specific submission failures propagate; diagnostic details vary by platform.
+    </remarks>
+    <exception cref="System.ArgumentNullException">The path is null.</exception>
+    <exception cref="System.ArgumentException">The path is blank, contains a null character, or is not absolute.</exception>
+    <exception cref="System.IO.IOException">The file is missing or not regular, or the operating system reports native submission failure.</exception>
+    <exception cref="System.UnauthorizedAccessException">Access to the file or native service is denied.</exception>
+    <exception cref="System.ComponentModel.Win32Exception">The native submission helper could not be started.</exception>
+    <exception cref="System.PlatformNotSupportedException">The implementation is unavailable on the executing host.</exception>
+    <exception cref="System.OperationCanceledException">Cancellation was requested before handoff began.</exception>
+  </OpenDefaultFileAsync>
+  <FindApplicationsForFileAsync>
+<summary>Finds useful registered application choices for one existing local regular file.</summary>
+<param name="absolutePath">Absolute path to the actual file intended for handoff; directories and remote URLs are not supported.</param>
+<param name="cancellationToken">Cancellation request; completion follows cleanup of all owned native work.</param>
+<returns>An owned read-only snapshot of immutable candidates; empty when native discovery returns no choices after coalescing.</returns>
+<remarks>
+Targets compose with the matching invocation and icon providers. Invocation uses the application's current registration;
+it does not reserve the command observed during discovery. Missing or unresolved selections fail without default substitution.
+Labels, icons, and activation are separate observations. No completeness, format support, or successful parsing is guaranteed.
+Native enumeration failures must not become successful partial results. Hosts own refresh, caching, custom entries, and trust.
+</remarks>
+<exception cref="ArgumentNullException">The path is null.</exception>
+<exception cref="ArgumentException">The path is blank, contains a null character, or is not absolute.</exception>
+<exception cref="IOException">The file is missing or not regular, or native discovery fails.</exception>
+<exception cref="UnauthorizedAccessException">Access to the file or native registration data is denied.</exception>
+<exception cref="PlatformNotSupportedException">The implementation is unavailable on the executing host.</exception>
+<exception cref="OperationCanceledException">Cancellation was requested before completion.</exception>
+  </FindApplicationsForFileAsync>
+  <GetIconAsync>
+    <summary>Retrieves owned icon data for an explicit application target without launching the application.</summary>
+    <param name="application">An executable file or association target on Windows, a bundle or executable on macOS, or a desktop-entry ID on Linux.</param>
+    <param name="pixelSize">Desired bounding square in physical pixels, from one through ApplicationIcon.MaximumPixelSize. The result is a square bitmap of this size.</param>
+    <param name="cancellationToken">Cancellation observed before and after synchronous native work, without abandoning native cleanup.</param>
+    <returns>Owned icon data, or null when the existing target has no resolvable icon. Data outlives native resources and may include OS decoration or a generic OS icon; it is not a lossless copy of authored artwork. Pixels are top-down, tightly packed eight-bit RGBA with straight alpha and an sRGB interpretation.</returns>
+    <remarks>No host UI dispatcher is required. Built-in providers perform lookup on owned background work and release all native resources before completion, including cancellation and failure. Calls may run concurrently. The operation does not launch applications, change associations, maintain a managed cache, select products, or guarantee icon freshness. Windows association icons use the Shell image cache, which may provide a generic icon and scale cached artwork. The host owns display scale, caching, and placeholders. Missing targets and operational failures throw; they are not icon absence. Linux resolves its explicitly selected icon theme, defaulting to hicolor, rather than probing a UI toolkit's active theme.</remarks>
+    <exception cref="System.ArgumentNullException">The application is null.</exception>
+    <exception cref="System.ArgumentOutOfRangeException">The requested size is outside the supported bounds.</exception>
+    <exception cref="System.NotSupportedException">The target kind or resource representation is unsupported.</exception>
+    <exception cref="System.IO.IOException">The target is missing, a native operation fails, or an icon resource exceeds the byte limit.</exception>
+    <exception cref="System.UnauthorizedAccessException">Resource access is denied.</exception>
+    <exception cref="System.ComponentModel.Win32Exception">A Windows native extraction or drawing operation fails.</exception>
+    <exception cref="System.PlatformNotSupportedException">The provider is invoked on another OS, or a required Linux native rendering library or entry point is unavailable. The inner exception preserves the native loading failure.</exception>
+    <exception cref="System.OperationCanceledException">Cancellation was observed after joining native work and cleanup.</exception>
+  </GetIconAsync>
   <RequireRegularFile>
     <summary>Returns normally only when the observed entry is a regular file, rather than a link or special entry.</summary>
     <param name="path">Path to inspect. This observation does not reserve the path against later changes.</param>
@@ -113,6 +168,6 @@ This does not resolve aliases or assert existence. Invocation requires a matchin
     <exception cref="ArgumentOutOfRangeException">The mode is not a defined lease mode.</exception>
     <exception cref="ArgumentException">The path is invalid or cannot be represented losslessly at the native boundary.</exception>
     <exception cref="OperationCanceledException">Cancellation is observed before ownership is returned.</exception>
-    <exception cref="PlatformNotSupportedException">Invoked on a foreign runtime.</exception>
+    <exception cref="PlatformNotSupportedException">Invoked on a foreign runtime, or the Linux process architecture has no supported native open-flag mapping.</exception>
   </TryAcquireFileLease>
 </contracts>

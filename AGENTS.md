@@ -5,9 +5,12 @@
 - Read README.md, docs/architecture.md, and CONTRIBUTING.md before structural changes. Explain
   architectural tradeoffs before expanding scope. Prefer demonstrated requirements and focused
   capability interfaces.
-- Core and provider packages must remain free of UI, DI, imaging, and product dependencies.
-  Providers reference only the core and runtime. Null capability, user cancellation, and operation
-  failure are distinct contracts.
+- Core must remain free of UI, DI, imaging, and product dependencies. Providers must remain free of
+  UI toolkit, DI, and product dependencies. Implementation-scoped rendering dependencies are allowed
+  where needed to return the defined application-icon bitmap contract; keep them Linux-local unless
+  another implementation demonstrates a shared need. Do not expose renderer types or
+  encoded-resource handling through the core API. Document and validate native deployment
+  prerequisites. Null capability, user cancellation, and operation failure are distinct contracts.
 - Preserve nullable analysis. Narrow native/serialization/filesystem uncertainty at the boundary.
   Never silence diagnostics or introduce unsafe fallbacks to make a check pass.
 - The project is released. Backward compatibility is a formal requirement for stable public API

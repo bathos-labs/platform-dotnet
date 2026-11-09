@@ -55,6 +55,20 @@ evidence on the relevant filesystem; an unattended substitute does not establish
 | Linux portal/reveal           | Private native D-Bus fixtures exercise early/late signals, malformed method replies/paths and color components, owner loss, errors/cancellation, slot recovery, and caller cancellation while awaiting a submitted reveal. Except for intentional disconnects, fixtures wait for the client's bus name to disappear, checking connection cleanup.                                                                                                                                                  | A real portal, compositor, file manager, and privacy controls still require manual validation. Native allocation failures are not injected.                                                                                                                      |
 | Windows/macOS screen samplers | Construction and dispatcher-access contracts; Linux's portable gate test independently covers overlap, error recovery, and user cancellation.                                                                                                                                                                                                                                                                                                                                                      | AppKit callback/block retirement and GDI/window cleanup, allocation failures, display changes, and picker cancellation require further focused fault-injection coverage plus the manual procedure below. Linux gate tests do not validate these implementations. |
 
+Application-icon tests exercise owned data, size/byte bounds, theme inheritance/cycles, size and
+scale selection, path-component admission, and straight-alpha recovery from native black/white
+composites. On macOS and Windows, deterministic generated ICNS/ICO fixtures exercise native resource
+loading and top-down channel orientation; Windows additionally checks exact transparency. macOS may
+apply native icon plates, so its displayed alpha need not match the source artwork. Linux runs an
+isolated GIO child with private desktop entries and icon roots, checking rendered themed and
+absolute SVG resources without launching an application or requiring a desktop. Native tests
+establish only the executing host; allocation-failure cleanup, large real-world themes, and
+appearance across desktop versions still need targeted evidence. Linux renderer fixtures also check
+RGBA alpha, padding, owned lifetime, RGB row padding, external SVG references, and malformed
+SVG/XPM. Isolated child processes inject missing renderer libraries and entry points, verify
+descriptive exceptions, and confirm raster icons work without librsvg. No generated icons or
+screenshots are committed.
+
 Windows preparation tests call the same native adapter as production for COM initialization, PIDL
 parsing/freeing, and COM shutdown. They record native apartment state before/after the operation,
 assert STA execution and same-thread cleanup, and join their owned workers. Gates control races
@@ -191,13 +205,15 @@ Use the engineering console host:
 
 ```text
 dotnet run --project eng/Bathos.Platform.Desktop -- reveal <absolute-file-or-directory>
+dotnet run --project eng/Bathos.Platform.Desktop -- open-default <absolute-file>
 dotnet run --project eng/Bathos.Platform.Desktop -- find <native-identifier>
 dotnet run --project eng/Bathos.Platform.Desktop -- open <absolute-file> <executable|bundle|desktop-entry> <target>
 ```
 
 Replace placeholders with host-selected values, quoting paths in the terminal as needed. Discovery
 keys are an executable filename on Windows, a bundle identifier on macOS, or a desktop-entry ID on
-Linux. Opening always requires an explicit target; lookup results are never selected automatically.
+Linux. The `open` command requires an explicit target; lookup results are never selected
+automatically. The `open-default` command delegates application selection to the operating system.
 
 1. Reveal both a file and a directory. Confirm the requested entry is selected in its parent,
    including names with spaces, Unicode, `#`, and `%`. Merely opening the containing directory is
@@ -288,3 +304,71 @@ cannot mask a missing close-on-exec flag. Windows uses the runtime launcher. Win
 implicit unlock after signaling process exit. Abrupt-exit tests await a cancellable native lock
 completion before asserting reacquisition, without sleeping or polling. A retained lock still fails
 the bounded wait.
+
+## Unix file-driven application discovery
+
+The macOS fixture creates two uniquely identified owned bundles in a disposable user-directory
+location, registers them, queries an owned document, retrieves their icons, and removes a selected
+bundle to verify invocation fails explicitly. Registration uses LSRegisterURL; cleanup unregisters
+only fixture-owned bundles and removes their files. It does not launch personal applications. Linux
+uses isolated child-process XDG registration data and an owned desktop entry; the acknowledged
+handoff test now discovers the target from the document and retrieves its icon before invocation.
+Both adapters also exercise missing/nonregular files, unknown and extensionless types, and
+pre-cancellation. Published consumers execute actual-file discovery without activation in every
+validated publish mode. Installed-app counts and ordering are not assertions.
+
+## System-default file opening
+
+The built-in adapters have non-launching tests for invalid paths, missing files, directories,
+symbolic links on Unix, and pre-cancellation. A minimal provider verifies the additive default-null
+contract. Published consumers also verify pre-cancellation without activation. These tests do not
+establish successful default-app document delivery. Linux also has an isolated XDG default-handler
+fixture with an acknowledged owned application; it checks exact file delivery and independent
+application lifetime. A separate isolated fixture verifies missing-handler failure and preserves the
+file bytes. The Windows fixture uses a unique temporary extension and ProgID to verify default
+activation without changing existing associations.
+
+Windows x64 validation on November 9, 2026 used SDK 10.0.403 and runtime 10.0.14. The owned
+default-opening fixture passed, including exact Unicode/metacharacter argument delivery, completion
+while the acknowledged application remained alive, and application exit after release. Post-run
+inspection found no remaining probe processes or temporary extension/ProgID registrations. The
+broken-registration fixture passed with an `IOException` preserving its native cause and the
+document bytes. An exploratory unique unregistered-extension probe returned successful Shell
+submission; absence of a registered handler therefore did not establish a synchronous failure on
+this host. The library must preserve that native outcome rather than reject a null process result.
+Windows file-symlink rejection cases are now explicit tests but skipped on this host because symlink
+creation privileges were unavailable. These skips do not establish reparse-point acceptance. The
+package verifier passed self-contained, single-file, trimmed, and NativeAOT publish/run probes,
+released API compatibility, package isolation, and documentation example compilation on Windows x64.
+
+Windows file-symlink acceptance and real Linux graphical desktop acceptance are explicitly deferred
+for 1.2 as [known untested scenarios](platform-support.md#tested-environments-and-support-limits).
+Retain the privilege-dependent tests and their skip reasons. This deferral does not change the
+regular-file rejection contract or negate the Linux headless and isolated activation evidence above.
+
+The initial full suite exposed cross-fixture Shell icon metadata: the discovery fixture received an
+icon path inside the concurrently running activation fixture's temporary directory. Unique registry
+keys did not isolate that cache. Registry-mutating desktop, discovery, and activation tests now
+share a nonparallel xUnit collection so fixture cleanup cannot overlap another fixture's native
+work. Five consecutive full native suite runs passed after this change, each with 208 passed and 54
+skipped. No production fallback, timing delay, or retry was added. MXC execution failed at the
+test-runner named-pipe connection before tests ran; this native evidence comes from host execution
+outside that sandbox. Source review of the .NET 10.0.7 `Process.Win32.cs` implementation confirms a
+joined Shell STA worker, the DDE-wait flag, native error propagation, and successful submission
+without a process handle. This is source evidence, not native evidence of existing-process
+activation, and is not an exact-source audit of the installed 10.0.14 runtime. macOS and Linux
+results do not establish Windows native behavior.
+
+On November 9, 2026, the maintainer reported successful macOS downstream integration with no issues,
+including complex paths, cold starts, and reopening files. The maintainer subsequently reported
+successful Windows downstream validation and signed off the release candidate on the same date.
+These are user-reported downstream results, separate from the automated fixtures. The receiving
+application and publish mode were not recorded, so these results do not extend acceptance to other
+applications or publish modes. Windows symbolic-link and Linux graphical desktop acceptance remain
+explicitly deferred as documented above.
+
+Before accepting native delivery, manually open an owned disposable document with the system-default
+application. Include spaces, Unicode, and shell metacharacters in its path; confirm that exactly
+that file reaches the application and its bytes and OS associations remain unchanged. Exercise an
+unregistered type and submission failure without choosing an alternate application in library code.
+Do not automate launches of personal applications or change personal defaults for this check.

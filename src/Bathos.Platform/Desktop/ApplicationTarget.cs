@@ -8,7 +8,9 @@ public enum ApplicationTargetKind
     /// <summary>An absolute macOS .app bundle path, submitted through LaunchServices.</summary>
     MacOSBundle,
     /// <summary>A Linux desktop-entry ID, resolved and activated through GIO.</summary>
-    LinuxDesktopEntry
+    LinuxDesktopEntry,
+    /// <summary>A Windows application selected within a file-extension association context.</summary>
+    WindowsAssociation
 }
 
 /// <summary>An explicit application location or registration ID, never a shell command or product name.</summary>
@@ -20,6 +22,23 @@ public sealed record ApplicationTarget
     public ApplicationTargetKind Kind { get; }
     /// <summary>Gets the validated path or desktop-entry ID, without shell quoting or command arguments.</summary>
     public string Value { get; }
+    /// <summary>Gets the Windows extension context, or null for other target kinds. Empty means extensionless.</summary>
+    public string? AssociationExtension { get; private init; }
+
+    /// <summary>Creates a transient Windows application selection using its native name and extension context.</summary>
+    /// <param name="nativeName">Nonblank Shell handler name, not a display label or command.</param>
+    /// <param name="extension">A dot-prefixed extension, or empty for an extensionless file.</param>
+    /// <returns>A descriptor for current registration lookup, not an immutable command or security identity.</returns>
+    /// <exception cref="ArgumentNullException">An argument is null.</exception>
+    /// <exception cref="ArgumentException">The native name or extension has invalid syntax.</exception>
+    public static ApplicationTarget WindowsAssociation(string nativeName, string extension)
+    {
+        DesktopPaths.RequireText(nativeName, nameof(nativeName));
+        ArgumentNullException.ThrowIfNull(extension);
+        if (extension.Length > 0 && (extension.Length == 1 || extension[0] != '.' || extension.IndexOfAny(['/', '\\', '\0']) >= 0))
+            throw new ArgumentException("A file extension or empty context is required.", nameof(extension));
+        return new(ApplicationTargetKind.WindowsAssociation, nativeName) { AssociationExtension = extension };
+    }
 
     /// <summary>An absolute executable path in the current host's path syntax. The file path is passed as one argument.</summary>
     /// <param name="path">Absolute executable path in the executing host path syntax.</param>

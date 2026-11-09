@@ -8,6 +8,14 @@ namespace Bathos.Platform.Linux;
 /// <summary>Experimental Linux native file capabilities and optional desktop-portal color sampling.</summary>
 public sealed class LinuxPlatformProvider : IPlatformProvider
 {
+    /// <summary>Gets system-default regular-file opening.</summary>
+    public IDefaultFileOpener DefaultFileOpener { get; } = new LinuxDefaultFileOpener();
+
+    /// <summary>Gets file-driven discovery of registered application choices.</summary>
+    public IApplicationDiscovery ApplicationDiscovery { get; } = new LinuxFileApplicationDiscovery();
+
+    /// <summary>Gets desktop-entry icon retrieval using the standard hicolor theme. Compose LinuxApplicationIconProvider directly for another theme.</summary>
+    public IApplicationIconProvider ApplicationIcons { get; } = new LinuxApplicationIconProvider();
     /// <summary>Gets native snapshot publication that preserves retained readers.</summary>
     public ISnapshotFileRename SnapshotFileRename { get; } = new LinuxFileRename();
     /// <summary>Composes experimental Linux capabilities without probing desktop services or loading native libraries.</summary>

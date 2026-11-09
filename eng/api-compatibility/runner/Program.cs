@@ -14,4 +14,11 @@ for (var index = 0; index < assemblies.Length; index++)
     if (hash != args[index]) throw new InvalidOperationException($"Loaded unexpected bytes for {assemblies[index].GetName().Name}.");
 }
 await ReleasedConsumer.ExerciseAsync();
+var oldProvider = ReleasedConsumer.CreateMinimalProvider();
+if (oldProvider.DefaultFileOpener is not null)
+    throw new InvalidOperationException("An old provider must inherit the null default-file opener capability.");
+if (oldProvider.ApplicationDiscovery is not null)
+    throw new InvalidOperationException("An unrecompiled released provider did not inherit the new null discovery default.");
+if (oldProvider.ApplicationIcons is not null)
+    throw new InvalidOperationException("An unrecompiled released provider did not inherit the new null icon default.");
 Console.WriteLine("Unrecompiled released consumer and provider passed against the exact candidate assemblies.");

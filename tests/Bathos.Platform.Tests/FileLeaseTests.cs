@@ -173,14 +173,16 @@ public sealed class FileLeaseTests
         finally { folder.Delete(true); }
     }
 
-    [Fact]
-    public void LinksCannotRedirectLeaseOwnership()
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    public void LinksCannotRedirectLeaseOwnership(bool dangling)
     {
         var folder = Directory.CreateTempSubdirectory("bathos-leases-");
         try
         {
             var target = Path.Combine(folder.FullName, "target");
-            File.WriteAllText(target, "preserve");
+            if (!dangling) File.WriteAllText(target, "preserve");
             var link = Path.Combine(folder.FullName, "link");
             try { File.CreateSymbolicLink(link, target); }
             catch (IOException error) when (OperatingSystem.IsWindows() && error.HResult == unchecked((int)0x80070522))
@@ -189,7 +191,8 @@ public sealed class FileLeaseTests
                 Assert.Skip("Symlink creation requires Windows developer mode or privileges.");
             }
             Assert.ThrowsAny<IOException>(() => Current().TryAcquire(link, FileLeaseMode.Exclusive, TestContext.Current.CancellationToken));
-            Assert.Equal("preserve", File.ReadAllText(target));
+            if (dangling) Assert.False(File.Exists(target));
+            else Assert.Equal("preserve", File.ReadAllText(target));
         }
         finally { folder.Delete(true); }
     }

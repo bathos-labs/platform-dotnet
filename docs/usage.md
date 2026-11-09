@@ -228,6 +228,55 @@ does not probe desktop services. See
 [desktop prerequisites](platform-support.md#desktop-capabilities) for native libraries and services;
 missing services and libraries are operation failures.
 
+## Application icons
+
+Use the optional `ApplicationIcons` capability to retrieve display iconography for an explicit
+target. Windows supports executable resource files and discovered association targets, macOS
+supports bundles or executable files, and Linux supports desktop-entry IDs. Icon retrieval never
+launches the application or changes associations.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Desktop;
+
+public static class ApplicationIconExample
+{
+    public static async Task<ApplicationIcon?> ReadAsync(
+        IPlatformProvider platform, ApplicationTarget application, int physicalPixelSize,
+        CancellationToken token)
+    {
+        var icons = platform.ApplicationIcons
+            ?? throw new PlatformNotSupportedException("Application icons are unavailable.");
+        return await icons.GetIconAsync(application, physicalPixelSize, token);
+    }
+}
+```
+
+Request physical pixels after applying the host's display scale, from 1 through 1024. A null result
+means an existing target has no resolvable icon; a missing target or operational failure throws.
+Calls need no UI dispatcher and can run concurrently. Cancellation joins synchronous native work and
+resource cleanup before completion. The returned data is independently owned and survives provider
+retirement, application removal, and later lookups. Providers do not cache icons.
+
+`ApplicationIcon.Data` is a read-only view of owned, top-down, tightly packed eight-bit sRGB RGBA
+pixels with straight alpha. `PixelWidth` and `PixelHeight` equal the requested size. Accessing the
+memory does not copy it. The public factory copies caller data; built-in providers transfer their
+completed buffers without an additional copy. No native handles or disposal obligations escape.
+Native icon decoration is retained; the result is not a lossless copy of authored artwork.
+
+Linux requires system rendering libraries: GdkPixbuf for PNG/XPM and librsvg/Cairo for SVG. A
+missing or incompatible rendering library raises `PlatformNotSupportedException`, with the native
+loading failure retained as its inner exception. Callers may catch this to show a placeholder; it is
+not a null icon result. Provider construction and unrelated capabilities do not load renderers.
+Hosts own packaging, caching, stale-result rejection, refresh, and placeholders.
+
+Linux's built-in facade uses the standard `hicolor` theme. A host that knows its active theme can
+compose `new LinuxApplicationIconProvider("Adwaita")` or another explicit theme directly. Lookup
+uses XDG icon roots, bounded `index.theme` inheritance, size/scale matching, hicolor, and unthemed
+resources. Portable Linux executables without desktop entries have no standard application-icon
+identity and are unsupported by this capability. See
+[native prerequisites](platform-support.md#desktop-capabilities).
+
 ## Screen color selection
 
 Samples are opaque eight-bit RGB for ordinary color selection. Values depend on the platform's
@@ -552,3 +601,71 @@ Modes describe lock compatibility, not application data-access permissions. `Exc
 default enum value; every acquisition requires an explicit mode argument. There is no upgrade
 operation: a held lease cannot change modes. Hierarchy and logical resource identity remain
 application policy.
+
+## File-driven application choices
+
+All three built-in providers expose `IPlatformProvider.ApplicationDiscovery`. Call
+`FindForFileAsync` with the absolute path of an existing regular file and present the returned
+candidate labels. Pass the selected candidate's `Target` to the same provider's `ApplicationIcons`
+and `FileInvoker`. Never resolve selections by display label or convert association targets into
+executable targets: native registrations may require additional arguments or packaged activation.
+
+These are transient, advisory choices using current registrations. Refresh as needed; ordering is
+not default selection and format support is not guaranteed. Windows association icons use the Shell
+image cache, including indirect packaged resources; cached images may be scaled or generic. Missing
+registrations fail rather than selecting the default application. See the
+[discovery contract](file-application-discovery.md) for coalescing and identity limitations.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Desktop;
+
+public static class FileApplicationChoices
+{
+    public static Task<IReadOnlyList<ApplicationCandidate>> FindAsync(
+        IPlatformProvider platform, string absoluteFilePath, CancellationToken token)
+    {
+        var discovery = platform.ApplicationDiscovery
+            ?? throw new PlatformNotSupportedException("Application discovery is unavailable.");
+        return discovery.FindForFileAsync(absoluteFilePath, token);
+    }
+
+    public static Task OpenAsync(IPlatformProvider platform, string absoluteFilePath,
+        ApplicationCandidate selected, CancellationToken token)
+    {
+        var invoker = platform.FileInvoker
+            ?? throw new PlatformNotSupportedException("Application handoff is unavailable.");
+        return invoker.OpenAsync(absoluteFilePath, selected.Target, token);
+    }
+}
+```
+
+macOS returns bundle targets from native file-URL lookup. Linux queries the file's GIO content type
+and returns desktop-entry targets. Extensionless or unknown types can still have general-purpose
+handlers; extension and file content may influence native lookup differently on each platform. No
+document is launched during discovery. Missing or malformed native identity metadata fails the
+operation rather than returning a partial list. Linux lookup requires GIO and the installed MIME and
+desktop-entry databases, not a graphical desktop session.
+
+## Open with the system default
+
+Check `DefaultFileOpener` separately from explicit application invocation. All three built-in
+providers supply this capability. Pass an actual existing regular file, not a directory or URL. The
+operation neither changes associations nor derives a default from discovery results. Completion
+means submission with joined helper cleanup, not document readiness. Cancellation is honored before
+handoff; once submission begins, late cancellation does not relabel success as failure. The OS or
+selected application may show native UI.
+
+```csharp
+using Bathos.Platform;
+
+public static class DefaultFileOpening
+{
+    public static Task OpenAsync(IPlatformProvider platform, string absoluteFilePath, CancellationToken token)
+    {
+        var opener = platform.DefaultFileOpener
+            ?? throw new PlatformNotSupportedException("System-default file opening is unavailable.");
+        return opener.OpenAsync(absoluteFilePath, token);
+    }
+}
+```
