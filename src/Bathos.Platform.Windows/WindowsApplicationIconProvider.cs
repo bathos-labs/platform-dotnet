@@ -13,9 +13,47 @@ public sealed partial class WindowsApplicationIconProvider : IApplicationIconPro
     {
         ArgumentNullException.ThrowIfNull(application); ApplicationIcon.ValidatePixelSize(pixelSize);
         if (!OperatingSystem.IsWindows()) throw new PlatformNotSupportedException("Windows application icons require Windows.");
+        if (application.Kind == ApplicationTargetKind.WindowsAssociation)
+            return WindowsAssociationHandlers.Run(() => WindowsAssociationHandlers.WithHandlers(
+                application.AssociationExtension ?? throw new ArgumentException("Missing association context.", nameof(application)),
+                entries => ReadAssociation(WindowsAssociationHandlers.Resolve(entries, application).Handle, pixelSize, cancellationToken), cancellationToken));
         if (application.Kind != ApplicationTargetKind.Executable) throw new NotSupportedException("Windows icons require an executable target.");
         return Task.Run(() => Read(application.Value, pixelSize, cancellationToken), cancellationToken);
     }
+
+    private static unsafe ApplicationIcon? ReadAssociation(nint handler, int size, CancellationToken token)
+    {
+        token.ThrowIfCancellationRequested();
+        var (location, index) = WindowsAssociationHandlers.IconLocation(handler);
+        if (string.IsNullOrEmpty(location)) return null;
+        var cached = CachedImageIndex(location, index, 0);
+        if (cached < 0) throw new IOException("Shell could not cache the application's icon.");
+        var id = new Guid("46eb5926-582e-4017-9fdf-e8998daa0950");
+        nint images = 0;
+        try
+        {
+            Marshal.ThrowExceptionForHR(GetImageList(size > 48 ? 4 : size > 32 ? 2 : size > 16 ? 0 : 1, ref id, out images));
+            if (images == 0) throw new IOException("Shell returned no image list.");
+            nint nativeIcon = 0;
+            var status = ((delegate* unmanaged[Stdcall]<nint, int, uint, nint*, int>)(*(nint**)images)[10])(images, cached, 1, &nativeIcon);
+            using var icon = new IconHandle(nativeIcon);
+            Marshal.ThrowExceptionForHR(status);
+            if (icon.IsInvalid) throw new IOException("Shell returned no application icon.");
+            var black = Render(nativeIcon, size, 0);
+            var white = Render(nativeIcon, size, 255);
+            token.ThrowIfCancellationRequested();
+            return ApplicationIcon.TakeOwnership(size, size, CompositeToRgba(black, white));
+        }
+        finally
+        {
+            if (images != 0) ((delegate* unmanaged[Stdcall]<nint, uint>)(*(nint**)images)[2])(images);
+        }
+    }
+
+    [LibraryImport("shell32.dll", EntryPoint = "Shell_GetCachedImageIndexW", StringMarshalling = StringMarshalling.Utf16)]
+    private static partial int CachedImageIndex(string location, int index, uint flags);
+    [LibraryImport("shell32.dll", EntryPoint = "SHGetImageList")]
+    private static partial int GetImageList(int size, ref Guid id, out nint images);
 
     private static ApplicationIcon? Read(string path, int size, CancellationToken token)
     {

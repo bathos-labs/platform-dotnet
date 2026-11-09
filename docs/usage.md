@@ -231,9 +231,9 @@ missing services and libraries are operation failures.
 ## Application icons
 
 Use the optional `ApplicationIcons` capability to retrieve display iconography for an explicit
-target. Windows supports executable resource files, macOS supports bundles or executable files, and
-Linux supports desktop-entry IDs. Icon retrieval never launches the application or changes
-associations.
+target. Windows supports executable resource files and discovered association targets, macOS
+supports bundles or executable files, and Linux supports desktop-entry IDs. Icon retrieval never
+launches the application or changes associations.
 
 ```csharp
 using Bathos.Platform;
@@ -601,3 +601,48 @@ Modes describe lock compatibility, not application data-access permissions. `Exc
 default enum value; every acquisition requires an explicit mode argument. There is no upgrade
 operation: a held lease cannot change modes. Hierarchy and logical resource identity remain
 application policy.
+
+## File-driven application choices
+
+All three built-in providers expose `IPlatformProvider.ApplicationDiscovery`. Call
+`FindForFileAsync` with the absolute path of an existing regular file and present the returned
+candidate labels. Pass the selected candidate's `Target` to the same provider's `ApplicationIcons`
+and `FileInvoker`. Never resolve selections by display label or convert association targets into
+executable targets: native registrations may require additional arguments or packaged activation.
+
+These are transient, advisory choices using current registrations. Refresh as needed; ordering is
+not default selection and format support is not guaranteed. Windows association icons use the Shell
+image cache, including indirect packaged resources; cached images may be scaled or generic. Missing
+registrations fail rather than selecting the default application. See the
+[discovery contract](file-application-discovery.md) for coalescing and identity limitations.
+
+```csharp
+using Bathos.Platform;
+using Bathos.Platform.Desktop;
+
+public static class FileApplicationChoices
+{
+    public static Task<IReadOnlyList<ApplicationCandidate>> FindAsync(
+        IPlatformProvider platform, string absoluteFilePath, CancellationToken token)
+    {
+        var discovery = platform.ApplicationDiscovery
+            ?? throw new PlatformNotSupportedException("Application discovery is unavailable.");
+        return discovery.FindForFileAsync(absoluteFilePath, token);
+    }
+
+    public static Task OpenAsync(IPlatformProvider platform, string absoluteFilePath,
+        ApplicationCandidate selected, CancellationToken token)
+    {
+        var invoker = platform.FileInvoker
+            ?? throw new PlatformNotSupportedException("Application handoff is unavailable.");
+        return invoker.OpenAsync(absoluteFilePath, selected.Target, token);
+    }
+}
+```
+
+macOS returns bundle targets from native file-URL lookup. Linux queries the file's GIO content type
+and returns desktop-entry targets. Extensionless or unknown types can still have general-purpose
+handlers; extension and file content may influence native lookup differently on each platform. No
+document is launched during discovery. Missing or malformed native identity metadata fails the
+operation rather than returning a partial list. Linux lookup requires GIO and the installed MIME and
+desktop-entry databases, not a graphical desktop session.

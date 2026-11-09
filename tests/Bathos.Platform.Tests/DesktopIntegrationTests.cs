@@ -118,6 +118,10 @@ public sealed class DesktopIntegrationTests
                 const string id = "org.bathos.HandoffProbe.desktop";
                 var executable = TestApplication.Replace("\\", "\\\\", StringComparison.Ordinal).Replace("\"", "\\\"", StringComparison.Ordinal).Replace("%", "%%", StringComparison.Ordinal);
                 File.WriteAllText(Path.Combine(applications.FullName, id), $"[Desktop Entry]\nType=Application\nName=Bathos owned test\nExec=\"{executable}\" %f\nTerminal=false\n");
+                var iconPath = Path.Combine(folder.FullName, "owned.svg");
+                File.WriteAllText(iconPath, "<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"16\" height=\"16\"><rect width=\"16\" height=\"16\" fill=\"red\"/></svg>");
+                File.AppendAllText(Path.Combine(applications.FullName, id), $"MimeType=application/json;text/plain;\nIcon={iconPath}\n");
+                File.WriteAllText(Path.Combine(applications.FullName, "mimeinfo.cache"), $"[MIME Cache]\napplication/json={id};\ntext/plain={id};\n");
                 var configuration = Path.Combine(folder.FullName, "launch.json");
                 File.WriteAllText(configuration, JsonSerializer.Serialize(new { Mode = "desktop", PipeName = pipeName, Document = document, DesktopId = id }));
                 var start = new ProcessStartInfo(TestApplication) { UseShellExecute = false, CreateNoWindow = true, RedirectStandardError = true };

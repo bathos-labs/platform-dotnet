@@ -11,6 +11,20 @@ using Bathos.Platform.Windows;
 // Engineering-only owned test application: never opens an editor or a desktop window.
 try
 {
+    if (args is ["--association-marker" or "--association-held-marker", var pipeName, var document])
+    {
+        using var timeout = new CancellationTokenSource(TimeSpan.FromSeconds(15));
+        using var connection = new NamedPipeClientStream(".", pipeName, PipeDirection.InOut, PipeOptions.Asynchronous);
+        await connection.ConnectAsync(timeout.Token);
+        using var output = new StreamWriter(connection) { AutoFlush = true };
+        await output.WriteLineAsync(JsonSerializer.Serialize(new ProbeResult(Environment.ProcessId, args)).AsMemory(), timeout.Token);
+        if (args[0] == "--association-held-marker")
+        {
+            using var input = new StreamReader(connection, leaveOpen: true);
+            if (await input.ReadLineAsync(timeout.Token) != "finish") throw new IOException("Missing completion signal.");
+        }
+        return 0;
+    }
     var configuration = JsonSerializer.Deserialize<ProbeConfiguration>(File.ReadAllText(args.Single()))
         ?? throw new InvalidDataException("Missing probe configuration.");
     if (configuration.Mode == "lease-terminal-fixture")
@@ -99,7 +113,11 @@ try
         if (!OperatingSystem.IsLinux()) throw new PlatformNotSupportedException();
         var id = configuration.DesktopId ?? throw new InvalidDataException("Missing desktop ID.");
         var path = configuration.Document ?? throw new InvalidDataException("Missing document.");
-        var target = LinuxApplicationDiscovery.FindByDesktopId(id).Single();
+        var candidates = await new LinuxFileApplicationDiscovery().FindForFileAsync(path);
+        var selected = candidates.Single(candidate => candidate.Target.Value == id);
+        var icon = await new LinuxApplicationIconProvider().GetIconAsync(selected.Target, 16);
+        if (icon is null || icon.Data.Length != 16 * 16 * 4) throw new InvalidDataException("Missing discovered application icon.");
+        var target = selected.Target;
         await new LinuxFileInvoker().OpenAsync(path, target);
         return 0;
     }

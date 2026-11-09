@@ -9,6 +9,9 @@ namespace Bathos.Platform.MacOS;
 /// <summary>macOS capabilities. Construction does not invoke native APIs; a dispatcher enables interactive sampling.</summary>
 public sealed class MacOSPlatformProvider : IPlatformProvider
 {
+    /// <summary>Gets file-driven discovery of registered application choices.</summary>
+    public IApplicationDiscovery ApplicationDiscovery { get; } = new MacOSFileApplicationDiscovery();
+
     /// <summary>Gets native snapshot publication that preserves retained readers.</summary>
     public ISnapshotFileRename SnapshotFileRename { get; } = new MacFileRename();
     /// <summary>Composes macOS capabilities without loading native services.</summary>
