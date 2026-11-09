@@ -129,6 +129,6 @@ This does not resolve aliases or assert existence. Invocation requires a matchin
     <exception cref="ArgumentOutOfRangeException">The mode is not a defined lease mode.</exception>
     <exception cref="ArgumentException">The path is invalid or cannot be represented losslessly at the native boundary.</exception>
     <exception cref="OperationCanceledException">Cancellation is observed before ownership is returned.</exception>
-    <exception cref="PlatformNotSupportedException">Invoked on a foreign runtime.</exception>
+    <exception cref="PlatformNotSupportedException">Invoked on a foreign runtime, or the Linux process architecture has no supported native open-flag mapping.</exception>
   </TryAcquireFileLease>
 </contracts>

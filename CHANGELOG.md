@@ -25,6 +25,12 @@ native support remains experimental; public API compatibility still applies.
   `PlatformNotSupportedException` errors. Existing provider implementations inherit a null
   capability. Hosts retain caching and placeholders.
 
+### Fixed
+
+- Linux ARM/Arm64 file leases now use the native no-follow flag, rejecting symbolic-link lock paths
+  instead of following them. Dangling links cannot create a lock file at the linked destination.
+  Unrecognized process architectures fail explicitly rather than assuming x86 open flags.
+
 ## [1.1.0] - 2026-10-25
 
 Changes since the previous stable release, `1.0.0`. Prerelease entries below preserve the

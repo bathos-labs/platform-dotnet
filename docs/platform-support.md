@@ -35,6 +35,13 @@ usable.
 | Cooperative file leases        | A local filesystem supporting the native locking protocol, a preexisting parent directory, and an unchanged lock artifact and containing directory tree while leased. |
 | Paths and standard directories | Native syntax and available host/account configuration. Directory discovery does not create locations or establish access.                                            |
 
+Linux file leases have explicit native open-flag mappings for x86, x64, ARM, and Arm64 process ABIs.
+Other process architectures throw `PlatformNotSupportedException` before opening the lock path; they
+never fall back to another architecture's flag values. These mappings follow the Linux UAPI headers;
+they do not establish native acceptance for every mapped architecture. Linux x64 is covered by CI;
+the symlink and dangling-symlink regressions also passed locally in a Linux Arm64 container. 32-bit
+x86 and ARM execution remain unverified.
+
 Filesystem guarantees are scoped to the documented native operations. Network filesystems, aliases,
 unusual mount policies, denied access, and cross-volume arrangements need their own evidence. Atomic
 visibility is not a power-loss durability guarantee. Lease coordination applies to cooperating

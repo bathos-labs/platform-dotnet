@@ -20,7 +20,18 @@ public sealed partial class LinuxFileLeaseProvider : IFileLeaseProvider
         cancellationToken.ThrowIfCancellationRequested();
         // O_RDWR | O_CREAT | O_NONBLOCK | O_NOFOLLOW | O_NOCTTY | O_CLOEXEC; mode 0600, subject to umask.
         // Raw open avoids the runtime's implicit flock and preserves exact contention/error classification.
-        var descriptor = Open(path, 0x2 | 0x40 | 0x800 | 0x100 | 0x20000 | 0x80000, 0x180);
+        // Linux UAPI: include/uapi/asm-generic/fcntl.h and arch/{arm,arm64}/include/uapi/asm/fcntl.h.
+        // https://github.com/torvalds/linux/blob/master/include/uapi/asm-generic/fcntl.h
+        // https://github.com/torvalds/linux/blob/master/arch/arm64/include/uapi/asm/fcntl.h
+        // ARM overrides O_NOFOLLOW; the x86 value is O_LARGEFILE in the ARM kernel ABI.
+        // Select by process ABI, including 32-bit processes running on a 64-bit kernel.
+        var noFollow = RuntimeInformation.ProcessArchitecture switch
+        {
+            Architecture.Arm or Architecture.Arm64 => 0x8000,
+            Architecture.X86 or Architecture.X64 => 0x20000,
+            _ => throw new PlatformNotSupportedException("Linux file leases require a supported x86 or ARM open-flag ABI."),
+        };
+        var descriptor = Open(path, 0x2 | 0x40 | 0x800 | 0x100 | noFollow | 0x80000, 0x180);
         if (descriptor < 0) throw FileEntryErrors.Native();
         var handle = new SafeFileHandle((nint)descriptor, ownsHandle: true);
         var acquired = false;
