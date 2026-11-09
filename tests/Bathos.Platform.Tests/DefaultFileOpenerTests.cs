@@ -8,6 +8,31 @@ namespace Bathos.Platform.Tests;
 
 public sealed class DefaultFileOpenerTests
 {
+    [Theory]
+    [InlineData(false)]
+    [InlineData(true)]
+    [Trait("Validation", "Native")]
+    public async Task WindowsRejectsFileReparsePoints(bool dangling)
+    {
+        if (!OperatingSystem.IsWindows()) Assert.Skip("Windows reparse-point validation required.");
+        var directory = Directory.CreateTempSubdirectory("bathos-default-link-");
+        try
+        {
+            var target = Path.Combine(directory.FullName, "target.txt");
+            if (!dangling) File.WriteAllText(target, "preserve");
+            var link = Path.Combine(directory.FullName, "link.txt");
+            try { File.CreateSymbolicLink(link, target); }
+            catch (IOException error) when (error.HResult == unchecked((int)0x80070522))
+            {
+                Assert.Skip("Symlink creation requires Windows developer mode or privileges.");
+            }
+            await Assert.ThrowsAnyAsync<IOException>(() => new WindowsDefaultFileOpener().OpenAsync(link, TestContext.Current.CancellationToken));
+            if (dangling) Assert.False(File.Exists(target));
+            else Assert.Equal("preserve", File.ReadAllText(target));
+        }
+        finally { directory.Delete(true); }
+    }
+
     [Fact]
     [Trait("Validation", "Portable")]
     public void CapabilityIsAdditiveAndConstructionDoesNotLoadNativeServices()

@@ -6,6 +6,7 @@ using Xunit;
 namespace Bathos.Platform.Tests;
 
 [Trait("Validation", "Native")]
+[Collection("Windows Shell registrations")]
 public sealed class WindowsFileApplicationDiscoveryTests
 {
     [Theory]

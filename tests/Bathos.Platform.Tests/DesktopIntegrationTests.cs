@@ -11,6 +11,7 @@ using Xunit;
 
 namespace Bathos.Platform.Tests;
 
+[Collection("Windows Shell registrations")]
 public sealed class DesktopIntegrationTests
 {
     private static IPlatformProvider Current() => PlatformProviders.SelectCurrent(
@@ -18,6 +19,37 @@ public sealed class DesktopIntegrationTests
 
     private static string TestApplication => Path.Combine(AppContext.BaseDirectory, "TestApplication",
         "Bathos.Platform.TestApplication" + (OperatingSystem.IsWindows() ? ".exe" : ""));
+
+    [Fact]
+    [Trait("Validation", "Native")]
+    public async Task WindowsDefaultOpeningReportsBrokenOwnedRegistration()
+    {
+        if (!OperatingSystem.IsWindows()) { Assert.Skip("Windows Shell activation required."); return; }
+        var folder = Directory.CreateTempSubdirectory("bathos-default-error-");
+        var extension = ".bathos" + Guid.NewGuid().ToString("N");
+        var progId = "Bathos.DefaultProbe" + Guid.NewGuid().ToString("N");
+        try
+        {
+            var document = Path.Combine(folder.FullName, "document" + extension);
+            File.WriteAllText(document, "preserve");
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + extension)) key.SetValue(null, progId);
+            using (var key = Registry.CurrentUser.CreateSubKey(@"Software\Classes\" + progId + @"\shell\open\command"))
+                key.SetValue(null, $"\"{Path.Combine(folder.FullName, "missing.exe")}\" \"%1\"");
+            var error = await Assert.ThrowsAsync<IOException>(() => new WindowsDefaultFileOpener().OpenAsync(document, TestContext.Current.CancellationToken));
+            Assert.IsType<Win32Exception>(error.InnerException);
+            Assert.Equal("preserve", File.ReadAllText(document));
+        }
+        finally
+        {
+            Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + extension, false);
+            Registry.CurrentUser.DeleteSubKeyTree(@"Software\Classes\" + progId, false);
+            folder.Delete(true);
+        }
+        using var remainingExtension = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + extension);
+        using var remainingProgId = Registry.CurrentUser.OpenSubKey(@"Software\Classes\" + progId);
+        Assert.Null(remainingExtension);
+        Assert.Null(remainingProgId);
+    }
 
     [Fact]
     [Trait("Validation", "Portable")]
