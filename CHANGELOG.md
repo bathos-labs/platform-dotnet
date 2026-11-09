@@ -12,6 +12,39 @@ native support remains experimental; public API compatibility still applies.
 
 ## [Unreleased]
 
+## [1.2.0] - 2026-11-09
+
+Changes since 1.1.0. Promotes the accepted 1.2 release candidate with no further library behavior
+changes. Windows symbolic-link and Linux graphical desktop acceptance remain explicitly deferred;
+see [platform support](docs/platform-support.md#tested-environments-and-support-limits).
+
+### Added
+
+- Optional `IDefaultFileOpener` and default-null `IPlatformProvider.DefaultFileOpener` for opening
+  an existing regular file with the OS-selected default application. Windows uses the Shell open
+  verb, macOS uses LaunchServices through the system open helper, and Linux uses GIO default
+  activation. Completion establishes submission only; existing explicit application invocation is
+  unchanged.
+
+- Core application-discovery contracts: `IApplicationDiscovery`, immutable `ApplicationCandidate`,
+  and a default-null `IPlatformProvider.ApplicationDiscovery` capability. Windows supplies native
+  file-driven discovery, association targets, native invocation, and Shell-cache icon rendering.
+  macOS uses NSWorkspace file lookup and Linux uses GIO content-type registrations. Discovered
+  targets compose with the matching invocation and icon providers; existing lookup utilities remain
+  unchanged.
+- Optional application-icon retrieval for explicit targets, without application lists or launches.
+  All providers return owned RGBA bitmaps at the requested size. Linux renders desktop-entry PNG/XPM
+  icons through GdkPixbuf and SVG through librsvg/Cairo; callers supply the native libraries in
+  their Linux distribution. Missing or incompatible rendering libraries raise descriptive
+  `PlatformNotSupportedException` errors. Existing provider implementations inherit a null
+  capability. Hosts retain caching and placeholders.
+
+### Fixed
+
+- Linux ARM/Arm64 file leases now use the native no-follow flag, rejecting symbolic-link lock paths
+  instead of following them. Dangling links cannot create a lock file at the linked destination.
+  Unrecognized process architectures fail explicitly rather than assuming x86 open flags.
+
 ## [1.2.0-rc.1] - 2026-11-09
 
 Release candidate following successful macOS and Windows downstream integration. The feature set and
@@ -181,7 +214,7 @@ experimental. Prerelease APIs may change without compatibility shims.
   Interactive Finder, Explorer, and editor validation remains pending; see the native validation
   record.
 
-[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.2.0-rc.1...release/1.2
+[Unreleased]: https://github.com/bathos-labs/platform-dotnet/compare/v1.2.0...master
 [1.2.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.2.0-beta.1
 [1.1.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0
 [1.1.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.1.0-rc.1
@@ -190,3 +223,4 @@ experimental. Prerelease APIs may change without compatibility shims.
 [1.0.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.0.0
 [0.1.0-beta.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v0.1.0-beta.1
 [1.2.0-rc.1]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.2.0-rc.1
+[1.2.0]: https://github.com/bathos-labs/platform-dotnet/releases/tag/v1.2.0
